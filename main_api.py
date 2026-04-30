@@ -1,0 +1,812 @@
+"""
+main_api.py — SENTINEL FastAPI Backend
+
+Exposes the SENTINEL pipeline as a REST API.
+Deployed on Railway. Frontend on Vercel.
+
+Architecture:
+  POST /api/run          → Start pipeline, returns job_id immediately
+  GET  /api/run/{job_id} → Poll for pipeline result (frontend polls every 2s)
+  GET  /api/history      → Run history for current user
+  GET  /api/profile      → User profile + tier
+  GET  /api/ticker       → Live ticker data (cached 5 min)
+  GET  /api/calendar     → Upcoming economic events
+  GET  /api/yield-curve  → India + US yield curve
+  GET  /api/notifications/preferences  → User alert preferences
+  PUT  /api/notifications/preferences  → Update alert preferences
+  GET  /api/admin/stats               → Admin dashboard (admin tier only)
+
+Auth:
+  Every protected endpoint reads the Supabase JWT from
+  the Authorization: Bearer <token> header and verifies it
+  via supabase.auth.get_user(token). No custom JWT logic needed.
+
+Job store:
+  In-memory dict on Railway's single instance.
+  Safe for MVP (single worker). For scale: swap to Redis.
+  Jobs expire after 1 hour to prevent memory growth.
+
+Run locally:
+  pip install fastapi uvicorn python-multipart
+  uvicorn main_api:app --reload --port 8000
+
+Deploy to Railway:
+  Push to GitHub → connect repo in Railway → it reads Procfile automatically.
+  Set all secrets from secrets.toml as Railway environment variables.
+"""
+
+import os
+import uuid
+import time
+import asyncio
+import traceback
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Any
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+# ── Supabase ──────────────────────────────────────────────────────────────────
+from supabase import create_client, Client
+
+# ── SENTINEL engines ──────────────────────────────────────────────────────────
+from data_ingestion       import DataIngestor
+from NLP                  import IndianMacroNLP
+from regime_engine        import MacroRegimeEngine
+from intel_aggregator     import IntelAggregator
+from scenario_engine      import ScenarioEngine
+from trigger_engine       import TriggerEngine
+from asset_impact_engine  import AssetImpactEngine
+from report_generator     import ReportGenerator
+from cause_effect_engine  import CauseEffectEngine
+from positioning_engine   import PositioningEngine
+from liquidity_engine     import LiquidityEngine
+from strategy_engine      import StrategyEngine
+from decision_engine      import DecisionEngine
+from schema_validator     import SchemaValidator
+from schema_repair_engine import SchemaRepairEngine
+from nse_data             import NSEDataFetcher
+from yield_curve          import get_yield_curve_data
+from notifications        import NotificationEngine
+from schemas import (
+    REGIME_SCHEMA, SCENARIO_SCHEMA,
+    ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA
+)
+from economic_calendar import get_upcoming_events, get_events_by_window, days_until_label
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONFIG
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _env(key: str, default: str = "") -> str:
+    """Read from Railway env vars (set these in Railway dashboard)."""
+    return os.environ.get(key, default)
+
+
+SUPABASE_URL         = _env("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = _env("SUPABASE_SERVICE_KEY")
+SUPABASE_ANON_KEY    = _env("SUPABASE_ANON_KEY")
+
+# CORS — add your Vercel URL once deployed, e.g. https://sentinel.vercel.app
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:8080",
+    _env("FRONTEND_URL"),           # set in Railway: https://your-app.vercel.app
+    _env("CUSTOM_DOMAIN"),          # set once you have a domain
+]
+ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o]   # strip empty strings
+
+JOB_TTL_SECONDS = 3600    # jobs expire after 1 hour
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LIFESPAN — initialise heavy resources once at startup
+# ══════════════════════════════════════════════════════════════════════════════
+
+_engines: dict  = {}
+_supabase: Client | None = None
+_notif_engine: NotificationEngine | None = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _engines, _supabase, _notif_engine
+    print("[SENTINEL API] Starting up — initialising engines...")
+    _supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    _notif_engine = NotificationEngine(_supabase)
+    _engines = {
+        "ingestor":    DataIngestor(),
+        "nlp":         IndianMacroNLP(),
+        "regime":      MacroRegimeEngine(),
+        "aggregator":  IntelAggregator(),
+        "scenario":    ScenarioEngine(),
+        "trigger":     TriggerEngine(),
+        "asset":       AssetImpactEngine(),
+        "cause":       CauseEffectEngine(),
+        "positioning": PositioningEngine(),
+        "liquidity":   LiquidityEngine(),
+        "strategy":    StrategyEngine(),
+        "decision":    DecisionEngine(),
+        "report":      ReportGenerator(),
+        "validator":   SchemaValidator(),
+        "repair":      SchemaRepairEngine(),
+        "nse":         NSEDataFetcher(),
+    }
+    print("[SENTINEL API] Engines ready.")
+    yield
+    print("[SENTINEL API] Shutting down.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# APP
+# ══════════════════════════════════════════════════════════════════════════════
+
+app = FastAPI(
+    title       = "SENTINEL Macro Intelligence API",
+    description = "India macro regime engine — FastAPI backend",
+    version     = "1.0.0",
+    lifespan    = lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins     = ALLOWED_ORIGINS,
+    allow_credentials = True,
+    allow_methods     = ["*"],
+    allow_headers     = ["*"],
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# IN-MEMORY JOB STORE
+# ══════════════════════════════════════════════════════════════════════════════
+
+_jobs: dict[str, dict] = {}
+
+def _create_job(user_id: str) -> str:
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {
+        "job_id":    job_id,
+        "user_id":   user_id,
+        "status":    "running",    # running | complete | failed
+        "created_at": time.time(),
+        "result":    None,
+        "error":     None,
+    }
+    return job_id
+
+def _get_job(job_id: str) -> dict | None:
+    job = _jobs.get(job_id)
+    if not job:
+        return None
+    # TTL check — expire old jobs silently
+    if time.time() - job["created_at"] > JOB_TTL_SECONDS:
+        del _jobs[job_id]
+        return None
+    return job
+
+def _expire_old_jobs():
+    """Call occasionally to prevent memory growth."""
+    now = time.time()
+    expired = [jid for jid, j in _jobs.items()
+               if now - j["created_at"] > JOB_TTL_SECONDS]
+    for jid in expired:
+        del _jobs[jid]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH DEPENDENCY
+# ══════════════════════════════════════════════════════════════════════════════
+
+def ensure_dict(obj, name=""):
+    import json
+    if isinstance(obj, str):
+        try:
+            return json.loads(obj)
+        except Exception:
+            return {}
+    return obj if isinstance(obj, dict) else {}
+
+
+async def get_current_user(authorization: str = Header(...)):
+    """
+    Verifies the Supabase JWT sent by the frontend.
+    Returns the Supabase user object or raises 401.
+    """
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid auth header")
+    token = authorization.replace("Bearer ", "").strip()
+    try:
+        response = _supabase.auth.get_user(token)
+        if not response.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return response.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token verification failed")
+
+
+async def get_profile(user=Depends(get_current_user)) -> dict:
+    """Fetches user profile from Supabase profiles table."""
+    result = (
+        _supabase.table("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return result.data
+
+
+async def require_access(profile: dict = Depends(get_profile)) -> dict:
+    """
+    Checks that the user has active paid or trial access.
+    Raises 403 if expired or pending.
+    """
+    tier = profile.get("tier", "")
+    if tier == "paid":
+        return profile
+    if tier == "trial":
+        trial_end = profile.get("trial_ends_at", "")
+        if trial_end:
+            try:
+                end_dt = datetime.fromisoformat(str(trial_end)[:10])
+                if end_dt.date() >= datetime.now().date():
+                    return profile
+            except Exception:
+                return profile
+        raise HTTPException(status_code=403, detail="Trial expired")
+    raise HTTPException(status_code=403, detail="Access pending or not authorised")
+
+
+async def require_admin(profile: dict = Depends(get_profile)) -> dict:
+    if profile.get("tier") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return profile
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PIPELINE RUNNER (background task)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _run_pipeline_sync(job_id: str, user_id: str,
+                       repo: float, deficit: float, capex: float):
+    """
+    Runs the full SENTINEL pipeline synchronously in a thread.
+    Updates _jobs[job_id] when complete or failed.
+    """
+    try:
+        eng  = _engines
+        rep  = eng["repair"]
+
+        news_raw = eng["ingestor"].fetch_news_sentiment()
+        macro    = eng["ingestor"].fetch_macro_indicators()
+        market   = eng["ingestor"].fetch_market_data()
+
+        news = (
+            " ".join(news_raw.get("headlines", []))
+            if isinstance(news_raw, dict) else str(news_raw)
+        )
+
+        nse_snapshot = {}
+        try:
+            nse_snapshot = eng["nse"].get_full_snapshot()
+        except Exception:
+            nse_snapshot = {
+                "fii_dii": {}, "indices": {},
+                "fii_net_crore": 0, "india_vix": 15,
+                "pcr": 1.0, "flow_signal": "NEUTRAL"
+            }
+
+        intel = eng["nlp"].get_regime_scores(news)
+        intel["hard_data"].update({
+            "repo_rate":      repo,
+            "fiscal_deficit": deficit,
+            "capex_lakh_cr":  capex,
+            "gdp_growth":     macro.get("growth", {}).get("gdp", 7.2),
+            "fii_net_crore":  nse_snapshot.get("fii_net_crore", 0),
+            "india_vix":      nse_snapshot.get("india_vix", 15),
+            "nifty_pcr":      nse_snapshot.get("pcr", 1.0),
+        })
+
+        try:
+            liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
+        except TypeError:
+            liq = ensure_dict(eng["liquidity"].analyze(intel, market))
+
+        regime = ensure_dict(eng["regime"].detect_regime(intel, liq))
+        regime = rep.repair(regime, REGIME_SCHEMA)
+
+        _PRO  = {"LIQUIDITY_DRIVEN_EXPANSION","EARLY_CYCLE_RECOVERY","STABLE_GROWTH"}
+        _ROFF = {"LIQUIDITY_TIGHTENING","MONETARY_TIGHTENING","GROWTH_SLOWDOWN_SUPPORT",
+                 "STAGFLATION_RISK","INFLATION_PRESSURE_WITH_EXTERNAL_RISK"}
+        if regime.get("regime") in _PRO  and regime.get("confidence", 0) > 0.65:
+            regime.setdefault("components", {})["equity_bias"] = "RISK_ON"
+        elif regime.get("regime") in _ROFF and regime.get("confidence", 0) > 0.65:
+            regime.setdefault("components", {})["equity_bias"] = "RISK_OFF"
+
+        cause     = ensure_dict(eng["cause"].analyze(intel, regime))
+        scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
+        scenarios = rep.repair(scenarios, SCENARIO_SCHEMA)
+        asset_out = ensure_dict(eng["asset"].analyze_assets(regime, scenarios, liq))
+        asset_out = rep.repair(asset_out, ASSET_SCHEMA)
+        triggers  = eng["trigger"].generate_triggers(regime, cause)
+        if not isinstance(triggers, list):
+            triggers = []
+        pos = ensure_dict(
+            eng["positioning"].generate_positioning(regime, scenarios, asset_out, cause, triggers)
+        )
+        pos   = rep.repair(pos, POSITIONING_SCHEMA)
+        strat = ensure_dict(eng["strategy"].generate_strategy(regime, scenarios, pos, triggers))
+        strat = rep.repair(strat, STRATEGY_SCHEMA)
+        dec   = ensure_dict(
+            eng["decision"].generate(
+                regime_output=regime, scenario_output=scenarios,
+                asset_output=asset_out, positioning_output=pos,
+                strategy_output=strat, trigger_output=triggers
+            )
+        )
+
+        final_intel = eng["aggregator"].build_intel_packet(
+            regime_output=regime, scenario_output=scenarios,
+            asset_output=asset_out.get("assets", {}),
+            triggers=triggers, positioning_output=pos,
+            cause_effect_output=cause, decision_output=dec,
+            strategy_output=strat
+        )
+        report = eng["report"].generate_report(final_intel)
+
+        # ── Save run to Supabase ──────────────────────────────────────────
+        try:
+            _supabase.table("run_history").insert({
+                "user_id":    user_id,
+                "regime":     regime.get("regime", ""),
+                "confidence": regime.get("confidence", 0),
+                "conviction": strat.get("conviction", ""),
+                "repo_rate":  repo,
+                "deficit":    deficit,
+                "capex":      capex,
+                "summary":    dec.get("summary", ""),
+                "report_text": report if isinstance(report, str) else "",
+                "allocation": pos.get("allocation", {}),
+                "stress_test": {"repo_rate": repo, "deficit": deficit, "capex": capex},
+            }).execute()
+        except Exception as e:
+            print(f"[API] save_run failed: {e}")
+
+        # ── Fire notification engine ──────────────────────────────────────
+        try:
+            if _notif_engine:
+                _notif_engine.check_and_send_all({
+                    "regime":            regime.get("regime", ""),
+                    "confidence":        regime.get("confidence", 0) * 100,
+                    "challenger_regime": regime.get("challenger", ""),
+                    "challenger_conf":   regime.get("components", {})
+                                               .get("challenger_confidence", 0) * 100,
+                    "previous_regime":   regime.get("change_info", {})
+                                               .get("previous_regime", ""),
+                    "playbook": {
+                        "recommendation": dec.get("summary", ""),
+                        "equity_stance":  regime.get("components", {})
+                                                .get("equity_bias", "NEUTRAL"),
+                        "top_actions": (
+                            strat.get("playbook", [])[:3]
+                            if isinstance(strat.get("playbook"), list) else []
+                        ),
+                    },
+                    "ticker_data": {
+                        "VIX":   {"price": nse_snapshot.get("india_vix", 0)},
+                        "INR":   {"price": 0},
+                        "Crude": {"price": nse_snapshot.get("crude_price", 0)},
+                    },
+                    "yield_data":  {"10Y": {"price": 6.85, "change_bps": 0}},
+                    "fii_data":    {
+                        "net_flow_crore":           nse_snapshot.get("fii_net_crore", 0),
+                        "consecutive_outflow_days": nse_snapshot.get("consecutive_outflow_days", 0),
+                        "rolling_5d":               nse_snapshot.get("fii_net_crore", 0),
+                    },
+                    "rbi_events": [
+                        {"name": ev["name"], "date": ev["event_date"].strftime("%d %b %Y"),
+                         "hours_ahead": ev["days_until"] * 24}
+                        for ev in get_events_by_window(days_ahead=2)
+                        if ev.get("category") in ("RBI MPC", "CPI", "GDP")
+                        and not ev.get("released", False)
+                    ],
+                })
+        except Exception as e:
+            print(f"[API] Notification engine error: {e}")
+
+        # ── Mark job complete ─────────────────────────────────────────────
+        _jobs[job_id]["status"] = "complete"
+        _jobs[job_id]["result"] = {
+            "regime":      regime,
+            "strategy":    strat,
+            "decision":    dec,
+            "positioning": pos,
+            "scenarios":   scenarios,
+            "triggers":    triggers,
+            "liquidity":   liq,
+            "intel":       intel,
+            "nse":         nse_snapshot,
+            "macro":       macro,
+            "final_intel": final_intel,
+            "report":      report if isinstance(report, str) else "",
+        }
+
+    except Exception as e:
+        print(f"[API] Pipeline error: {e}")
+        traceback.print_exc()
+        _jobs[job_id]["status"] = "failed"
+        _jobs[job_id]["error"]  = str(e)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REQUEST / RESPONSE MODELS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RunRequest(BaseModel):
+    repo:    float = 5.25
+    deficit: float = 4.3
+    capex:   float = 12.2
+
+class NotificationPrefsUpdate(BaseModel):
+    channel:                    Optional[str]   = None
+    whatsapp_number:            Optional[str]   = None
+    regime_shift_enabled:       Optional[bool]  = None
+    confidence_breach_enabled:  Optional[bool]  = None
+    extreme_signal_enabled:     Optional[bool]  = None
+    fii_flow_enabled:           Optional[bool]  = None
+    rbi_event_enabled:          Optional[bool]  = None
+    weekly_summary_enabled:     Optional[bool]  = None
+    confidence_breach_threshold: Optional[float] = None
+    vix_threshold:              Optional[float]  = None
+    inr_threshold:              Optional[float]  = None
+    yield_spike_bps:            Optional[float]  = None
+    crude_threshold:            Optional[float]  = None
+    fii_outflow_crore:          Optional[float]  = None
+    fii_consecutive_days:       Optional[int]    = None
+    quiet_hours_start:          Optional[int]    = None
+    quiet_hours_end:            Optional[int]    = None
+    max_alerts_per_day:         Optional[int]    = None
+    min_gap_hours:              Optional[int]    = None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ROUTES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/")
+async def root():
+    return {"service": "SENTINEL Macro Intelligence API", "status": "online"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "engines": len(_engines), "jobs": len(_jobs)}
+
+
+# ── POST /api/run — start pipeline ───────────────────────────────────────────
+
+@app.post("/api/run")
+async def start_run(
+    body: RunRequest,
+    background_tasks: BackgroundTasks,
+    profile: dict = Depends(require_access),
+):
+    """
+    Starts the SENTINEL pipeline as a background task.
+    Returns a job_id immediately — frontend polls /api/run/{job_id}.
+    """
+    _expire_old_jobs()
+    job_id = _create_job(profile["id"])
+    background_tasks.add_task(
+        asyncio.get_event_loop().run_in_executor,
+        None,
+        _run_pipeline_sync,
+        job_id,
+        profile["id"],
+        body.repo,
+        body.deficit,
+        body.capex,
+    )
+    return {"job_id": job_id, "status": "running"}
+
+
+# ── GET /api/run/{job_id} — poll job status ───────────────────────────────────
+
+@app.get("/api/run/{job_id}")
+async def get_run_status(
+    job_id: str,
+    user=Depends(get_current_user),
+):
+    """
+    Poll this endpoint every 2 seconds after POST /api/run.
+    Returns status: running | complete | failed
+    When complete, result contains the full pipeline output.
+    """
+    job = _get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired")
+    if job["user_id"] != user.id:
+        raise HTTPException(status_code=403, detail="Not your job")
+
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "result": job["result"] if job["status"] == "complete" else None,
+        "error":  job["error"]  if job["status"] == "failed"   else None,
+    }
+
+
+# ── GET /api/history ──────────────────────────────────────────────────────────
+
+@app.get("/api/history")
+async def get_history(
+    limit: int = 30,
+    profile: dict = Depends(require_access),
+):
+    result = (
+        _supabase.table("run_history")
+        .select("*")
+        .eq("user_id", profile["id"])
+        .order("run_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return {"history": result.data or []}
+
+
+# ── GET /api/profile ──────────────────────────────────────────────────────────
+
+@app.get("/api/profile")
+async def get_user_profile(profile: dict = Depends(get_profile)):
+    return {"profile": profile}
+
+
+# ── GET /api/ticker ───────────────────────────────────────────────────────────
+
+_ticker_cache: dict = {"data": {}, "fetched_at": 0}
+
+@app.get("/api/ticker")
+async def get_ticker(_=Depends(get_current_user)):
+    """Live ticker data — cached 5 minutes."""
+    global _ticker_cache
+    if time.time() - _ticker_cache["fetched_at"] < 300 and _ticker_cache["data"]:
+        return {"ticker": _ticker_cache["data"], "cached": True}
+    try:
+        import yfinance as yf
+        symbols = {
+            "^NSEI":     "Nifty 50",
+            "^NSEBANK":  "Bank Nifty",
+            "^INDIAVIX": "India VIX",
+            "USDINR=X":  "USD/INR",
+            "GC=F":      "Gold",
+            "CL=F":      "Crude",
+            "^TNX":      "US 10Y",
+        }
+        result = {}
+        for sym, label in symbols.items():
+            try:
+                h = yf.Ticker(sym).history(period="5d", interval="1d")
+                if len(h) >= 2:
+                    prev  = float(h["Close"].iloc[-2])
+                    last  = float(h["Close"].iloc[-1])
+                    chg   = (last - prev) / prev * 100 if prev else 0
+                elif len(h) == 1:
+                    last, chg = float(h["Close"].iloc[-1]), 0.0
+                else:
+                    last, chg = 0.0, 0.0
+                result[label] = {"price": round(last, 2), "chg_pct": round(chg, 2)}
+            except Exception:
+                result[label] = {"price": 0, "chg_pct": 0}
+        _ticker_cache = {"data": result, "fetched_at": time.time()}
+        return {"ticker": result, "cached": False}
+    except Exception as e:
+        return {"ticker": {}, "error": str(e)}
+
+
+# ── GET /api/calendar ─────────────────────────────────────────────────────────
+
+@app.get("/api/calendar")
+async def get_calendar(
+    days_ahead: int = 120,
+    _=Depends(get_current_user),
+):
+    events = get_events_by_window(days_ahead=days_ahead)
+    return {
+        "events": [
+            {
+                **ev,
+                "event_date":  ev["event_date"].isoformat(),
+                "days_label":  days_until_label(ev["days_until"]),
+            }
+            for ev in events
+        ]
+    }
+
+
+# ── GET /api/yield-curve ──────────────────────────────────────────────────────
+
+_yc_cache: dict = {"data": None, "fetched_at": 0}
+
+@app.get("/api/yield-curve")
+async def get_yield_curve_endpoint(_=Depends(get_current_user)):
+    """Yield curve data — cached 1 hour."""
+    global _yc_cache
+    if time.time() - _yc_cache["fetched_at"] < 3600 and _yc_cache["data"]:
+        return {"yield_curve": _yc_cache["data"], "cached": True}
+    try:
+        data = get_yield_curve_data()
+        _yc_cache = {"data": data, "fetched_at": time.time()}
+        return {"yield_curve": data, "cached": False}
+    except Exception as e:
+        return {"yield_curve": None, "error": str(e)}
+
+
+# ── GET /api/notifications/preferences ───────────────────────────────────────
+
+@app.get("/api/notifications/preferences")
+async def get_notif_prefs(profile: dict = Depends(require_access)):
+    result = (
+        _supabase.table("notification_preferences")
+        .select("*")
+        .eq("user_id", profile["id"])
+        .execute()
+    )
+    if not result.data:
+        # Return defaults if no row exists yet
+        return {
+            "preferences": {
+                "user_id":                    profile["id"],
+                "email":                      profile.get("email", ""),
+                "channel":                    "email",
+                "regime_shift_enabled":       True,
+                "confidence_breach_enabled":  True,
+                "extreme_signal_enabled":     True,
+                "fii_flow_enabled":           True,
+                "rbi_event_enabled":          True,
+                "weekly_summary_enabled":     True,
+                "confidence_breach_threshold": 45.0,
+                "vix_threshold":              22.0,
+                "inr_threshold":              85.0,
+                "yield_spike_bps":            20.0,
+                "crude_threshold":            95.0,
+                "fii_outflow_crore":          5000.0,
+                "fii_consecutive_days":       3,
+                "quiet_hours_start":          22,
+                "quiet_hours_end":            7,
+                "max_alerts_per_day":         2,
+                "min_gap_hours":              6,
+            }
+        }
+    return {"preferences": result.data[0]}
+
+
+# ── PUT /api/notifications/preferences ───────────────────────────────────────
+
+@app.put("/api/notifications/preferences")
+async def update_notif_prefs(
+    body: NotificationPrefsUpdate,
+    profile: dict = Depends(require_access),
+):
+    update_data = {k: v for k, v in body.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    existing = (
+        _supabase.table("notification_preferences")
+        .select("user_id")
+        .eq("user_id", profile["id"])
+        .execute()
+    )
+    if existing.data:
+        result = (
+            _supabase.table("notification_preferences")
+            .update(update_data)
+            .eq("user_id", profile["id"])
+            .execute()
+        )
+    else:
+        update_data["user_id"] = profile["id"]
+        update_data.setdefault("email", profile.get("email", ""))
+        result = (
+            _supabase.table("notification_preferences")
+            .insert(update_data)
+            .execute()
+        )
+    return {"success": True, "preferences": result.data[0] if result.data else update_data}
+
+
+# ── GET /api/admin/stats ──────────────────────────────────────────────────────
+
+@app.get("/api/admin/stats")
+async def get_admin_stats(profile: dict = Depends(require_admin)):
+    """Admin dashboard — tier=admin only."""
+    users = (
+        _supabase.table("profiles")
+        .select("id, email, full_name, firm_name, tier, trial_ends_at")
+        .execute()
+    )
+    email_logs = (
+        _supabase.table("email_logs")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+    notif_logs = (
+        _supabase.table("notification_logs")
+        .select("*")
+        .order("sent_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+    regime_alerts = (
+        _supabase.table("regime_alerts")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+    total_users  = len(users.data or [])
+    paid_users   = sum(1 for u in (users.data or []) if u.get("tier") == "paid")
+    trial_users  = sum(1 for u in (users.data or []) if u.get("tier") == "trial")
+    active_jobs  = len([j for j in _jobs.values() if j["status"] == "running"])
+
+    return {
+        "users":           users.data or [],
+        "email_logs":      email_logs.data or [],
+        "notification_logs": notif_logs.data or [],
+        "regime_alerts":   regime_alerts.data or [],
+        "summary": {
+            "total_users":  total_users,
+            "paid_users":   paid_users,
+            "trial_users":  trial_users,
+            "active_jobs":  active_jobs,
+        }
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PDF ENDPOINT — generates white-label PDF and streams it
+# ══════════════════════════════════════════════════════════════════════════════
+
+from fastapi.responses import Response
+
+@app.post("/api/pdf/{job_id}")
+async def generate_pdf(
+    job_id: str,
+    profile: dict = Depends(require_access),
+):
+    """
+    Generates and returns a white-label PDF for a completed job.
+    Call this after /api/run/{job_id} returns status=complete.
+    """
+    job = _get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired")
+    if job["user_id"] != profile["id"]:
+        raise HTTPException(status_code=403, detail="Not your job")
+    if job["status"] != "complete":
+        raise HTTPException(status_code=400, detail=f"Job status: {job['status']}")
+
+    try:
+        from pdf_report_generator import PDFReportGenerator
+        firm_name = profile.get("firm_name") or "SENTINEL Intelligence"
+        pdf_gen   = PDFReportGenerator(firm_name=firm_name)
+        pdf_bytes = pdf_gen.generate(job["result"]["final_intel"])
+        filename  = f"SENTINEL_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        return Response(
+            content     = pdf_bytes,
+            media_type  = "application/pdf",
+            headers     = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
