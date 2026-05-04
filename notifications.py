@@ -117,11 +117,11 @@ def _send_email(to_address: str, subject: str, body_html: str) -> bool:
         from email.mime.text import MIMEText
         import streamlit as st
 
-        smtp_host   = st.secrets.get("SMTP_HOST", os.environ.get("SMTP_HOST", "smtp.gmail.com"))
-        smtp_port   = int(st.secrets.get("SMTP_PORT", os.environ.get("SMTP_PORT", 587)))
-        smtp_user   = st.secrets.get("SMTP_USER", os.environ.get("SMTP_USER", ""))
-        smtp_pass   = st.secrets.get("SMTP_PASS", os.environ.get("SMTP_PASS", ""))
-        from_addr   = st.secrets.get("FROM_EMAIL", os.environ.get("FROM_EMAIL", smtp_user))
+        smtp_host   = os.environ.get("SMTP_HOST",  os.environ.get("GMAIL_SENDER", "smtp.gmail.com"))
+        smtp_port   = int(os.environ.get("SMTP_PORT", 587))
+        smtp_user   = os.environ.get("SMTP_USER",  os.environ.get("GMAIL_SENDER", ""))
+        smtp_pass   = os.environ.get("SMTP_PASS",  os.environ.get("GMAIL_APP_PASS", ""))
+        from_addr   = os.environ.get("FROM_EMAIL", smtp_user)
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
