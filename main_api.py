@@ -69,7 +69,6 @@ async def lifespan(app: FastAPI):
 
     print(f"[SENTINEL API] SUPABASE_URL found    = {bool(supabase_url)}", flush=True)
     print(f"[SENTINEL API] SERVICE_KEY found     = {bool(supabase_service_key)}", flush=True)
-    print(f"[SENTINEL API] All env keys          = {sorted(os.environ.keys())}", flush=True)
 
     if not supabase_url:
         raise RuntimeError("SUPABASE_URL is missing — add it in Railway Variables tab.")
