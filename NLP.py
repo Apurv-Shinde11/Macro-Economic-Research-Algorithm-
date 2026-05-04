@@ -16,7 +16,6 @@ Source field values:
 import os
 import json
 import re
-import streamlit as st
 
 
 # =========================
@@ -40,6 +39,17 @@ NEUTRAL_KEYWORDS = [
 ]
 
 
+def _get_key(name):
+    """
+    Reads API keys from environment variables.
+    Works on Railway (env vars) and locally (.env / secrets.toml via os.environ).
+    """
+    val = os.environ.get(name, "")
+    if val and "your_" not in str(val) and len(str(val)) > 8:
+        return str(val)
+    return ""
+
+
 class IndianMacroNLP:
 
     def __init__(self):
@@ -50,19 +60,10 @@ class IndianMacroNLP:
     # =========================
     def _init_providers(self):
         """
-        Builds the ordered provider list from available secrets.
+        Builds the ordered provider list from available env vars.
         Only registers providers whose keys are present and valid.
         """
         providers = []
-
-        def _get_key(name):
-            try:
-                val = st.secrets.get(name, "")
-                if val and "your_" not in str(val) and len(str(val)) > 8:
-                    return str(val)
-            except Exception:
-                pass
-            return os.environ.get(name, "")
 
         gemini_key  = _get_key("GEMINI_API_KEY")
         groq_key    = _get_key("GROQ_API_KEY")
@@ -72,37 +73,37 @@ class IndianMacroNLP:
         # Priority 1 — Gemini 1.5 Flash (best quality, free)
         if gemini_key:
             providers.append({
-                "name":     "gemini",
-                "key":      gemini_key,
-                "model":    "gemini-1.5-flash",
-                "fn":       self._call_gemini
+                "name":  "gemini",
+                "key":   gemini_key,
+                "model": "gemini-1.5-flash",
+                "fn":    self._call_gemini
             })
 
-        # Priority 2 — Groq (current working, fast, free)
+        # Priority 2 — Groq (fast, free tier)
         if groq_key:
             providers.append({
-                "name":     "groq",
-                "key":      groq_key,
-                "model":    "llama-3.3-70b-versatile",
-                "fn":       self._call_groq
+                "name":  "groq",
+                "key":   groq_key,
+                "model": "llama-3.3-70b-versatile",
+                "fn":    self._call_groq
             })
 
         # Priority 3 — Mistral (free tokens)
         if mistral_key:
             providers.append({
-                "name":     "mistral",
-                "key":      mistral_key,
-                "model":    "mistral-small-latest",
-                "fn":       self._call_mistral
+                "name":  "mistral",
+                "key":   mistral_key,
+                "model": "mistral-small-latest",
+                "fn":    self._call_mistral
             })
 
         # Priority 4 — OpenAI (paid, last resort)
         if openai_key:
             providers.append({
-                "name":     "openai",
-                "key":      openai_key,
-                "model":    "gpt-4o-mini",
-                "fn":       self._call_openai
+                "name":  "openai",
+                "key":   openai_key,
+                "model": "gpt-4o-mini",
+                "fn":    self._call_openai
             })
 
         return providers
@@ -145,13 +146,13 @@ Return ONLY this JSON structure, no other text:
         payload = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature":    0.3,
-                "maxOutputTokens":800,
-                "responseMimeType":"application/json"
+                "temperature":     0.3,
+                "maxOutputTokens": 800,
+                "responseMimeType": "application/json"
             }
         }).encode("utf-8")
 
-        req  = urllib.request.Request(
+        req = urllib.request.Request(
             url, data=payload,
             headers={"Content-Type": "application/json"},
             method="POST"
@@ -159,9 +160,7 @@ Return ONLY this JSON structure, no other text:
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
 
-        text = (
-            data["candidates"][0]["content"]["parts"][0]["text"]
-        )
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
         return self._parse_llm_response(text)
 
     def _call_groq(self, provider, prompt):
@@ -276,20 +275,19 @@ Return ONLY this JSON structure, no other text:
     # =========================
     def _keyword_scores(self, text):
         text_lower = text.lower()
-        bull = sum(1 for w in BULLISH_KEYWORDS if w.lower() in text_lower)
-        bear = sum(1 for w in BEARISH_KEYWORDS if w.lower() in text_lower)
-        neut = sum(1 for w in NEUTRAL_KEYWORDS if w.lower() in text_lower)
+        bull  = sum(1 for w in BULLISH_KEYWORDS if w.lower() in text_lower)
+        bear  = sum(1 for w in BEARISH_KEYWORDS if w.lower() in text_lower)
+        neut  = sum(1 for w in NEUTRAL_KEYWORDS if w.lower() in text_lower)
         total = bull + bear + neut + 1
 
-        sentiment = (bull - bear) / total
-        regime    = (
+        sentiment  = (bull - bear) / total
+        regime     = (
             "BULLISH" if sentiment >  0.15 else
             "BEARISH" if sentiment < -0.15 else
             "NEUTRAL"
         )
         confidence = min(0.5, (bull + bear) / 20)
 
-        # Extract key signals from text
         signals = []
         for kw in BULLISH_KEYWORDS + BEARISH_KEYWORDS:
             if kw.lower() in text_lower and kw not in signals:
@@ -319,7 +317,6 @@ Return ONLY this JSON structure, no other text:
 
     # =========================
     # 🔀 MERGE FUNCTION
-    # Blends LLM output with keyword scores
     # =========================
     def _merge_outputs(self, llm_output, keyword_output, provider_name):
         """
@@ -328,7 +325,6 @@ Return ONLY this JSON structure, no other text:
         """
         merged = {}
 
-        # LLM fields take full priority
         for field in [
             "dominant_theme", "regime_type", "rbi_policy_implication",
             "equity_bias", "key_signals", "india_specific_risks",
@@ -336,7 +332,7 @@ Return ONLY this JSON structure, no other text:
         ]:
             merged[field] = llm_output.get(field, keyword_output.get(field))
 
-        # Blend numeric scores — LLM weighted 70%, keyword 30%
+        # Blend numeric scores — LLM 70%, keyword 30%
         for field in ["sentiment_score", "confidence", "growth_intensity"]:
             llm_val = float(llm_output.get(field, 0))
             kw_val  = float(keyword_output.get(field, 0))
@@ -354,18 +350,14 @@ Return ONLY this JSON structure, no other text:
         """
         Runs the full NLP pipeline.
         Tries each provider in order, falls back to keyword engine.
-
-        Returns a dict with all fields including:
-          source:   "llm+keyword" or "keyword"
-          provider: provider name or "none"
         """
         keyword_output = self._keyword_scores(news_text)
 
         if not news_text or len(news_text.strip()) < 20:
             return self._build_output(keyword_output)
 
-        prompt   = self._build_prompt(news_text)
-        errors   = []
+        prompt = self._build_prompt(news_text)
+        errors = []
 
         for provider in self.providers:
             try:
@@ -373,14 +365,12 @@ Return ONLY this JSON structure, no other text:
                 merged     = self._merge_outputs(
                     llm_output, keyword_output, provider["name"]
                 )
-                output = self._build_output(merged)
-                return output
+                return self._build_output(merged)
 
             except Exception as e:
                 errors.append(f"{provider['name']}: {str(e)[:120]}")
                 continue
 
-        # All providers failed — use keyword engine
         if errors:
             print(f"[NLP] All LLM providers failed:\n" +
                   "\n".join(f"  - {e}" for e in errors))
@@ -391,12 +381,7 @@ Return ONLY this JSON structure, no other text:
     # 🏗️ OUTPUT BUILDER
     # =========================
     def _build_output(self, scores):
-        """
-        Wraps scores into the full output dict
-        expected by the rest of the pipeline.
-        """
         return {
-            # Core NLP fields
             "dominant_theme":         scores.get("dominant_theme",        ""),
             "sentiment_score":        scores.get("sentiment_score",        0.0),
             "regime_type":            scores.get("regime_type",            "NEUTRAL"),
@@ -408,12 +393,8 @@ Return ONLY this JSON structure, no other text:
             "india_specific_risks":   scores.get("india_specific_risks",   []),
             "global_macro_factors":   scores.get("global_macro_factors",   []),
             "reasoning":              scores.get("reasoning",              ""),
-
-            # Source tracking — used by main.py for badge display
             "source":                 scores.get("source",    "keyword"),
             "provider":               scores.get("provider",  "none"),
-
-            # Hard data block — populated by main.py after this call
             "hard_data": {
                 "repo_rate":      6.5,
                 "fiscal_deficit": 4.5,

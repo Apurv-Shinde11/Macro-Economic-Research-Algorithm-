@@ -1,34 +1,23 @@
 import requests
-import streamlit as st
+import os
 import feedparser
 from datetime import datetime
+from functools import lru_cache
 
 
 class DataIngestor:
     def __init__(self):
         # Alpha Vantage — news sentiment
-        try:
-            self.av_api_key = st.secrets["AV_API_KEY"]
-        except Exception:
-            self.av_api_key = "demo"
+        self.av_api_key = os.environ.get("AV_API_KEY", "demo")
 
         # Trading Economics — macro fallback
-        try:
-            self.te_api_key = st.secrets["TE_API_KEY"]
-        except Exception:
-            self.te_api_key = "guest:guest"
+        self.te_api_key = os.environ.get("TE_API_KEY", "guest:guest")
 
         # FRED — US macro (free, register at fred.stlouisfed.org)
-        try:
-            self.fred_api_key = st.secrets["FRED_API_KEY"]
-        except Exception:
-            self.fred_api_key = None
+        self.fred_api_key = os.environ.get("FRED_API_KEY", None)
 
         # data.gov.in — India official macro (free, register at data.gov.in)
-        try:
-            self.datagov_key = st.secrets["DATAGOV_KEY"]
-        except Exception:
-            self.datagov_key = None
+        self.datagov_key = os.environ.get("DATAGOV_KEY", None)
 
         self.av_url   = "https://www.alphavantage.co/query"
         self.fred_url = "https://api.stlouisfed.org/fred/series/observations"
@@ -55,8 +44,7 @@ class DataIngestor:
     # 📰 NEWS SENTIMENT
     # Three sources: ET RSS + Moneycontrol RSS + Alpha Vantage
     # =========================
-    @st.cache_data(ttl=1800)
-    def fetch_news_sentiment(_self):
+    def fetch_news_sentiment(self):
         headlines = []
         sources_used = []
 
@@ -93,15 +81,15 @@ class DataIngestor:
             pass
 
         # --- Source 3: Alpha Vantage (only if real key present) ---
-        if _self.av_api_key and _self.av_api_key != "demo":
+        if self.av_api_key and self.av_api_key != "demo":
             try:
                 params = {
                     "function": "NEWS_SENTIMENT",
                     "tickers":  "FOREX:INR",
                     "topics":   "economy_macro",
-                    "apikey":   _self.av_api_key
+                    "apikey":   self.av_api_key
                 }
-                data = _self._safe_request(_self.av_url, params=params)
+                data = self._safe_request(self.av_url, params=params)
                 feed = data.get("feed", []) if isinstance(data, dict) else []
                 av_headlines = [
                     item.get("title", "")
@@ -134,8 +122,7 @@ class DataIngestor:
     # 📊 MACRO INDICATORS
     # Sources: Trading Economics + FRED + data.gov.in + hardcoded fallback
     # =========================
-    @st.cache_data(ttl=3600)
-    def fetch_macro_indicators(_self):
+    def fetch_macro_indicators(self):
 
         # Hardcoded fallback baseline — always present
         macro = {
@@ -159,9 +146,9 @@ class DataIngestor:
         try:
             url  = (
                 f"https://api.tradingeconomics.com/country/india"
-                f"/indicator/interest%20rate?c={_self.te_api_key}"
+                f"/indicator/interest%20rate?c={self.te_api_key}"
             )
-            data = _self._safe_request(url)
+            data = self._safe_request(url)
             if isinstance(data, list) and len(data) > 0:
                 val = data[0].get("Value")
                 if isinstance(val, (int, float)):
@@ -171,16 +158,16 @@ class DataIngestor:
             pass
 
         # --- US Fed Funds Rate via FRED (free API key required) ---
-        if _self.fred_api_key:
+        if self.fred_api_key:
             try:
                 params = {
                     "series_id":  "FEDFUNDS",
-                    "api_key":    _self.fred_api_key,
+                    "api_key":    self.fred_api_key,
                     "file_type":  "json",
                     "sort_order": "desc",
                     "limit":      1
                 }
-                data = _self._safe_request(_self.fred_url, params=params)
+                data = self._safe_request(self.fred_url, params=params)
                 obs  = data.get("observations", []) if isinstance(data, dict) else []
                 if obs:
                     val = obs[0].get("value", "")
@@ -191,16 +178,16 @@ class DataIngestor:
                 pass
 
         # --- US CPI via FRED ---
-        if _self.fred_api_key:
+        if self.fred_api_key:
             try:
                 params = {
                     "series_id":  "CPIAUCSL",
-                    "api_key":    _self.fred_api_key,
+                    "api_key":    self.fred_api_key,
                     "file_type":  "json",
                     "sort_order": "desc",
                     "limit":      2
                 }
-                data = _self._safe_request(_self.fred_url, params=params)
+                data = self._safe_request(self.fred_url, params=params)
                 obs  = data.get("observations", []) if isinstance(data, dict) else []
                 if len(obs) >= 2:
                     curr = float(obs[0].get("value", 0))
@@ -210,18 +197,18 @@ class DataIngestor:
                 pass
 
         # --- India CPI via data.gov.in (free, official MOSPI data) ---
-        if _self.datagov_key:
+        if self.datagov_key:
             try:
                 url    = (
                     "https://api.data.gov.in/resource/"
                     "8e8fcf49-f1ce-4c3a-83c3-c2dca0e79869"
                 )
                 params = {
-                    "api-key": _self.datagov_key,
+                    "api-key": self.datagov_key,
                     "format":  "json",
                     "limit":   1
                 }
-                data    = _self._safe_request(url, params=params)
+                data    = self._safe_request(url, params=params)
                 records = (
                     data.get("records", []) if isinstance(data, dict) else []
                 )
@@ -239,26 +226,24 @@ class DataIngestor:
     # 📈 MARKET DATA
     # Source: Yahoo Finance (all symbols in one call)
     # =========================
-    @st.cache_data(ttl=900)
-    def fetch_market_data(_self):
+    def fetch_market_data(self):
 
         market = {
-            "equity":      {"nifty": None,    "banknifty": None},
-            "fx":          {"usd_inr": None,  "dxy": None},
+            "equity":      {"nifty": None,     "banknifty": None},
+            "fx":          {"usd_inr": None,   "dxy": None},
             "rates":       {"us10y": None},
-            "commodities": {"crude_oil": None,"gold": None},
+            "commodities": {"crude_oil": None, "gold": None},
             "volatility":  {"vix": None},
             "changes":     {},
             "source":      "yahoo"
         }
 
-        # All symbols in a single HTTP call — faster and avoids rate limits
         symbols = {
             "nifty":     "^NSEI",
             "banknifty": "^NSEBANK",
             "usd_inr":   "INR=X",
             "us10y":     "^TNX",
-            "crude":     "BZ=F",       # Brent crude
+            "crude":     "BZ=F",
             "gold":      "GC=F",
             "vix":       "^VIX",
             "dxy":       "DX-Y.NYB"
@@ -266,7 +251,7 @@ class DataIngestor:
 
         try:
             all_syms = ",".join(symbols.values())
-            resp     = _self._safe_request(
+            resp     = self._safe_request(
                 f"https://query1.finance.yahoo.com/v7/finance/quote"
                 f"?symbols={all_syms}"
             )
@@ -275,7 +260,6 @@ class DataIngestor:
                 if isinstance(resp, dict) else []
             )
 
-            # Build fast lookup by symbol
             lookup = {
                 r.get("symbol"): r
                 for r in results
@@ -294,21 +278,21 @@ class DataIngestor:
                 val = chg(key)
                 return round(val, 2) if isinstance(val, (int, float)) else None
 
-            market["equity"]["nifty"]         = price("nifty")
-            market["equity"]["banknifty"]     = price("banknifty")
-            market["fx"]["usd_inr"]           = price("usd_inr")
-            market["fx"]["dxy"]               = price("dxy")
-            market["rates"]["us10y"]          = price("us10y")
-            market["commodities"]["crude_oil"]= price("crude")
-            market["commodities"]["gold"]     = price("gold")
-            market["volatility"]["vix"]       = price("vix")
+            market["equity"]["nifty"]          = price("nifty")
+            market["equity"]["banknifty"]      = price("banknifty")
+            market["fx"]["usd_inr"]            = price("usd_inr")
+            market["fx"]["dxy"]                = price("dxy")
+            market["rates"]["us10y"]           = price("us10y")
+            market["commodities"]["crude_oil"] = price("crude")
+            market["commodities"]["gold"]      = price("gold")
+            market["volatility"]["vix"]        = price("vix")
 
             market["changes"] = {
-                "nifty":    fmt_chg("nifty"),
-                "banknifty":fmt_chg("banknifty"),
-                "usd_inr":  fmt_chg("usd_inr"),
-                "crude":    fmt_chg("crude"),
-                "gold":     fmt_chg("gold")
+                "nifty":     fmt_chg("nifty"),
+                "banknifty": fmt_chg("banknifty"),
+                "usd_inr":   fmt_chg("usd_inr"),
+                "crude":     fmt_chg("crude"),
+                "gold":      fmt_chg("gold")
             }
 
         except Exception:
