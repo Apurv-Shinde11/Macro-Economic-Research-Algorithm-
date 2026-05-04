@@ -4,13 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL — India Macro Intelligence Terminal</title>
+    <title>EconIq — India Macro Intelligence Terminal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-
     <style>
         *,
         *::before,
@@ -31,13 +30,10 @@
             --text-3: #3d4f66;
             --blue: #3b82f6;
             --blue-dim: rgba(59, 130, 246, 0.12);
-            --blue-glow: rgba(59, 130, 246, 0.25);
             --green: #10b981;
             --green-dim: rgba(16, 185, 129, 0.12);
             --amber: #f59e0b;
-            --amber-dim: rgba(245, 158, 11, 0.12);
             --red: #ef4444;
-            --red-dim: rgba(239, 68, 68, 0.12);
             --font-serif: 'Cormorant Garamond', Georgia, serif;
             --font-sans: 'DM Sans', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
@@ -55,13 +51,10 @@
                 --text-3: #9aaabb;
                 --blue: #2563eb;
                 --blue-dim: rgba(37, 99, 235, 0.08);
-                --blue-glow: rgba(37, 99, 235, 0.18);
                 --green: #059669;
                 --green-dim: rgba(5, 150, 105, 0.08);
                 --amber: #d97706;
-                --amber-dim: rgba(217, 119, 6, 0.08);
                 --red: #dc2626;
-                --red-dim: rgba(220, 38, 38, 0.08);
             }
 
             body::before {
@@ -70,12 +63,12 @@
                     linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
             }
 
-            .terminal {
-                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(37, 99, 235, 0.1);
-            }
-
             nav {
                 background: rgba(245, 247, 252, 0.88);
+            }
+
+            .terminal {
+                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(37, 99, 235, 0.1);
             }
         }
 
@@ -92,7 +85,6 @@
             overflow-x: hidden;
         }
 
-        /* ── grid texture ── */
         body::before {
             content: '';
             position: fixed;
@@ -216,6 +208,11 @@
             max-width: 560px;
         }
 
+        .hero-right {
+            flex: 1;
+            max-width: 540px;
+        }
+
         .hero-eyebrow {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -287,12 +284,7 @@
             margin-top: 2px;
         }
 
-        .hero-right {
-            flex: 1;
-            max-width: 540px;
-        }
-
-        /* ── TERMINAL WIDGET ── */
+        /* ── TERMINAL ── */
         .terminal {
             background: var(--bg-2);
             border: 1px solid var(--border);
@@ -439,8 +431,6 @@
             margin-bottom: 16px;
         }
 
-        .t-cell {}
-
         .t-cell-val {
             font-family: var(--font-mono);
             font-size: 14px;
@@ -488,7 +478,39 @@
             margin-top: 1px;
         }
 
-        /* ── REVEAL ANIMATION ── */
+        /* ── ANIMATIONS ── */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.9s ease both;
+        }
+
+        .delay-1 {
+            animation: fadeIn 0.9s ease 0.15s both;
+        }
+
+        .delay-2 {
+            animation: fadeIn 0.9s ease 0.30s both;
+        }
+
+        .delay-3 {
+            animation: fadeIn 0.9s ease 0.45s both;
+        }
+
+        .delay-4 {
+            animation: fadeIn 0.9s ease 0.60s both;
+        }
+
         .reveal {
             opacity: 0;
             transform: translateY(28px);
@@ -500,7 +522,21 @@
             transform: translateY(0);
         }
 
-        /* ── SECTION BASICS ── */
+        @media (prefers-reduced-motion: reduce) {
+
+            .fade-in,
+            .delay-1,
+            .delay-2,
+            .delay-3,
+            .delay-4,
+            .reveal {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        /* ── SECTIONS ── */
         .section {
             padding: 100px 48px;
         }
@@ -548,7 +584,7 @@
             margin-bottom: 56px;
         }
 
-        /* ── PROBLEM SECTION ── */
+        /* ── WHAT WE DELIVER ── */
         #problem {
             background: var(--bg-2);
             border-top: 1px solid var(--border);
@@ -857,121 +893,6 @@
             color: var(--green);
         }
 
-        /* ── PRICING ── */
-        #pricing {
-            background: var(--bg-2);
-            border-top: 1px solid var(--border);
-        }
-
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            background: var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .pricing-card {
-            background: var(--bg-2);
-            padding: 36px 28px;
-            position: relative;
-            transition: background 0.2s;
-        }
-
-        .pricing-card.featured {
-            background: var(--bg-3);
-            outline: 1px solid rgba(59, 130, 246, 0.35);
-            outline-offset: -1px;
-        }
-
-        .pricing-tag {
-            font-family: var(--font-mono);
-            font-size: 9px;
-            letter-spacing: 0.16em;
-            color: var(--bg);
-            background: var(--blue);
-            padding: 3px 10px;
-            border-radius: 3px;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
-
-        .pricing-tier {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            letter-spacing: 0.18em;
-            color: var(--text-3);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .pricing-price {
-            font-family: var(--font-serif);
-            font-size: 44px;
-            font-weight: 600;
-            line-height: 1;
-            color: var(--text);
-            margin-bottom: 4px;
-        }
-
-        .pricing-price sub {
-            font-size: 20px;
-            font-weight: 400;
-            vertical-align: baseline;
-            color: var(--text-2);
-        }
-
-        .pricing-cadence {
-            font-size: 12px;
-            color: var(--text-3);
-            margin-bottom: 20px;
-            font-family: var(--font-mono);
-            letter-spacing: 0.04em;
-        }
-
-        .pricing-target {
-            font-size: 13px;
-            color: var(--text-2);
-            margin-bottom: 24px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-            line-height: 1.5;
-        }
-
-        .pricing-features {
-            list-style: none;
-        }
-
-        .pricing-features li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 13px;
-            color: var(--text-2);
-            padding: 7px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .pricing-features li:last-child {
-            border-bottom: none;
-        }
-
-        .check {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--green);
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        .pricing-cta {
-            margin-top: 28px;
-            width: 100%;
-            text-align: center;
-            display: block;
-        }
-
         /* ── CTA ── */
         #cta {
             padding: 120px 48px;
@@ -1064,15 +985,140 @@
             text-align: right;
         }
 
-        /* ── TRANSITIONS ── */
-        .fade-in {
-            animation: fadeIn 0.9s ease forwards;
+        /* ── CREATIVE ANIMATIONS ── */
+
+        /* Floating terminal */
+        @keyframes floatTerminal {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
-        @keyframes fadeIn {
+        .hero-right {
+            animation: floatTerminal 6s ease-in-out infinite;
+        }
+
+        /* Shimmer on hero headline em */
+        @keyframes shimmer {
+            0% {
+                background-position: -200% center;
+            }
+
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        .hero-h1 em {
+            background: linear-gradient(90deg, var(--blue) 0%, #a78bfa 40%, var(--blue) 80%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 4s linear infinite;
+        }
+
+        /* Pulse glow on live dot */
+        @keyframes glowPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 4px var(--green);
+            }
+
+            50% {
+                box-shadow: 0 0 12px var(--green), 0 0 24px var(--green);
+            }
+        }
+
+        .live-dot {
+            animation: pulse 2s infinite, glowPulse 2s infinite;
+        }
+
+        /* Stagger card entries */
+        .problem-grid .problem-card:nth-child(1) {
+            transition-delay: 0.0s;
+        }
+
+        .problem-grid .problem-card:nth-child(2) {
+            transition-delay: 0.15s;
+        }
+
+        .problem-grid .problem-card:nth-child(3) {
+            transition-delay: 0.3s;
+        }
+
+        .how-grid .how-card:nth-child(1) {
+            transition-delay: 0.0s;
+        }
+
+        .how-grid .how-card:nth-child(2) {
+            transition-delay: 0.15s;
+        }
+
+        .how-grid .how-card:nth-child(3) {
+            transition-delay: 0.3s;
+        }
+
+        /* Subtle border glow on feature cards hover */
+        .feature-card {
+            border: 1px solid transparent;
+            transition: background 0.2s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(59, 130, 246, 0.25);
+            box-shadow: 0 0 24px rgba(59, 130, 246, 0.08);
+        }
+
+        /* Proof stat number count-up (driven by JS) */
+        .proof-stat .num {
+            transition: opacity 0.3s;
+        }
+
+        /* Subtle scan line on terminal */
+        @keyframes scanLine {
+            0% {
+                top: 0%;
+                opacity: 0.06;
+            }
+
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+
+        .terminal {
+            overflow: hidden;
+        }
+
+        .terminal::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, rgba(59, 130, 246, 0.06), transparent);
+            animation: scanLine 4s linear infinite;
+            pointer-events: none;
+        }
+
+        .terminal {
+            position: relative;
+        }
+
+        /* CTA headline word-by-word fade */
+        @keyframes wordFade {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(12px);
             }
 
             to {
@@ -1081,27 +1127,6 @@
             }
         }
 
-        .delay-1 {
-            animation-delay: 0.15s;
-            opacity: 0;
-        }
-
-        .delay-2 {
-            animation-delay: 0.3s;
-            opacity: 0;
-        }
-
-        .delay-3 {
-            animation-delay: 0.45s;
-            opacity: 0;
-        }
-
-        .delay-4 {
-            animation-delay: 0.6s;
-            opacity: 0;
-        }
-
-        /* ── RESPONSIVE ── */
         @media (max-width: 900px) {
             nav {
                 padding: 0 24px;
@@ -1128,10 +1153,6 @@
 
             .problem-grid,
             .how-grid,
-            .pricing-grid {
-                grid-template-columns: 1fr;
-            }
-
             .features-grid {
                 grid-template-columns: 1fr;
             }
@@ -1173,11 +1194,10 @@
 
     <!-- ══════════ NAV ══════════ -->
     <nav>
-        <a class="nav-logo" href="#"><span>SENTINEL</span> INTELLIGENCE</a>
+        <a class="nav-logo" href="#"><span>EconIq</span></a>
         <ul class="nav-links">
             <li><a href="#features">Features</a></li>
             <li><a href="#backtest">Performance</a></li>
-            <li><a href="#pricing">Pricing</a></li>
         </ul>
         <a class="btn-primary" href="#cta">Request Access</a>
     </nav>
@@ -1185,21 +1205,20 @@
     <!-- ══════════ HERO ══════════ -->
     <section id="hero">
         <div class="hero-left">
-            <div class="hero-eyebrow fade-in">India Macro Intelligence</div>
-            <h1 class="hero-h1 fade-in delay-1">
+            <h1 class="hero-h1 delay-1">
                 The macro regime.<br>
                 <em>Decoded daily.</em>
             </h1>
-            <p class="hero-sub fade-in delay-2">
-                SENTINEL is an AI-powered macroeconomic intelligence terminal built for India's PMS managers, CAs, and
+            <p class="hero-sub delay-2">
+                EconIq is an AI-powered macroeconomic intelligence terminal built for India's PMS managers, CAs, and
                 wealth advisors — delivering daily regime analysis, portfolio playbook, and alert signals in one
                 platform.
             </p>
-            <div class="hero-ctas fade-in delay-3">
+            <div class="hero-ctas delay-3">
                 <a class="btn-primary" href="#cta">Request Early Access</a>
                 <a class="btn-outline" href="#features">See how it works</a>
             </div>
-            <div class="hero-proof fade-in delay-4">
+            <div class="hero-proof delay-4">
                 <div class="proof-stat">
                     <div class="num">0.68</div>
                     <div class="label">Sharpe Ratio<br>(2020–2025)</div>
@@ -1215,16 +1234,15 @@
             </div>
         </div>
 
-        <div class="hero-right fade-in delay-2">
+        <div class="hero-right delay-2">
             <div class="terminal">
                 <div class="terminal-header">
                     <div class="dot dot-red"></div>
                     <div class="dot dot-amber"></div>
                     <div class="dot dot-green"></div>
-                    <span class="terminal-title">SENTINEL · MACRO REGIME ENGINE</span>
+                    <span class="terminal-title">EconIq · MACRO REGIME ENGINE</span>
                     <div class="terminal-live">
-                        <div class="live-dot"></div>
-                        LIVE
+                        <div class="live-dot"></div>LIVE
                     </div>
                 </div>
                 <div class="terminal-body">
@@ -1236,7 +1254,6 @@
                         </div>
                         <div class="t-conf-pct" id="t-pct">72%</div>
                     </div>
-
                     <div class="t-grid">
                         <div class="t-cell">
                             <div class="t-label">Equity Bias</div>
@@ -1256,7 +1273,6 @@
                                 Slowdown</div>
                         </div>
                     </div>
-
                     <div class="t-divider"></div>
                     <div class="t-label">Key Drivers</div>
                     <div class="t-pill-row" id="t-pills">
@@ -1265,7 +1281,6 @@
                         <span class="t-pill">Capex Cycle</span>
                         <span class="t-pill">GDP 7.2%</span>
                     </div>
-
                     <div class="t-divider"></div>
                     <div class="t-label">Playbook</div>
                     <div class="t-actions" id="t-actions">
@@ -1286,10 +1301,9 @@
         <div class="section-label reveal">What We Deliver</div>
         <h2 class="section-h2 reveal">Three outputs. Every morning. <em>Before the market opens.</em></h2>
         <p class="section-sub reveal">
-            SENTINEL runs its full macro pipeline automatically at 7am IST — ingesting live data, running the regime
+            EconIq runs its full macro pipeline automatically at 7am IST — ingesting live data, running the regime
             engine, and delivering everything a portfolio manager needs to start the day with conviction.
         </p>
-
         <div class="problem-grid reveal">
             <div class="problem-card">
                 <div class="problem-num"><span>01</span></div>
@@ -1309,8 +1323,8 @@
                 <div class="problem-num"><span>03</span></div>
                 <div class="problem-title">Intelligent Push Alerts</div>
                 <div class="problem-desc">When something meaningful changes — a regime shift, a confidence breach, a VIX
-                    spike, a sustained FII outflow — SENTINEL pushes an alert immediately. You are never the last to
-                    know when the macro environment is moving.</div>
+                    spike, a sustained FII outflow — EconIq pushes an alert immediately. You are never the last to know
+                    when the macro environment is moving.</div>
             </div>
         </div>
     </section>
@@ -1319,9 +1333,8 @@
     <section id="how" class="section">
         <div class="section-label reveal">How It Works</div>
         <h2 class="section-h2 reveal">Three layers. One <em>decisive output.</em></h2>
-        <p class="section-sub reveal">Every morning, SENTINEL runs a full macro pipeline — from raw data to actionable
+        <p class="section-sub reveal">Every morning, EconIq runs a full macro pipeline — from raw data to actionable
             portfolio playbook — in under 60 seconds.</p>
-
         <div class="how-grid reveal">
             <div class="how-card" data-step="01">
                 <div class="how-icon">📡</div>
@@ -1329,10 +1342,8 @@
                 <div class="how-desc">Live feeds from NSE, RBI DBIE, FII/DII flows, yield curve, global macro, and news
                     NLP — all ingested and normalised automatically every morning.</div>
                 <div class="how-tags">
-                    <span class="how-tag">NSE Live</span>
-                    <span class="how-tag">RBI DBIE</span>
-                    <span class="how-tag">FII/DII</span>
-                    <span class="how-tag">Yield Curve</span>
+                    <span class="how-tag">NSE Live</span><span class="how-tag">RBI DBIE</span>
+                    <span class="how-tag">FII/DII</span><span class="how-tag">Yield Curve</span>
                     <span class="how-tag">NLP Headlines</span>
                 </div>
             </div>
@@ -1342,10 +1353,8 @@
                 <div class="how-desc">A multi-factor scoring engine classifies India's macro environment into one of
                     eight named regimes — with confidence score, challenger regime, and persistence tracking.</div>
                 <div class="how-tags">
-                    <span class="how-tag">8 Regimes</span>
-                    <span class="how-tag">Confidence Score</span>
-                    <span class="how-tag">Challenger</span>
-                    <span class="how-tag">LLM Synthesis</span>
+                    <span class="how-tag">8 Regimes</span><span class="how-tag">Confidence Score</span>
+                    <span class="how-tag">Challenger</span><span class="how-tag">LLM Synthesis</span>
                 </div>
             </div>
             <div class="how-card" data-step="03">
@@ -1354,10 +1363,8 @@
                 <div class="how-desc">A portfolio playbook, sector positioning, conviction-adjusted allocation, scenario
                     probabilities, and a white-label PDF — delivered to your inbox by 8am.</div>
                 <div class="how-tags">
-                    <span class="how-tag">Playbook</span>
-                    <span class="how-tag">Sector Calls</span>
-                    <span class="how-tag">PDF Report</span>
-                    <span class="how-tag">Email + Alerts</span>
+                    <span class="how-tag">Playbook</span><span class="how-tag">Sector Calls</span>
+                    <span class="how-tag">PDF Report</span><span class="how-tag">Email + Alerts</span>
                 </div>
             </div>
         </div>
@@ -1367,12 +1374,10 @@
     <section id="features" class="section">
         <div class="section-label reveal">Capabilities</div>
         <h2 class="section-h2 reveal">Built entirely for <em>India's macro reality</em></h2>
-        <p class="section-sub reveal">Every capability in SENTINEL exists to answer one question for the Indian
-            portfolio manager — what is the macro regime, how confident are we, and what should the portfolio do about
-            it today.</p>
-
+        <p class="section-sub reveal">Every capability in EconIq exists to answer one question for the Indian portfolio
+            manager — what is the macro regime, how confident are we, and what should the portfolio do about it today.
+        </p>
         <div class="features-grid reveal">
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">📊</div>
@@ -1385,7 +1390,6 @@
                 <div class="feature-detail">STABLE_GROWTH · LIQUIDITY_DRIVEN_EXPANSION · MONETARY_TIGHTENING ·
                     STAGFLATION_RISK · EARLY_CYCLE_RECOVERY + 3 more</div>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">⚡</div>
@@ -1398,7 +1402,6 @@
                 <div class="feature-detail">Regime shift · Confidence breach · VIX &gt; 22 · INR &gt; 85 · Crude spike ·
                     FII outflow streak · RBI event reminder</div>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">📈</div>
@@ -1411,7 +1414,6 @@
                 <div class="feature-detail">Live NSE feed · Combined flow signal · RISK_ON / RISK_OFF classification ·
                     Liquidity engine integration</div>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">📄</div>
@@ -1419,12 +1421,11 @@
                 </div>
                 <div class="feature-title">White-Label PDF Reports</div>
                 <div class="feature-desc">Every morning's briefing generates a PDF that shows your firm's name — not
-                    SENTINEL's. Designed for PMS managers who send research to clients. Timestamped, structured, and
+                    EconIq's. Designed for PMS managers who send research to clients. Timestamped, structured, and
                     SEBI-compliant in framing.</div>
-                <div class="feature-detail">"Apex Capital — Monthly Macro Review, powered by SENTINEL" · Per-user
-                    branding · Automated delivery by 8am IST</div>
+                <div class="feature-detail">"Apex Capital — Monthly Macro Review, powered by EconIq" · Per-user branding
+                    · Automated delivery by 8am IST</div>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">📉</div>
@@ -1437,20 +1438,18 @@
                 <div class="feature-detail">Live RBI DBIE feed · Inversion detection · FII carry signal · Plotly
                     interactive chart</div>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-row">
                     <div class="feature-icon">🗂️</div>
                     <span class="feature-badge badge-tier2">History</span>
                 </div>
                 <div class="feature-title">Historical Regime Archive</div>
-                <div class="feature-desc">Every run is stored. Look back and see exactly what SENTINEL said on any date
-                    — regime, confidence, conviction, allocation, decision summary. Backtest-grade regime history
-                    growing daily.</div>
+                <div class="feature-desc">Every run is stored. Look back and see exactly what EconIq said on any date —
+                    regime, confidence, conviction, allocation, decision summary. Backtest-grade regime history growing
+                    daily.</div>
                 <div class="feature-detail">Supabase persistence · Confidence trend chart · Conviction timeline · Full
                     run inspector</div>
             </div>
-
         </div>
     </section>
 
@@ -1458,7 +1457,6 @@
     <section id="backtest" class="section">
         <div class="section-label reveal">Verified Performance</div>
         <h2 class="section-h2 reveal">Six years of backtested <em>regime intelligence</em></h2>
-
         <div class="backtest-wrap reveal">
             <div class="backtest-stats">
                 <div class="bs-card">
@@ -1492,15 +1490,13 @@
                     <div class="bs-sub">vs 17.71% Nifty</div>
                 </div>
             </div>
-
             <div class="backtest-note">
                 <h3>Half the volatility. Better risk-adjusted return.</h3>
-                <p>SENTINEL's regime-based positioning achieved a 0.68 Sharpe ratio over 71 months — outperforming a
-                    Nifty 50 benchmark on every risk-adjusted measure while delivering less than half the index
-                    volatility.</p>
+                <p>EconIq's regime-based positioning achieved a 0.68 Sharpe ratio over 71 months — outperforming a Nifty
+                    50 benchmark on every risk-adjusted measure while delivering less than half the index volatility.
+                </p>
                 <p>The edge comes from avoiding the wrong regimes — not from timing individual stocks. When macro
-                    conditions deteriorate, SENTINEL shifts defensively before the drawdown materialises.</p>
-
+                    conditions deteriorate, EconIq shifts defensively before the drawdown materialises.</p>
                 <div style="margin-top:20px;">
                     <div class="t-label" style="margin-bottom:10px;">Regime Detection Accuracy</div>
                     <div class="regime-accuracy-row">
@@ -1524,80 +1520,12 @@
         </div>
     </section>
 
-    <!-- ══════════ PRICING ══════════ -->
-    <section id="pricing" class="section">
-        <div class="section-label reveal">Pricing</div>
-        <h2 class="section-h2 reveal">One platform. <em>Three ways to use it.</em></h2>
-        <p class="section-sub reveal">Whether you are an individual CA advising HNI clients or a boutique firm managing
-            a multi-crore book, SENTINEL has a tier calibrated to how you work.</p>
-
-        <div class="pricing-grid reveal">
-
-            <div class="pricing-card">
-                <div class="pricing-tier">Basic</div>
-                <div class="pricing-price"><sub>₹</sub>2,999</div>
-                <div class="pricing-cadence">per month + GST</div>
-                <div class="pricing-target">Individual CAs and wealth advisors who need daily macro intelligence for
-                    client conversations.</div>
-                <ul class="pricing-features">
-                    <li><span class="check">✓</span> Daily 8am regime briefing</li>
-                    <li><span class="check">✓</span> Web terminal access</li>
-                    <li><span class="check">✓</span> PDF report (SENTINEL-branded)</li>
-                    <li><span class="check">✓</span> Historical regime archive</li>
-                    <li><span class="check">✓</span> Economic calendar</li>
-                    <li><span class="check">✓</span> FII/DII flow intelligence</li>
-                    <li><span class="check">✓</span> Yield curve analysis</li>
-                </ul>
-                <a class="btn-outline pricing-cta" href="#cta">Get Started</a>
-            </div>
-
-            <div class="pricing-card featured">
-                <span class="pricing-tag">Most Popular</span>
-                <div class="pricing-tier">Pro</div>
-                <div class="pricing-price"><sub>₹</sub>7,999</div>
-                <div class="pricing-cadence">per month + GST</div>
-                <div class="pricing-target">Boutique fund managers running concentrated portfolios with client reporting
-                    needs.</div>
-                <ul class="pricing-features">
-                    <li><span class="check">✓</span> Everything in Basic</li>
-                    <li><span class="check">✓</span> White-label PDF (your firm name)</li>
-                    <li><span class="check">✓</span> Intelligent push notifications</li>
-                    <li><span class="check">✓</span> Regime change alerts</li>
-                    <li><span class="check">✓</span> VIX / FII / INR signal alerts</li>
-                    <li><span class="check">✓</span> Custom alert thresholds</li>
-                    <li><span class="check">✓</span> API access</li>
-                </ul>
-                <a class="btn-primary pricing-cta" href="#cta">Get Started</a>
-            </div>
-
-            <div class="pricing-card">
-                <div class="pricing-tier">Firm</div>
-                <div class="pricing-price"><sub>₹</sub>24,999</div>
-                <div class="pricing-cadence">per month + GST</div>
-                <div class="pricing-target">Small PMS and AIF firms needing multi-user access with custom branding and
-                    priority support.</div>
-                <ul class="pricing-features">
-                    <li><span class="check">✓</span> Everything in Pro</li>
-                    <li><span class="check">✓</span> 5 user seats</li>
-                    <li><span class="check">✓</span> Custom firm branding</li>
-                    <li><span class="check">✓</span> Admin dashboard</li>
-                    <li><span class="check">✓</span> Priority support</li>
-                    <li><span class="check">✓</span> Onboarding call</li>
-                    <li><span class="check">✓</span> Quarterly strategy review</li>
-                </ul>
-                <a class="btn-outline pricing-cta" href="#cta">Contact Us</a>
-            </div>
-
-        </div>
-    </section>
-
     <!-- ══════════ CTA ══════════ -->
     <section id="cta">
         <div class="cta-inner reveal">
             <h2 class="cta-h2">Your first regime briefing.<br><em>Tomorrow morning.</em></h2>
             <p class="cta-sub">Join India's first macro intelligence terminal built for the ₹100–500 Cr PMS manager.
-                Early access is invite-only and limited to 50 seats.</p>
-
+                Request early access and our team will be in touch within 24 hours.</p>
             <form class="cta-form" onsubmit="handleSubmit(event)">
                 <input class="cta-input" type="email" id="cta-email" placeholder="your@email.com" required>
                 <button class="btn-primary" type="submit" id="cta-btn">Request Access</button>
@@ -1608,135 +1536,99 @@
 
     <!-- ══════════ FOOTER ══════════ -->
     <footer>
-        <div class="footer-logo">SENTINEL INTELLIGENCE</div>
+        <div class="footer-logo">ECONIQ</div>
         <div class="footer-disclaimer">
-            SENTINEL is a macro research tool for informational purposes only. It does not constitute investment advice.
+            EconIq is a macro research tool for informational purposes only. It does not constitute investment advice.
             SEBI Research Analyst registration is not required for internal research tools. Past backtest performance
             does not guarantee future results.
         </div>
     </footer>
 
     <script>
+        /* ── Animated counter for proof stats ── */
+        function animateCounter(el, target, suffix, duration) {
+            const isNeg = target < 0;
+            const absVal = Math.abs(target);
+            const start = performance.now();
+            function step(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = absVal * eased;
+                let display;
+                if (Number.isInteger(absVal)) {
+                    display = Math.round(current).toString();
+                } else {
+                    const decimals = (absVal.toString().split('.')[1] || '').length;
+                    display = current.toFixed(decimals);
+                }
+                el.textContent = (isNeg ? '−' : '') + display + suffix;
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        /* Trigger counters when proof section enters view */
+        const proofStats = [
+            { selector: '.hero-proof .proof-stat:nth-child(1) .num', value: 0.68, suffix: '' },
+            { selector: '.hero-proof .proof-stat:nth-child(2) .num', value: -7.95, suffix: '%' },
+            { selector: '.hero-proof .proof-stat:nth-child(3) .num', value: 69, suffix: '%' },
+        ];
+
+        const proofObserver = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    proofStats.forEach(s => {
+                        const el = document.querySelector(s.selector);
+                        if (el) animateCounter(el, s.value, s.suffix, 1800);
+                    });
+                    proofObserver.disconnect();
+                }
+            });
+        }, { threshold: 0.5 });
+
+        const proofEl = document.querySelector('.hero-proof');
+        if (proofEl) proofObserver.observe(proofEl);
+
         /* ── Scroll reveal ── */
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(e => {
-                if (e.isIntersecting) {
-                    e.target.classList.add('visible');
-                    observer.unobserve(e.target);
-                }
+                if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
             });
         }, { threshold: 0.12 });
-
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
         /* ── Terminal regime cycler ── */
         const regimes = [
-            {
-                name: 'Stable Growth',
-                conf: 72,
-                equity: 'OVERWEIGHT', eq_color: 'var(--green)',
-                conviction: 'HIGH', cv_color: 'var(--blue)',
-                rbi: 'PAUSE', rbi_color: 'var(--amber)',
-                challenger: 'Growth Slowdown',
-                pills: ['FII Inflow', 'RBI Pause', 'Capex Cycle', 'GDP 7.2%'],
-                actions: [
-                    'Overweight large-cap equity — stay positioned',
-                    'Reduce gold allocation to tactical hedge only',
-                    'Monitor yield curve for tightening signals'
-                ]
-            },
-            {
-                name: 'Liquidity Driven Expansion',
-                conf: 81,
-                equity: 'OVERWEIGHT', eq_color: 'var(--green)',
-                conviction: 'HIGH', cv_color: 'var(--blue)',
-                rbi: 'EASING', rbi_color: 'var(--green)',
-                challenger: 'Stable Growth',
-                pills: ['RBI Rate Cut', 'FII Surge', 'Yield Compression', 'Risk-On'],
-                actions: [
-                    'Rotate into mid-cap and small-cap selectively',
-                    'Increase allocation to Banks and Real Estate',
-                    'Add consumer discretionary on dips'
-                ]
-            },
-            {
-                name: 'Monetary Tightening',
-                conf: 67,
-                equity: 'UNDERWEIGHT', eq_color: 'var(--red)',
-                conviction: 'MEDIUM', cv_color: 'var(--amber)',
-                rbi: 'HIKE', rbi_color: 'var(--red)',
-                challenger: 'Inflation Pressure',
-                pills: ['Rate Hike Cycle', 'FII Outflow', 'Yield Rising', 'INR Weak'],
-                actions: [
-                    'Reduce Banks and Real Estate exposure',
-                    'Add IT exporters and FMCG defensives',
-                    'Increase gold to 10–12% portfolio weight'
-                ]
-            },
-            {
-                name: 'Early Cycle Recovery',
-                conf: 58,
-                equity: 'OVERWEIGHT', eq_color: 'var(--green)',
-                conviction: 'MEDIUM', cv_color: 'var(--amber)',
-                rbi: 'CUT', rbi_color: 'var(--green)',
-                challenger: 'Stable Growth',
-                pills: ['Peak Tightening', 'Recovery Signals', 'Rate Sensitive', 'Autos'],
-                actions: [
-                    'Begin rotating into rate-sensitive sectors',
-                    'Add Banks, Real Estate, and Autos selectively',
-                    'Reduce defensive overweight gradually'
-                ]
-            }
+            { name: 'Stable Growth', conf: 72, equity: 'OVERWEIGHT', eq_color: 'var(--green)', conviction: 'HIGH', cv_color: 'var(--blue)', rbi: 'PAUSE', rbi_color: 'var(--amber)', challenger: 'Growth Slowdown', pills: ['FII Inflow', 'RBI Pause', 'Capex Cycle', 'GDP 7.2%'], actions: ['Overweight large-cap equity — stay positioned', 'Reduce gold allocation to tactical hedge only', 'Monitor yield curve for tightening signals'] },
+            { name: 'Liquidity Driven Expansion', conf: 81, equity: 'OVERWEIGHT', eq_color: 'var(--green)', conviction: 'HIGH', cv_color: 'var(--blue)', rbi: 'EASING', rbi_color: 'var(--green)', challenger: 'Stable Growth', pills: ['RBI Rate Cut', 'FII Surge', 'Yield Compression', 'Risk-On'], actions: ['Rotate into mid-cap and small-cap selectively', 'Increase allocation to Banks and Real Estate', 'Add consumer discretionary on dips'] },
+            { name: 'Monetary Tightening', conf: 67, equity: 'UNDERWEIGHT', eq_color: 'var(--red)', conviction: 'MEDIUM', cv_color: 'var(--amber)', rbi: 'HIKE', rbi_color: 'var(--red)', challenger: 'Inflation Pressure', pills: ['Rate Hike Cycle', 'FII Outflow', 'Yield Rising', 'INR Weak'], actions: ['Reduce Banks and Real Estate exposure', 'Add IT exporters and FMCG defensives', 'Increase gold to 10–12% portfolio weight'] },
+            { name: 'Early Cycle Recovery', conf: 58, equity: 'OVERWEIGHT', eq_color: 'var(--green)', conviction: 'MEDIUM', cv_color: 'var(--amber)', rbi: 'CUT', rbi_color: 'var(--green)', challenger: 'Stable Growth', pills: ['Peak Tightening', 'Recovery Signals', 'Rate Sensitive', 'Autos'], actions: ['Begin rotating into rate-sensitive sectors', 'Add Banks, Real Estate, and Autos selectively', 'Reduce defensive overweight gradually'] }
         ];
 
         let idx = 0;
-
         function updateTerminal(r) {
-            const regime = document.getElementById('t-regime');
-            const bar = document.getElementById('t-bar');
-            const pct = document.getElementById('t-pct');
-            const equity = document.getElementById('t-equity');
-            const conv = document.getElementById('t-conviction');
-            const rbi = document.getElementById('t-rbi');
-            const chal = document.getElementById('t-chal');
-            const pills = document.getElementById('t-pills');
-            const acts = document.getElementById('t-actions');
-
-            regime.style.opacity = '0';
+            const el = id => document.getElementById(id);
+            el('t-regime').style.opacity = '0';
             setTimeout(() => {
-                regime.textContent = r.name;
-                regime.style.opacity = '1';
-                bar.style.width = r.conf + '%';
-                pct.textContent = r.conf + '%';
-                equity.textContent = r.equity;
-                equity.style.color = r.eq_color;
-                conv.textContent = r.conviction;
-                conv.style.color = r.cv_color;
-                rbi.textContent = r.rbi;
-                rbi.style.color = r.rbi_color;
-                chal.textContent = r.challenger;
-                pills.innerHTML = r.pills.map(p => `<span class="t-pill">${p}</span>`).join('');
-                acts.innerHTML = r.actions.map(a =>
-                    `<div class="t-action-item"><span class="t-action-arrow">▸</span>${a}</div>`
-                ).join('');
+                el('t-regime').textContent = r.name; el('t-regime').style.opacity = '1';
+                el('t-bar').style.width = r.conf + '%'; el('t-pct').textContent = r.conf + '%';
+                el('t-equity').textContent = r.equity; el('t-equity').style.color = r.eq_color;
+                el('t-conviction').textContent = r.conviction; el('t-conviction').style.color = r.cv_color;
+                el('t-rbi').textContent = r.rbi; el('t-rbi').style.color = r.rbi_color;
+                el('t-chal').textContent = r.challenger;
+                el('t-pills').innerHTML = r.pills.map(p => `<span class="t-pill">${p}</span>`).join('');
+                el('t-actions').innerHTML = r.actions.map(a => `<div class="t-action-item"><span class="t-action-arrow">▸</span>${a}</div>`).join('');
             }, 400);
         }
-
-        setInterval(() => {
-            idx = (idx + 1) % regimes.length;
-            updateTerminal(regimes[idx]);
-        }, 4000);
+        setInterval(() => { idx = (idx + 1) % regimes.length; updateTerminal(regimes[idx]); }, 4000);
 
         /* ── CTA form ── */
         function handleSubmit(e) {
             e.preventDefault();
             const btn = document.getElementById('cta-btn');
             const msg = document.getElementById('cta-msg');
-            btn.textContent = 'Submitted ✓';
-            btn.style.background = 'var(--green)';
-            btn.disabled = true;
-            msg.textContent = "You're on the list. We'll be in touch within 24 hours.";
-            msg.style.color = 'var(--green)';
+            btn.textContent = 'Submitted ✓'; btn.style.background = 'var(--green)'; btn.disabled = true;
+            msg.textContent = "You're on the list. We'll be in touch within 24 hours."; msg.style.color = 'var(--green)';
         }
     </script>
 </body>
