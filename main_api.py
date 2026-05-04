@@ -117,6 +117,12 @@ _notif_engine: NotificationEngine | None = None
 async def lifespan(app: FastAPI):
     global _engines, _supabase, _notif_engine
     print("[SENTINEL API] Starting up — initialising engines...")
+    print(f"[SENTINEL API] SUPABASE_URL = '{SUPABASE_URL}'")
+    print(f"[SENTINEL API] SERVICE_KEY present = {bool(SUPABASE_SERVICE_KEY)}")
+    if not SUPABASE_URL:
+        raise RuntimeError(
+            "SUPABASE_URL is empty. Check Railway Variables tab."
+        )
     _supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     _notif_engine = NotificationEngine(_supabase)
     _engines = {
