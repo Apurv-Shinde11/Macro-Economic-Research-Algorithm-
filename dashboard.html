@@ -266,7 +266,7 @@
    ══════════════════════════════════════════════════ */
     .app-layout {
       display: grid;
-      grid-template-columns: 1fr var(--sidebar-w);
+      grid-template-columns: var(--sidebar-w) 1fr;
       gap: 0;
       min-height: 100vh;
       padding-top: var(--nav-h);
@@ -1415,6 +1415,7 @@
   <div class="app-layout">
 
     <!-- ══════════ MAIN CONTENT ══════════ -->
+    <aside class="sidebar">...</aside>
     <main class="main-content" id="mainContent">
 
       <!-- ── REGIME HERO ── -->
