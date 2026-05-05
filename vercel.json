@@ -1,14 +1,35 @@
 {
     "version": 2,
+    "outputDirectory": ".",
     "builds": [
         {
-            "src": "*.html",
+            "src": "landing_page.html",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "login.html",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "dashboard.html",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/(.*)",
+            "src": "/",
+            "dest": "/landing_page.html"
+        },
+        {
+            "src": "/login",
+            "dest": "/login.html"
+        },
+        {
+            "src": "/dashboard",
+            "dest": "/dashboard.html"
+        },
+        {
+            "src": "/(.*\\.html)",
             "dest": "/$1"
         }
     ]
