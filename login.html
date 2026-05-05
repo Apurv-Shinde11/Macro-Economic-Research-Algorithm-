@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconIq — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #070912;
+  --bg-2:      #0d1120;
+  --bg-3:      #121828;
+  --border:    rgba(255,255,255,0.07);
+  --border-2:  rgba(255,255,255,0.12);
+  --text:      #e8edf5;
+  --text-2:    #8899b0;
+  --text-3:    #3d4f66;
+  --blue:      #3b82f6;
+  --blue-dim:  rgba(59,130,246,0.12);
+  --green:     #10b981;
+  --green-dim: rgba(16,185,129,0.12);
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.12);
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans:  'DM Sans', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:       #f4f6fb;
+    --bg-2:     #ffffff;
+    --bg-3:     #edf0f7;
+    --border:   rgba(0,0,0,0.07);
+    --border-2: rgba(0,0,0,0.13);
+    --text:     #0d1120;
+    --text-2:   #4a5872;
+    --text-3:   #9aaabb;
+    --blue:     #2563eb;
+    --blue-dim: rgba(37,99,235,0.08);
+    --green:    #059669;
+    --green-dim:rgba(5,150,105,0.08);
+    --red:      #dc2626;
+    --red-dim:  rgba(220,38,38,0.08);
+  }
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Grid texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Ambient glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -20%; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── CARD ── */
+.login-card {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 440px;
+  padding: 48px 40px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+  animation: cardIn 0.6s ease both;
+  margin: 24px;
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(24px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+/* ── LOGO ── */
+.login-logo {
+  text-align: center; margin-bottom: 8px;
+}
+
+.login-logo-text {
+  font-family: var(--font-mono); font-size: 20px; font-weight: 700;
+  letter-spacing: 0.15em; text-decoration: none; color: var(--text);
+  display: inline-block;
+}
+.login-logo-text span { color: var(--blue); }
+
+.login-tagline {
+  text-align: center;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.15em;
+  color: var(--text-3); text-transform: uppercase; margin-bottom: 36px;
+}
+
+/* ── TABS ── */
+.auth-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--bg-3); border-radius: 8px;
+  padding: 3px; gap: 3px; margin-bottom: 28px;
+}
+
+.auth-tab {
+  padding: 9px; border: none; background: transparent;
+  border-radius: 6px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.08em;
+  color: var(--text-3); text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+.auth-tab.active {
+  background: var(--bg-2); color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+
+.form-label {
+  display: block;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.12em; color: var(--text-3);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg-3); border: 1px solid var(--border-2);
+  border-radius: 7px; color: var(--text);
+  font-family: var(--font-mono); font-size: 13px;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+.form-input::placeholder { color: var(--text-3); }
+.form-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.form-input.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-dim);
+}
+
+/* ── SUBMIT BUTTON ── */
+.submit-btn {
+  width: 100%; padding: 13px;
+  background: var(--blue); color: #ffffff;
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px;
+  font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.submit-btn:hover:not(:disabled) {
+  background: #2563eb; transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+}
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ERROR / SUCCESS MESSAGES ── */
+.auth-message {
+  padding: 10px 14px; border-radius: 7px;
+  font-family: var(--font-mono); font-size: 11px;
+  line-height: 1.5; margin-bottom: 16px;
+  display: none;
+}
+.auth-message.error {
+  background: var(--red-dim);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: var(--red); display: block;
+}
+.auth-message.success {
+  background: var(--green-dim);
+  border: 1px solid rgba(16,185,129,0.25);
+  color: var(--green); display: block;
+}
+
+/* ── DIVIDER ── */
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0; color: var(--text-3);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── FORGOT PASSWORD ── */
+.forgot-link {
+  display: block; text-align: right; margin-top: -8px; margin-bottom: 16px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+  color: var(--text-3); text-decoration: none;
+  transition: color 0.2s;
+}
+.forgot-link:hover { color: var(--blue); }
+
+/* ── FOOTER ── */
+.login-footer {
+  margin-top: 28px; padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.login-footer-text {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-3); letter-spacing: 0.04em; line-height: 1.7;
+}
+
+/* ── BACK LINK ── */
+.back-link {
+  position: fixed; top: 24px; left: 24px; z-index: 10;
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.08em; color: var(--text-3);
+  text-decoration: none; display: flex; align-items: center; gap: 6px;
+  transition: color 0.2s;
+}
+.back-link:hover { color: var(--text); }
+
+/* ── SIGNUP EXTRA FIELDS ── */
+.signup-fields { display: none; }
+.signup-fields.visible { display: block; }
+
+/* ── PASSWORD STRENGTH ── */
+.pw-strength {
+  margin-top: 6px; height: 3px;
+  background: var(--bg-3); border-radius: 2px; overflow: hidden;
+}
+.pw-strength-bar {
+  height: 100%; border-radius: 2px; width: 0;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.pw-strength-label {
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--text-3); margin-top: 4px; letter-spacing: 0.06em;
+}
+
+/* ── SUCCESS STATE ── */
+.success-state {
+  text-align: center; padding: 20px 0; display: none;
+}
+.success-icon {
+  font-size: 40px; margin-bottom: 16px;
+  animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) both;
+}
+@keyframes popIn {
+  from { transform: scale(0); opacity:0; }
+  to   { transform: scale(1); opacity:1; }
+}
+.success-title {
+  font-family: var(--font-serif); font-size: 26px; font-weight: 600;
+  color: var(--text); margin-bottom: 8px;
+}
+.success-desc {
+  font-size: 13px; color: var(--text-2); line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="landing_page.html">← EconIq</a>
+
+<div class="login-card">
+
+  <!-- Logo -->
+  <div class="login-logo">
+    <a class="login-logo-text" href="landing_page.html"><span>EconIq</span></a>
+  </div>
+  <div class="login-tagline">India Macro Intelligence</div>
+
+  <!-- Auth tabs -->
+  <div class="auth-tabs">
+    <button class="auth-tab active" id="tabSignIn" onclick="switchTab('signin')">Sign In</button>
+    <button class="auth-tab" id="tabSignUp" onclick="switchTab('signup')">Request Access</button>
+  </div>
+
+  <!-- Error / success message -->
+  <div class="auth-message" id="authMessage"></div>
+
+  <!-- ── SIGN IN FORM ── -->
+  <form id="signinForm" onsubmit="handleSignIn(event)">
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="signinEmail"
+             placeholder="you@firm.com" autocomplete="email" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="signinPassword"
+             placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+    <a class="forgot-link" href="#" onclick="handleForgot(event)">Forgot password?</a>
+    <button class="submit-btn" type="submit" id="signinBtn">
+      Sign In
+    </button>
+  </form>
+
+  <!-- ── SIGN UP FORM ── -->
+  <form id="signupForm" style="display:none" onsubmit="handleSignUp(event)">
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" id="signupName"
+             placeholder="Apurv Shinde" autocomplete="name" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="signupEmail"
+             placeholder="you@firm.com" autocomplete="email" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Firm Name <span style="color:var(--text-3);font-size:9px;">(optional)</span></label>
+      <input class="form-input" type="text" id="signupFirm"
+             placeholder="Apex Capital (leave blank if individual)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="signupPassword"
+             placeholder="Min 8 characters" autocomplete="new-password"
+             oninput="checkPasswordStrength(this.value)" required>
+      <div class="pw-strength">
+        <div class="pw-strength-bar" id="pwStrengthBar"></div>
+      </div>
+      <div class="pw-strength-label" id="pwStrengthLabel"></div>
+    </div>
+    <button class="submit-btn" type="submit" id="signupBtn">
+      Request Access
+    </button>
+    <div style="margin-top:12px;text-align:center;font-family:var(--font-mono);
+                font-size:10px;color:var(--text-3);line-height:1.6;letter-spacing:0.04em;">
+      Access is reviewed manually.<br>
+      You'll receive an email within 24 hours.
+    </div>
+  </form>
+
+  <!-- ── SUCCESS STATE (after signup) ── -->
+  <div class="success-state" id="successState">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Request received.</div>
+    <div class="success-desc">
+      We'll review your access request and send you an email within 24 hours.<br><br>
+      <a href="landing_page.html" style="color:var(--blue);font-family:var(--font-mono);
+         font-size:11px;letter-spacing:0.06em;">← Back to EconIq</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="login-footer">
+    <div class="login-footer-text">
+      EconIq · India Macro Intelligence Terminal<br>
+      For informational purposes only. Not investment advice.
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════════════════════
+   CONFIGURATION
+   ════════════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://nurqjuywtypqvciyjlrw.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ════════════════════════════════════════════════
+   CHECK EXISTING SESSION
+   ════════════════════════════════════════════════ */
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    window.location.href = 'dashboard.html';
+  }
+})();
+
+/* ════════════════════════════════════════════════
+   TAB SWITCH
+   ════════════════════════════════════════════════ */
+function switchTab(tab) {
+  const isSignIn = tab === 'signin';
+  document.getElementById('tabSignIn').classList.toggle('active',  isSignIn);
+  document.getElementById('tabSignUp').classList.toggle('active', !isSignIn);
+  document.getElementById('signinForm').style.display = isSignIn  ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = !isSignIn ? 'block' : 'none';
+  document.getElementById('successState').style.display = 'none';
+  clearMessage();
+}
+
+/* ════════════════════════════════════════════════
+   SIGN IN
+   ════════════════════════════════════════════════ */
+async function handleSignIn(e) {
+  e.preventDefault();
+  const email    = document.getElementById('signinEmail').value.trim();
+  const password = document.getElementById('signinPassword').value;
+  const btn      = document.getElementById('signinBtn');
+
+  setLoading(btn, true);
+  clearMessage();
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    // Check access tier before redirecting
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('tier, trial_ends_at, full_name')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profile?.tier === 'pending') {
+      await sb.auth.signOut();
+      showMessage(
+        'Your account is pending approval. You\'ll receive an email once access is granted.',
+        'error'
+      );
+      setLoading(btn, false);
+      return;
+    }
+
+    if (profile?.tier === 'trial') {
+      const trialEnd = profile.trial_ends_at;
+      if (trialEnd && new Date(trialEnd) < new Date()) {
+        await sb.auth.signOut();
+        showMessage(
+          'Your trial has expired. Please contact us to upgrade your account.',
+          'error'
+        );
+        setLoading(btn, false);
+        return;
+      }
+    }
+
+    // All good — redirect
+    window.location.href = 'dashboard.html';
+
+  } catch(err) {
+    const msg = err.message.includes('Invalid login')
+      ? 'Incorrect email or password.'
+      : err.message.includes('Email not confirmed')
+      ? 'Please confirm your email address first.'
+      : err.message || 'Sign in failed. Please try again.';
+    showMessage(msg, 'error');
+    document.getElementById('signinPassword').classList.add('error');
+    setLoading(btn, false);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   SIGN UP / REQUEST ACCESS
+   ════════════════════════════════════════════════ */
+async function handleSignUp(e) {
+  e.preventDefault();
+  const name     = document.getElementById('signupName').value.trim();
+  const email    = document.getElementById('signupEmail').value.trim();
+  const firm     = document.getElementById('signupFirm').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const btn      = document.getElementById('signupBtn');
+
+  if (password.length < 8) {
+    showMessage('Password must be at least 8 characters.', 'error');
+    return;
+  }
+
+  setLoading(btn, true);
+  clearMessage();
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          firm_name: firm || null,
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    // Set tier to pending — admin approves manually
+    if (data.user) {
+      await sb.from('profiles').upsert({
+        id:         data.user.id,
+        email:      email,
+        full_name:  name,
+        firm_name:  firm || null,
+        tier:       'pending',
+      });
+    }
+
+    // Show success state
+    document.getElementById('signupForm').style.display = 'none';
+    document.getElementById('successState').style.display = 'block';
+    setLoading(btn, false);
+
+  } catch(err) {
+    const msg = err.message.includes('already registered')
+      ? 'This email is already registered. Try signing in instead.'
+      : err.message || 'Registration failed. Please try again.';
+    showMessage(msg, 'error');
+    setLoading(btn, false);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   FORGOT PASSWORD
+   ════════════════════════════════════════════════ */
+async function handleForgot(e) {
+  e.preventDefault();
+  const email = document.getElementById('signinEmail').value.trim();
+  if (!email) {
+    showMessage('Enter your email address above first.', 'error');
+    return;
+  }
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/dashboard.html',
+    });
+    if (error) throw error;
+    showMessage('Password reset link sent to ' + email, 'success');
+  } catch(err) {
+    showMessage(err.message || 'Reset failed. Try again.', 'error');
+  }
+}
+
+/* ════════════════════════════════════════════════
+   PASSWORD STRENGTH
+   ════════════════════════════════════════════════ */
+function checkPasswordStrength(pw) {
+  const bar   = document.getElementById('pwStrengthBar');
+  const label = document.getElementById('pwStrengthLabel');
+  let score   = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  const levels = [
+    { pct: '20%',  color: 'var(--red)',   label: 'Too weak' },
+    { pct: '40%',  color: 'var(--red)',   label: 'Weak' },
+    { pct: '60%',  color: 'var(--amber)', label: 'Fair' },
+    { pct: '80%',  color: 'var(--amber)', label: 'Good' },
+    { pct: '100%', color: 'var(--green)', label: 'Strong' },
+  ];
+  const lvl = levels[Math.min(score, 4)];
+  bar.style.width      = pw.length ? lvl.pct : '0';
+  bar.style.background = lvl.color;
+  label.textContent    = pw.length ? lvl.label : '';
+  label.style.color    = lvl.color;
+}
+
+/* ════════════════════════════════════════════════
+   HELPERS
+   ════════════════════════════════════════════════ */
+function setLoading(btn, loading) {
+  btn.disabled = loading;
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<div class="btn-spinner"></div>';
+  } else {
+    btn.innerHTML = btn._orig || btn.innerHTML;
+  }
+}
+
+function showMessage(msg, type) {
+  const el = document.getElementById('authMessage');
+  el.textContent  = msg;
+  el.className    = 'auth-message ' + type;
+}
+
+function clearMessage() {
+  const el = document.getElementById('authMessage');
+  el.className = 'auth-message';
+  el.textContent = '';
+  document.querySelectorAll('.form-input').forEach(i => i.classList.remove('error'));
+}
+
+/* ── Remove error style on input ── */
+document.addEventListener('input', e => {
+  if (e.target.classList.contains('form-input')) {
+    e.target.classList.remove('error');
+  }
+});
+</script>
+</body>
+</html>
