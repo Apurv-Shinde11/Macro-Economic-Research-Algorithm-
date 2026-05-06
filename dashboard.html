@@ -1782,7 +1782,7 @@
         const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
         const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
-        const bias = r.allocation ? 'Equity: ' + (Object.entries(r.allocation)[0]?.[1] || '—') : '—';
+        const bias = r.allocation?.equities ? Math.round(r.allocation.equities * 100) + '% Eq' : '—';
         return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td></tr>`;
       }).join('');
     }
