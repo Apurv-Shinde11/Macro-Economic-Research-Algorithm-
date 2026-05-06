@@ -1,2396 +1,760 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EconIq — Macro Intelligence Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
-    rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    /* ══════════════════════════════════════════════════
-   CONFIGURATION — replace with your actual values
-   ══════════════════════════════════════════════════ */
-    :root {
-      --railway-url: 'https://YOUR-RAILWAY-URL.up.railway.app';
-    }
-
-    /* ══════════════════════════════════════════════════
-   DESIGN TOKENS
-   ══════════════════════════════════════════════════ */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --bg: #070912;
-      --bg-2: #0d1120;
-      --bg-3: #121828;
-      --bg-4: #1a2235;
-      --border: rgba(255, 255, 255, 0.07);
-      --border-2: rgba(255, 255, 255, 0.12);
-      --text: #e8edf5;
-      --text-2: #8899b0;
-      --text-3: #3d4f66;
-      --blue: #3b82f6;
-      --blue-dim: rgba(59, 130, 246, 0.12);
-      --green: #10b981;
-      --green-dim: rgba(16, 185, 129, 0.12);
-      --amber: #f59e0b;
-      --amber-dim: rgba(245, 158, 11, 0.12);
-      --red: #ef4444;
-      --red-dim: rgba(239, 68, 68, 0.12);
-      --font-serif: 'Cormorant Garamond', Georgia, serif;
-      --font-sans: 'DM Sans', sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-      --nav-h: 64px;
-      --sidebar-w: 320px;
-      --radius: 8px;
-      --radius-lg: 12px;
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f4f6fb;
-        --bg-2: #ffffff;
-        --bg-3: #edf0f7;
-        --bg-4: #e4e9f4;
-        --border: rgba(0, 0, 0, 0.07);
-        --border-2: rgba(0, 0, 0, 0.13);
-        --text: #0d1120;
-        --text-2: #4a5872;
-        --text-3: #9aaabb;
-        --blue: #2563eb;
-        --blue-dim: rgba(37, 99, 235, 0.08);
-        --green: #059669;
-        --green-dim: rgba(5, 150, 105, 0.08);
-        --amber: #d97706;
-        --amber-dim: rgba(217, 119, 6, 0.08);
-        --red: #dc2626;
-        --red-dim: rgba(220, 38, 38, 0.08);
-      }
-    }
-
-    html {
-      height: 100%;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 100%;
-      overflow-x: hidden;
-    }
-
-    /* ── Grid texture ── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ══════════════════════════════════════════════════
-   NAV — carries over from landing page exactly
-   ══════════════════════════════════════════════════ */
-    .nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      height: var(--nav-h);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 28px;
-      background: #ffffff;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.09);
-      transition: background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .nav.scrolled {
-      background: rgba(255, 255, 255, 0.55);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      box-shadow: 0 2px 32px rgba(0, 0, 0, 0.10);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .nav {
-        background: rgba(7, 9, 18, 0.95);
-        border-bottom: 1px solid var(--border);
-      }
-
-      .nav.scrolled {
-        background: rgba(7, 9, 18, 0.75);
-        backdrop-filter: blur(24px) saturate(180%);
-        -webkit-backdrop-filter: blur(24px) saturate(180%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-    }
-
-    .nav-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .nav-logo {
-      font-family: var(--font-mono);
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-decoration: none;
-      color: #0d1120;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .nav-logo {
-        color: var(--text);
-      }
-    }
-
-    .nav-logo span {
-      color: var(--blue);
-    }
-
-    .nav-firm {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      color: var(--text-3);
-      padding: 3px 10px;
-      background: var(--bg-3);
-      border-radius: 4px;
-      border: 1px solid var(--border);
-    }
-
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      border: 1px solid var(--border-2);
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--text-2);
-      font-size: 16px;
-      transition: background 0.2s, color 0.2s;
-      position: relative;
-    }
-
-    .nav-btn:hover {
-      background: var(--bg-3);
-      color: var(--text);
-    }
-
-    .nav-badge {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--red);
-      border: 1.5px solid var(--bg-2);
-    }
-
-    .nav-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 10px 4px 4px;
-      border: 1px solid var(--border-2);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-      background: transparent;
-    }
-
-    .nav-user:hover {
-      background: var(--bg-3);
-    }
-
-    .nav-avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      background: var(--blue-dim);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--blue);
-      letter-spacing: 0.05em;
-    }
-
-    .nav-user-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text);
-      font-family: var(--font-sans);
-    }
-
-    /* ══════════════════════════════════════════════════
-   LAYOUT — 2 column
-   ══════════════════════════════════════════════════ */
-    .app-layout {
-      display: grid;
-      grid-template-columns: var(--sidebar-w) 1fr;
-      gap: 0;
-      min-height: 100vh;
-      padding-top: var(--nav-h);
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ══════════════════════════════════════════════════
-   MAIN CONTENT
-   ══════════════════════════════════════════════════ */
-    .main-content {
-      padding: 28px 28px 60px 28px;
-      border-right: 1px solid var(--border);
-      min-width: 0;
-    }
-
-    /* ── Section header ── */
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.2em;
-      color: var(--text-3);
-      text-transform: uppercase;
-    }
-
-    .section-meta {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-3);
-      letter-spacing: 0.06em;
-    }
-
-    /* ── Divider ── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 28px 0;
-    }
-
-    /* ══════════════════════════════════════════════════
-   REGIME HERO CARD
-   ══════════════════════════════════════════════════ */
-    .regime-hero {
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 28px;
-      margin-bottom: 16px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .regime-hero::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--blue), var(--green));
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    }
-
-    .regime-hero-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    .regime-hero-left {}
-
-    .regime-label-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .regime-eyebrow {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      color: var(--text-3);
-      text-transform: uppercase;
-    }
-
-    .regime-status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse-dot 2s infinite;
-    }
-
-    @keyframes pulse-dot {
-
-      0%,
-      100% {
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-      }
-
-      50% {
-        opacity: 0.8;
-        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
-      }
-    }
-
-    .regime-name {
-      font-family: var(--font-serif);
-      font-size: clamp(28px, 3.5vw, 44px);
-      font-weight: 600;
-      line-height: 1.1;
-      color: var(--text);
-      margin-bottom: 6px;
-      letter-spacing: -0.01em;
-    }
-
-    .regime-narrative {
-      font-size: 13px;
-      color: var(--text-2);
-      line-height: 1.6;
-      max-width: 520px;
-      margin-top: 10px;
-    }
-
-    .regime-hero-right {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      align-items: flex-end;
-      flex-shrink: 0;
-    }
-
-    /* Confidence ring */
-    .confidence-ring {
-      position: relative;
-      width: 84px;
-      height: 84px;
-    }
-
-    .confidence-ring svg {
-      transform: rotate(-90deg);
-    }
-
-    .confidence-ring .ring-bg {
-      fill: none;
-      stroke: var(--bg-3);
-      stroke-width: 6;
-    }
-
-    .confidence-ring .ring-fill {
-      fill: none;
-      stroke: var(--blue);
-      stroke-width: 6;
-      stroke-linecap: round;
-      transition: stroke-dasharray 1s ease;
-    }
-
-    .confidence-ring-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .confidence-pct {
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      line-height: 1;
-    }
-
-    .confidence-lbl {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      color: var(--text-3);
-      letter-spacing: 0.1em;
-      margin-top: 2px;
-    }
-
-    /* Regime pills row */
-    .regime-pills {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
-
-    .regime-pill {
-      display: flex;
-      flex-direction: column;
-      padding: 8px 14px;
-      border-radius: 6px;
-      background: var(--bg-3);
-      border: 1px solid var(--border);
-      min-width: 90px;
-    }
-
-    .regime-pill-label {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      color: var(--text-3);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .regime-pill-value {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    /* Challenger box */
-    .challenger-banner {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 6px;
-      background: var(--amber-dim);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      margin-top: 16px;
-      font-size: 12px;
-      color: var(--text-2);
-    }
-
-    .challenger-banner strong {
-      color: var(--amber);
-      font-family: var(--font-mono);
-    }
-
-    /* ══════════════════════════════════════════════════
-   TICKER STRIP
-   ══════════════════════════════════════════════════ */
-    .ticker-strip {
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-      white-space: nowrap;
-      margin-bottom: 16px;
-    }
-
-    .ticker-strip::-webkit-scrollbar {
-      display: none;
-    }
-
-    .ticker-live-badge {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      letter-spacing: 0.2em;
-      color: var(--green);
-      padding: 2px 8px;
-      border-radius: 3px;
-      background: var(--green-dim);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      margin-right: 16px;
-      flex-shrink: 0;
-    }
-
-    .ticker-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 16px;
-      border-right: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .ticker-item:last-child {
-      border-right: none;
-    }
-
-    .ticker-name {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      color: var(--text-3);
-      letter-spacing: 0.08em;
-    }
-
-    .ticker-price {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .ticker-chg {
-      font-family: var(--font-mono);
-      font-size: 10px;
-    }
-
-    .ticker-chg.up {
-      color: var(--green);
-    }
-
-    .ticker-chg.down {
-      color: var(--red);
-    }
-
-    .ticker-chg.flat {
-      color: var(--text-3);
-    }
-
-    /* ══════════════════════════════════════════════════
-   PLAYBOOK CARD
-   ══════════════════════════════════════════════════ */
-    .playbook-card {
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 24px;
-      margin-bottom: 16px;
-    }
-
-    .playbook-items {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .playbook-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 6px;
-      background: var(--bg-3);
-      border: 1px solid var(--border);
-      transition: border-color 0.2s, background 0.2s;
-    }
-
-    .playbook-item:hover {
-      border-color: var(--border-2);
-      background: var(--bg-4);
-    }
-
-    .playbook-arrow {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--blue);
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .playbook-text {
-      font-size: 13px;
-      color: var(--text-2);
-      line-height: 1.5;
-    }
-
-    /* ══════════════════════════════════════════════════
-   SCENARIO CARDS
-   ══════════════════════════════════════════════════ */
-    .scenario-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .scenario-card {
-      padding: 16px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .scenario-card.bullish {
-      background: var(--green-dim);
-      border-color: rgba(16, 185, 129, 0.2);
-    }
-
-    .scenario-card.base {
-      background: var(--blue-dim);
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .scenario-card.bearish {
-      background: var(--red-dim);
-      border-color: rgba(239, 68, 68, 0.2);
-    }
-
-    .scenario-name {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .scenario-prob {
-      font-family: var(--font-serif);
-      font-size: 36px;
-      font-weight: 600;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .bullish .scenario-prob {
-      color: var(--green);
-    }
-
-    .base .scenario-prob {
-      color: var(--blue);
-    }
-
-    .bearish .scenario-prob {
-      color: var(--red);
-    }
-
-    .scenario-desc {
-      font-size: 11px;
-      color: var(--text-2);
-      line-height: 1.5;
-    }
-
-    /* ══════════════════════════════════════════════════
-   FII / DII FLOWS
-   ══════════════════════════════════════════════════ */
-    .flows-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .flow-card {
-      padding: 18px;
-      border-radius: var(--radius);
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-    }
-
-    .flow-type {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .flow-amount {
-      font-family: var(--font-serif);
-      font-size: 28px;
-      font-weight: 600;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .flow-amount.positive {
-      color: var(--green);
-    }
-
-    .flow-amount.negative {
-      color: var(--red);
-    }
-
-    .flow-signal {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-    }
-
-    .flow-signal.risk-on {
-      color: var(--green);
-    }
-
-    .flow-signal.risk-off {
-      color: var(--red);
-    }
-
-    .flow-signal.neutral {
-      color: var(--text-3);
-    }
-
-    .flow-narrative {
-      margin-top: 12px;
-      padding: 10px 12px;
-      background: var(--bg-3);
-      border-radius: 6px;
-      font-size: 12px;
-      color: var(--text-2);
-      line-height: 1.6;
-      grid-column: 1 / -1;
-    }
-
-    /* ══════════════════════════════════════════════════
-   YIELD CURVE
-   ══════════════════════════════════════════════════ */
-    .yield-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .yield-card {
-      padding: 16px;
-      border-radius: var(--radius);
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-    }
-
-    .yield-label {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .yield-value {
-      font-family: var(--font-mono);
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 3px;
-    }
-
-    .yield-sub {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      color: var(--text-3);
-      letter-spacing: 0.06em;
-    }
-
-    /* ══════════════════════════════════════════════════
-   ECONOMIC CALENDAR
-   ══════════════════════════════════════════════════ */
-    .calendar-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .calendar-item {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 16px;
-      border-radius: var(--radius);
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      transition: border-color 0.2s;
-    }
-
-    .calendar-item:hover {
-      border-color: var(--border-2);
-    }
-
-    .calendar-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .calendar-dot.high {
-      background: var(--red);
-    }
-
-    .calendar-dot.medium {
-      background: var(--amber);
-    }
-
-    .calendar-dot.low {
-      background: var(--blue);
-    }
-
-    .calendar-name {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      flex: 1;
-    }
-
-    .calendar-date {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-3);
-    }
-
-    .calendar-days {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.06em;
-      padding: 2px 8px;
-      border-radius: 3px;
-    }
-
-    .calendar-days.soon {
-      background: var(--red-dim);
-      color: var(--red);
-    }
-
-    .calendar-days.near {
-      background: var(--amber-dim);
-      color: var(--amber);
-    }
-
-    .calendar-days.upcoming {
-      background: var(--blue-dim);
-      color: var(--blue);
-    }
-
-    /* ══════════════════════════════════════════════════
-   HISTORICAL ARCHIVE
-   ══════════════════════════════════════════════════ */
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 14px;
-      font-size: 12px;
-    }
-
-    .history-table th {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 500;
-    }
-
-    .history-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text-2);
-      font-family: var(--font-mono);
-    }
-
-    .history-table tr:hover td {
-      background: var(--bg-3);
-    }
-
-    .history-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .conviction-badge {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      padding: 2px 7px;
-      border-radius: 3px;
-      text-transform: uppercase;
-    }
-
-    .conviction-badge.HIGH {
-      background: var(--green-dim);
-      color: var(--green);
-    }
-
-    .conviction-badge.MEDIUM {
-      background: var(--amber-dim);
-      color: var(--amber);
-    }
-
-    .conviction-badge.LOW {
-      background: var(--red-dim);
-      color: var(--red);
-    }
-
-    /* ══════════════════════════════════════════════════
-   SIDEBAR
-   ══════════════════════════════════════════════════ */
-    .sidebar {
-      padding: 24px 20px;
-      background: var(--bg-2);
-      position: sticky;
-      top: var(--nav-h);
-      height: calc(100vh - var(--nav-h));
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .sidebar::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .sidebar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .sidebar::-webkit-scrollbar-thumb {
-      background: var(--border-2);
-      border-radius: 2px;
-    }
-
-    /* ── Run button ── */
-    .run-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--blue);
-      color: #ffffff;
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .run-btn:hover:not(:disabled) {
-      background: #2563eb;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
-    }
-
-    .run-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .run-btn.running {
-      background: var(--amber);
-    }
-
-    /* ── Run status ── */
-    .run-status {
-      padding: 10px 12px;
-      border-radius: 6px;
-      background: var(--bg-3);
-      border: 1px solid var(--border);
-      margin-bottom: 20px;
-      display: none;
-    }
-
-    .run-status.visible {
-      display: block;
-    }
-
-    .run-status-text {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-2);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .run-spinner {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      border: 2px solid var(--amber-dim);
-      border-top-color: var(--amber);
-      animation: spin 0.8s linear infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* ── Sidebar section ── */
-    .sidebar-section {
-      margin-bottom: 24px;
-    }
-
-    .sidebar-section-title {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    /* ── Form controls ── */
-    .form-row {
-      margin-bottom: 12px;
-    }
-
-    .form-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      color: var(--text-3);
-      text-transform: uppercase;
-      margin-bottom: 5px;
-      display: block;
-    }
-
-    .form-select,
-    .form-input {
-      width: 100%;
-      padding: 8px 10px;
-      background: var(--bg-3);
-      border: 1px solid var(--border-2);
-      border-radius: 5px;
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      outline: none;
-      transition: border-color 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-
-    .form-select:focus,
-    .form-input:focus {
-      border-color: var(--blue);
-    }
-
-    .form-select-wrap {
-      position: relative;
-    }
-
-    .form-select-wrap::after {
-      content: '▾';
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 10px;
-      color: var(--text-3);
-      pointer-events: none;
-    }
-
-    /* Segment control */
-    .segment-control {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      background: var(--bg-3);
-      border: 1px solid var(--border-2);
-      border-radius: 5px;
-      padding: 2px;
-      gap: 2px;
-    }
-
-    .segment-btn {
-      padding: 6px 4px;
-      border: none;
-      background: transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-3);
-      letter-spacing: 0.05em;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .segment-btn.active {
-      background: var(--blue);
-      color: #ffffff;
-    }
-
-    /* ── Threshold row ── */
-    .threshold-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 5px;
-      background: var(--bg-3);
-      border: 1px solid var(--border);
-      margin-bottom: 6px;
-    }
-
-    .threshold-name {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-2);
-    }
-
-    .threshold-val {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--blue);
-      cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 3px;
-      background: var(--blue-dim);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      transition: background 0.15s;
-    }
-
-    .threshold-val:hover {
-      background: rgba(59, 130, 246, 0.2);
-    }
-
-    /* ── Save button ── */
-    .save-btn {
-      width: 100%;
-      padding: 10px;
-      background: var(--bg-3);
-      color: var(--text);
-      border: 1px solid var(--border-2);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      transition: all 0.2s;
-      margin-top: 4px;
-    }
-
-    .save-btn:hover {
-      background: var(--blue);
-      color: #fff;
-      border-color: var(--blue);
-    }
-
-    .save-btn.saved {
-      background: var(--green-dim);
-      color: var(--green);
-      border-color: rgba(16, 185, 129, 0.2);
-    }
-
-    /* ── Last run info ── */
-    .last-run-info {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-3);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .freshness-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .freshness-dot.fresh {
-      background: var(--green);
-    }
-
-    .freshness-dot.stale {
-      background: var(--amber);
-    }
-
-    .freshness-dot.old {
-      background: var(--red);
-      animation: pulse-dot 2s infinite;
-    }
-
-    /* ══════════════════════════════════════════════════
-   EMPTY / LOADING STATES
-   ══════════════════════════════════════════════════ */
-    .skeleton {
-      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
-      background-size: 200% 100%;
-      animation: skeleton-shimmer 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    @keyframes skeleton-shimmer {
-      0% {
-        background-position: 200% 0;
-      }
-
-      100% {
-        background-position: -200% 0;
-      }
-    }
-
-    .empty-state {
-      padding: 40px 20px;
-      text-align: center;
-      border: 1px dashed var(--border-2);
-      border-radius: var(--radius-lg);
-    }
-
-    .empty-state-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
-
-    .empty-state-title {
-      font-family: var(--font-serif);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .empty-state-desc {
-      font-size: 13px;
-      color: var(--text-2);
-      line-height: 1.6;
-    }
-
-    /* ══════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-   ══════════════════════════════════════════════════ */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .toast {
-      padding: 12px 16px;
-      border-radius: var(--radius);
-      background: var(--bg-2);
-      border: 1px solid var(--border-2);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--text);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      animation: toastIn 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toast.success {
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-
-    .toast.error {
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    @keyframes toastIn {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    /* ══════════════════════════════════════════════════
-   RESPONSIVE
-   ══════════════════════════════════════════════════ */
-    @media (max-width: 900px) {
-      .app-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        position: static;
-        height: auto;
-        border-top: 1px solid var(--border);
-        order: -1;
-      }
-
-      .scenario-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .flows-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .yield-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .main-content {
-        padding: 20px 16px 40px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconIq — Macro Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#070912;--bg-2:#0d1120;--bg-3:#121828;--bg-4:#1a2235;
+  --border:rgba(255,255,255,0.07);--border-2:rgba(255,255,255,0.12);
+  --text:#e8edf5;--text-2:#8899b0;--text-3:#3d4f66;
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);
+  --green:#10b981;--green-dim:rgba(16,185,129,0.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);
+  --font-serif:'Cormorant Garamond',Georgia,serif;
+  --font-sans:'DM Sans',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --nav-h:64px;--sidebar-w:320px;--radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#f4f6fb;--bg-2:#ffffff;--bg-3:#edf0f7;--bg-4:#e4e9f4;
+    --border:rgba(0,0,0,0.07);--border-2:rgba(0,0,0,0.13);
+    --text:#0d1120;--text-2:#4a5872;--text-3:#9aaabb;
+    --blue:#2563eb;--blue-dim:rgba(37,99,235,0.08);
+    --green:#059669;--green-dim:rgba(5,150,105,0.08);
+    --amber:#d97706;--amber-dim:rgba(217,119,6,0.08);
+    --red:#dc2626;--red-dim:rgba(220,38,38,0.08);
+  }
+}
+html{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:14px;line-height:1.6;min-height:100%;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.025) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:#ffffff;border-bottom:1px solid rgba(0,0,0,0.09);transition:background 0.3s ease,backdrop-filter 0.3s ease,box-shadow 0.3s ease;}
+.nav.scrolled{background:rgba(255,255,255,0.55);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);box-shadow:0 2px 32px rgba(0,0,0,0.10);border-bottom:1px solid rgba(255,255,255,0.6);}
+@media(prefers-color-scheme:dark){
+  .nav{background:rgba(7,9,18,0.95);border-bottom:1px solid var(--border);}
+  .nav.scrolled{background:rgba(7,9,18,0.75);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid rgba(255,255,255,0.08);}
+}
+.nav-left{display:flex;align-items:center;gap:16px;}
+.nav-logo{font-family:var(--font-mono);font-size:15px;font-weight:700;letter-spacing:0.12em;text-decoration:none;color:#0d1120;}
+@media(prefers-color-scheme:dark){.nav-logo{color:var(--text);}}
+.nav-logo span{color:var(--blue);}
+.nav-firm{font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;color:var(--text-3);padding:3px 10px;background:var(--bg-3);border-radius:4px;border:1px solid var(--border);}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.nav-btn{width:36px;height:36px;border-radius:6px;border:1px solid var(--border-2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);font-size:16px;transition:background 0.2s,color 0.2s;position:relative;}
+.nav-btn:hover{background:var(--bg-3);color:var(--text);}
+.nav-badge{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg-2);}
+.nav-user{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border-2);border-radius:6px;cursor:pointer;transition:background 0.2s;background:transparent;}
+.nav-user:hover{background:var(--bg-3);}
+.nav-avatar{width:28px;height:28px;border-radius:6px;background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--blue);letter-spacing:0.05em;}
+.nav-user-name{font-size:12px;font-weight:500;color:var(--text);font-family:var(--font-sans);}
+
+/* ══ LAYOUT — sidebar LEFT, main RIGHT ══ */
+.app-layout{
+  display:grid;
+  grid-template-columns:var(--sidebar-w) 1fr;
+  gap:0;
+  min-height:100vh;
+  padding-top:var(--nav-h);
+  position:relative;
+  z-index:1;
+}
+
+/* ══ SIDEBAR ══ */
+.sidebar{
+  padding:24px 20px;
+  background:var(--bg-2);
+  border-right:1px solid var(--border);
+  position:sticky;
+  top:var(--nav-h);
+  height:calc(100vh - var(--nav-h));
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-track{background:transparent;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:2px;}
+
+.run-btn{width:100%;padding:14px;background:var(--blue);color:#ffffff;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;transition:background 0.2s,transform 0.15s,box-shadow 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;}
+.run-btn:hover:not(:disabled){background:#2563eb;transform:translateY(-1px);box-shadow:0 4px 20px rgba(59,130,246,0.35);}
+.run-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+.run-btn.running{background:var(--amber);}
+.run-status{padding:10px 12px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);margin-bottom:20px;display:none;}
+.run-status.visible{display:block;}
+.run-status-text{font-family:var(--font-mono);font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:8px;}
+.run-spinner{width:10px;height:10px;border-radius:50%;border:2px solid var(--amber-dim);border-top-color:var(--amber);animation:spin 0.8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sidebar-section{margin-bottom:24px;}
+.sidebar-section-title{font-family:var(--font-mono);font-size:9px;letter-spacing:0.2em;color:var(--text-3);text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.form-row{margin-bottom:12px;}
+.form-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;color:var(--text-3);text-transform:uppercase;margin-bottom:5px;display:block;}
+.form-select,.form-input{width:100%;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:5px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color 0.2s;appearance:none;-webkit-appearance:none;}
+.form-select:focus,.form-input:focus{border-color:var(--blue);}
+.form-select-wrap{position:relative;}
+.form-select-wrap::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);pointer-events:none;}
+.segment-btn{padding:6px 4px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--text-3);letter-spacing:0.05em;transition:background 0.15s,color 0.15s;}
+.segment-btn.active{background:var(--blue);color:#ffffff;}
+.threshold-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);margin-bottom:6px;}
+.threshold-name{font-family:var(--font-mono);font-size:11px;color:var(--text-2);}
+.threshold-val{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--blue);cursor:pointer;padding:2px 6px;border-radius:3px;background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);transition:background 0.15s;}
+.threshold-val:hover{background:rgba(59,130,246,0.2);}
+.save-btn{width:100%;padding:10px;background:var(--bg-3);color:var(--text);border:1px solid var(--border-2);border-radius:var(--radius);cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;margin-top:4px;}
+.save-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.save-btn.saved{background:var(--green-dim);color:var(--green);border-color:rgba(16,185,129,0.2);}
+.last-run-info{font-family:var(--font-mono);font-size:10px;color:var(--text-3);display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.freshness-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.freshness-dot.fresh{background:var(--green);}
+.freshness-dot.stale{background:var(--amber);}
+.freshness-dot.old{background:var(--red);animation:pulse-dot 2s infinite;}
+
+/* ══ MAIN CONTENT ══ */
+.main-content{padding:28px 28px 60px 28px;min-width:0;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.2em;color:var(--text-3);text-transform:uppercase;}
+.section-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-3);letter-spacing:0.06em;}
+.divider{height:1px;background:var(--border);margin:28px 0;}
+
+/* REGIME HERO */
+.regime-hero{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:16px;position:relative;overflow:hidden;}
+.regime-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:var(--radius-lg) var(--radius-lg) 0 0;}
+.regime-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.regime-label-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.regime-eyebrow{font-family:var(--font-mono);font-size:9px;letter-spacing:0.2em;color:var(--text-3);text-transform:uppercase;}
+.regime-status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,0.4);}50%{opacity:0.8;box-shadow:0 0 0 5px rgba(16,185,129,0);}}
+.regime-name{font-family:var(--font-serif);font-size:clamp(28px,3.5vw,44px);font-weight:600;line-height:1.1;color:var(--text);margin-bottom:6px;letter-spacing:-0.01em;}
+.regime-narrative{font-size:13px;color:var(--text-2);line-height:1.6;max-width:520px;margin-top:10px;}
+.regime-hero-right{display:flex;flex-direction:column;gap:10px;align-items:flex-end;flex-shrink:0;}
+.confidence-ring{position:relative;width:84px;height:84px;}
+.confidence-ring svg{transform:rotate(-90deg);}
+.confidence-ring .ring-bg{fill:none;stroke:var(--bg-3);stroke-width:6;}
+.confidence-ring .ring-fill{fill:none;stroke:var(--blue);stroke-width:6;stroke-linecap:round;transition:stroke-dasharray 1s ease;}
+.confidence-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.confidence-pct{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--text);line-height:1;}
+.confidence-lbl{font-family:var(--font-mono);font-size:8px;color:var(--text-3);letter-spacing:0.1em;margin-top:2px;}
+.regime-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;}
+.regime-pill{display:flex;flex-direction:column;padding:8px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);min-width:90px;}
+.regime-pill-label{font-family:var(--font-mono);font-size:8px;color:var(--text-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;}
+.regime-pill-value{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--text);}
+.challenger-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:6px;background:var(--amber-dim);border:1px solid rgba(245,158,11,0.2);margin-top:16px;font-size:12px;color:var(--text-2);}
+.challenger-banner strong{color:var(--amber);font-family:var(--font-mono);}
+
+/* TICKER */
+.ticker-strip{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;margin-bottom:16px;}
+.ticker-strip::-webkit-scrollbar{display:none;}
+.ticker-live-badge{font-family:var(--font-mono);font-size:8px;letter-spacing:0.2em;color:var(--green);padding:2px 8px;border-radius:3px;background:var(--green-dim);border:1px solid rgba(16,185,129,0.2);margin-right:16px;flex-shrink:0;}
+.ticker-item{display:flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--border);flex-shrink:0;}
+.ticker-item:last-child{border-right:none;}
+.ticker-name{font-family:var(--font-mono);font-size:9px;color:var(--text-3);letter-spacing:0.08em;}
+.ticker-price{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--text);}
+.ticker-chg{font-family:var(--font-mono);font-size:10px;}
+.ticker-chg.up{color:var(--green);}
+.ticker-chg.down{color:var(--red);}
+.ticker-chg.flat{color:var(--text-3);}
+
+/* PLAYBOOK */
+.playbook-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;}
+.playbook-items{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.playbook-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);transition:border-color 0.2s,background 0.2s;}
+.playbook-item:hover{border-color:var(--border-2);background:var(--bg-4);}
+.playbook-arrow{font-family:var(--font-mono);font-size:11px;color:var(--blue);flex-shrink:0;margin-top:1px;}
+.playbook-text{font-size:13px;color:var(--text-2);line-height:1.5;}
+
+/* SCENARIOS */
+.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.scenario-card{padding:16px;border-radius:var(--radius);border:1px solid var(--border);position:relative;overflow:hidden;}
+.scenario-card.bullish{background:var(--green-dim);border-color:rgba(16,185,129,0.2);}
+.scenario-card.base{background:var(--blue-dim);border-color:rgba(59,130,246,0.2);}
+.scenario-card.bearish{background:var(--red-dim);border-color:rgba(239,68,68,0.2);}
+.scenario-name{font-family:var(--font-mono);font-size:9px;letter-spacing:0.15em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;}
+.scenario-prob{font-family:var(--font-serif);font-size:36px;font-weight:600;line-height:1;margin-bottom:6px;}
+.bullish .scenario-prob{color:var(--green);}
+.base .scenario-prob{color:var(--blue);}
+.bearish .scenario-prob{color:var(--red);}
+.scenario-desc{font-size:11px;color:var(--text-2);line-height:1.5;}
+
+/* FLOWS */
+.flows-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.flow-card{padding:18px;border-radius:var(--radius);background:var(--bg-2);border:1px solid var(--border);}
+.flow-type{font-family:var(--font-mono);font-size:9px;letter-spacing:0.15em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;}
+.flow-amount{font-family:var(--font-serif);font-size:28px;font-weight:600;line-height:1;margin-bottom:4px;}
+.flow-amount.positive{color:var(--green);}
+.flow-amount.negative{color:var(--red);}
+.flow-signal{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;}
+.flow-signal.risk-on{color:var(--green);}
+.flow-signal.risk-off{color:var(--red);}
+.flow-signal.neutral{color:var(--text-3);}
+.flow-narrative{margin-top:12px;padding:10px 12px;background:var(--bg-3);border-radius:6px;font-size:12px;color:var(--text-2);line-height:1.6;grid-column:1 / -1;}
+
+/* YIELD */
+.yield-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.yield-card{padding:16px;border-radius:var(--radius);background:var(--bg-2);border:1px solid var(--border);}
+.yield-label{font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;}
+.yield-value{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.yield-sub{font-family:var(--font-mono);font-size:9px;color:var(--text-3);letter-spacing:0.06em;}
+
+/* CALENDAR */
+.calendar-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.calendar-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--radius);background:var(--bg-2);border:1px solid var(--border);transition:border-color 0.2s;}
+.calendar-item:hover{border-color:var(--border-2);}
+.calendar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.calendar-dot.high{background:var(--red);}
+.calendar-dot.medium{background:var(--amber);}
+.calendar-dot.low{background:var(--blue);}
+.calendar-name{font-size:13px;font-weight:500;color:var(--text);flex:1;}
+.calendar-date{font-family:var(--font-mono);font-size:11px;color:var(--text-3);}
+.calendar-days{font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;padding:2px 8px;border-radius:3px;}
+.calendar-days.soon{background:var(--red-dim);color:var(--red);}
+.calendar-days.near{background:var(--amber-dim);color:var(--amber);}
+.calendar-days.upcoming{background:var(--blue-dim);color:var(--blue);}
+
+/* HISTORY */
+.history-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;}
+.history-table th{font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:500;}
+.history-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);}
+.history-table tr:hover td{background:var(--bg-3);}
+.history-table tr:last-child td{border-bottom:none;}
+.conviction-badge{font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
+.conviction-badge.HIGH{background:var(--green-dim);color:var(--green);}
+.conviction-badge.MEDIUM{background:var(--amber-dim);color:var(--amber);}
+.conviction-badge.LOW{background:var(--red-dim);color:var(--red);}
+
+/* SKELETON / EMPTY */
+.skeleton{background:linear-gradient(90deg,var(--bg-3) 25%,var(--bg-4) 50%,var(--bg-3) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.5s infinite;border-radius:4px;}
+@keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.empty-state{padding:40px 20px;text-align:center;border:1px dashed var(--border-2);border-radius:var(--radius-lg);}
+.empty-state-icon{font-size:28px;margin-bottom:12px;opacity:0.5;}
+.empty-state-title{font-family:var(--font-serif);font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty-state-desc{font-size:13px;color:var(--text-2);line-height:1.6;}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{padding:12px 16px;border-radius:var(--radius);background:var(--bg-2);border:1px solid var(--border-2);font-family:var(--font-mono);font-size:12px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:toastIn 0.3s ease;display:flex;align-items:center;gap:8px;}
+.toast.success{border-color:rgba(16,185,129,0.3);}
+.toast.error{border-color:rgba(239,68,68,0.3);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .app-layout{grid-template-columns:1fr;}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .scenario-grid{grid-template-columns:1fr;}
+  .flows-grid{grid-template-columns:1fr;}
+  .yield-grid{grid-template-columns:1fr 1fr;}
+  .main-content{padding:20px 16px 40px;}
+}
+</style>
 </head>
-
 <body>
 
-  <!-- ══════════ NAV ══════════ -->
-  <nav class="nav" id="mainNav">
-    <div class="nav-left">
-      <a class="nav-logo" href="landing_page.html"><span>EconIq</span></a>
-      <span class="nav-firm" id="navFirm">Loading...</span>
-    </div>
-    <div class="nav-right">
-      <button class="nav-btn" id="alertsBtn" title="Alerts">
-        🔔
-        <span class="nav-badge" id="alertBadge" style="display:none"></span>
-      </button>
-      <div class="nav-user" id="userBtn">
-        <div class="nav-avatar" id="userAvatar">—</div>
-        <span class="nav-user-name" id="userName">Loading</span>
-      </div>
-      <button class="nav-btn" id="signOutBtn" title="Sign out"
-        style="font-size:13px;font-family:var(--font-mono);">↪</button>
-    </div>
-  </nav>
-
-  <!-- ══════════ APP LAYOUT ══════════ -->
-  <div class="app-layout">
-
-    <!-- ══════════ MAIN CONTENT ══════════ -->
-    <main class="main-content" id="mainContent">
-
-      <!-- ── REGIME HERO ── -->
-      <div class="section-header">
-        <span class="section-title">Macro Regime</span>
-        <span class="section-meta" id="lastRunMeta">—</span>
-      </div>
-
-      <div class="regime-hero" id="regimeHero">
-        <div class="regime-hero-top">
-          <div class="regime-hero-left">
-            <div class="regime-label-row">
-              <span class="regime-eyebrow">Current Regime</span>
-              <div class="regime-status-dot" id="regimeDot"></div>
-            </div>
-            <div class="regime-name" id="regimeName">
-              <div class="skeleton" style="width:280px;height:44px;border-radius:6px;"></div>
-            </div>
-            <div class="regime-narrative" id="regimeNarrative">
-              <div class="skeleton" style="width:100%;height:14px;margin-bottom:6px;"></div>
-              <div class="skeleton" style="width:80%;height:14px;"></div>
-            </div>
-          </div>
-          <div class="regime-hero-right">
-            <div class="confidence-ring">
-              <svg viewBox="0 0 84 84" width="84" height="84">
-                <circle class="ring-bg" cx="42" cy="42" r="36" />
-                <circle class="ring-fill" id="confRing" cx="42" cy="42" r="36" stroke-dasharray="0 226"
-                  stroke-dashoffset="0" />
-              </svg>
-              <div class="confidence-ring-text">
-                <span class="confidence-pct" id="confPct">—</span>
-                <span class="confidence-lbl">CONF</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="regime-pills" id="regimePills">
-          <div class="regime-pill">
-            <span class="regime-pill-label">Equity Bias</span>
-            <span class="regime-pill-value" id="pillEquity">—</span>
-          </div>
-          <div class="regime-pill">
-            <span class="regime-pill-label">Conviction</span>
-            <span class="regime-pill-value" id="pillConviction">—</span>
-          </div>
-          <div class="regime-pill">
-            <span class="regime-pill-label">RBI Signal</span>
-            <span class="regime-pill-value" id="pillRBI">—</span>
-          </div>
-          <div class="regime-pill">
-            <span class="regime-pill-label">Liquidity</span>
-            <span class="regime-pill-value" id="pillLiquidity">—</span>
-          </div>
-        </div>
-
-        <div class="challenger-banner" id="challengerBanner" style="display:none">
-          ⚠️ Challenger regime: <strong id="challengerName">—</strong>
-          &nbsp;·&nbsp; Monitor if confidence exceeds 45%
-        </div>
-      </div>
-
-      <!-- ── TICKER STRIP ── -->
-      <div class="ticker-strip" id="tickerStrip">
-        <span class="ticker-live-badge">LIVE</span>
-        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Loading market data...</span>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── PLAYBOOK ── -->
-      <div class="section-header">
-        <span class="section-title">Today's Playbook</span>
-        <span class="section-meta" id="convictionMeta">—</span>
-      </div>
-
-      <div class="playbook-card" id="playbookCard">
-        <div class="playbook-items" id="playbookItems">
-          <div class="empty-state">
-            <div class="empty-state-icon">🎯</div>
-            <div class="empty-state-title">No intelligence yet</div>
-            <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio
-              playbook.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── SCENARIO OUTLOOK ── -->
-      <div class="section-header">
-        <span class="section-title">Scenario Outlook</span>
-      </div>
-
-      <div class="scenario-grid" id="scenarioGrid">
-        <div class="scenario-card base">
-          <div class="scenario-name">Awaiting Run</div>
-          <div class="scenario-prob" style="font-size:24px;color:var(--text-3)">—%</div>
-          <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── FII / DII ── -->
-      <div class="section-header">
-        <span class="section-title">FII / DII Flow Intelligence</span>
-        <span class="section-meta" id="flowDate">—</span>
-      </div>
-
-      <div class="flows-grid" id="flowsGrid">
-        <div class="flow-card">
-          <div class="flow-type">FII Net</div>
-          <div class="flow-amount" id="fiiNet">—</div>
-          <div class="flow-signal" id="fiiSignal">Loading...</div>
-        </div>
-        <div class="flow-card">
-          <div class="flow-type">DII Net</div>
-          <div class="flow-amount" id="diiNet">—</div>
-          <div class="flow-signal" id="diiSignal">Loading...</div>
-        </div>
-        <div class="flow-narrative" id="flowNarrative">
-          Flow intelligence loads after running the engine.
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── YIELD CURVE ── -->
-      <div class="section-header">
-        <span class="section-title">Yield Curve Intelligence</span>
-      </div>
-
-      <div class="yield-grid" id="yieldGrid">
-        <div class="yield-card">
-          <div class="yield-label">India 10Y-2Y</div>
-          <div class="yield-value" id="yieldSpread">—</div>
-          <div class="yield-sub" id="yieldShape">Loading...</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">India 10Y</div>
-          <div class="yield-value" id="yield10y">—</div>
-          <div class="yield-sub">G-Sec Benchmark</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">US 10Y-2Y</div>
-          <div class="yield-value" id="usSpread">—</div>
-          <div class="yield-sub" id="usShape">Loading...</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">Carry Signal</div>
-          <div class="yield-value" id="carrySpread">—</div>
-          <div class="yield-sub" id="carrySignal">India-US 10Y</div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── ECONOMIC CALENDAR ── -->
-      <div class="section-header">
-        <span class="section-title">Economic Calendar</span>
-        <span class="section-meta">Next 90 days</span>
-      </div>
-
-      <div class="calendar-list" id="calendarList">
-        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">
-          Loading calendar...
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ── HISTORICAL ARCHIVE ── -->
-      <div class="section-header">
-        <span class="section-title">Historical Regime Archive</span>
-        <span class="section-meta">Last 20 runs</span>
-      </div>
-
-      <div style="overflow-x:auto;">
-        <table class="history-table" id="historyTable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Regime</th>
-              <th>Confidence</th>
-              <th>Conviction</th>
-              <th>Equity Bias</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody">
-            <tr>
-              <td colspan="5" style="text-align:center;color:var(--text-3);padding:24px;">
-                No run history yet.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </main>
-
-    <!-- ══════════ SIDEBAR ══════════ -->
-    <aside class="sidebar">
-
-      <!-- Run status -->
-      <div class="run-status" id="runStatus">
-        <div class="run-status-text">
-          <div class="run-spinner"></div>
-          <span id="runStatusText">Running pipeline...</span>
-        </div>
-      </div>
-
-      <!-- Freshness -->
-      <div class="last-run-info" id="freshnessRow">
-        <div class="freshness-dot fresh" id="freshnessDot"></div>
-        <span id="freshnessText">No runs yet</span>
-      </div>
-
-      <!-- Run button -->
-      <button class="run-btn" id="runBtn">
-        <span>▶</span> Run Intelligence Engine
-      </button>
-
-      <!-- ── PORTFOLIO PROFILE ── -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Portfolio Profile
-          <span style="font-size:8px;color:var(--blue);cursor:pointer;" id="profileSaveHint">unsaved</span>
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">AUM Size</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="aum_size" data-val="small">Small</button>
-            <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid</button>
-            <button class="segment-btn" data-field="aum_size" data-val="large">Large</button>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">
-            Small: ₹50–200 Cr · Mid: ₹200–500 Cr · Large: 500 Cr+
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Mandate Type</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="mandateType" data-field="mandate_type">
-              <option value="equity">Equity Long-Only</option>
-              <option value="balanced">Balanced</option>
-              <option value="debt">Debt-Heavy</option>
-              <option value="multi_asset">Multi-Asset</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Risk Tolerance</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Cons.</button>
-            <button class="segment-btn active" data-field="risk_tolerance" data-val="moderate">Mod.</button>
-            <button class="segment-btn" data-field="risk_tolerance" data-val="aggressive">Aggr.</button>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Investment Horizon</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="investment_horizon" data-val="short">Short</button>
-            <button class="segment-btn active" data-field="investment_horizon" data-val="medium">Medium</button>
-            <button class="segment-btn" data-field="investment_horizon" data-val="long">Long</button>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">
-            Short: 3–6m · Medium: 6–18m · Long: 18m+
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Benchmark</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="benchmark" data-field="benchmark">
-              <option value="NIFTY50">Nifty 50</option>
-              <option value="NIFTY500">Nifty 500</option>
-              <option value="NIFTYMIDCAP150">Nifty Midcap 150</option>
-              <option value="NIFTYSMALLCAP250">Nifty Smallcap 250</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ALERT THRESHOLDS ── -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Alert Thresholds</div>
-
-        <div class="threshold-row">
-          <span class="threshold-name">India VIX</span>
-          <span class="threshold-val" id="threshVIX" data-key="vix_threshold">22.0</span>
-        </div>
-        <div class="threshold-row">
-          <span class="threshold-name">USD/INR</span>
-          <span class="threshold-val" id="threshINR" data-key="inr_threshold">85.0</span>
-        </div>
-        <div class="threshold-row">
-          <span class="threshold-name">FII Outflow Days</span>
-          <span class="threshold-val" id="threshFII" data-key="fii_consecutive_days">3</span>
-        </div>
-        <div class="threshold-row">
-          <span class="threshold-name">Challenger Conf.</span>
-          <span class="threshold-val" id="threshChallenger" data-key="confidence_breach_threshold">45%</span>
-        </div>
-
-        <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">
-          Tap any value to edit. Alerts fire via email when thresholds are crossed.
-        </div>
-      </div>
-
-      <!-- ── REPORTING ── -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Reporting</div>
-
-        <div class="form-row">
-          <label class="form-label">PDF Delivery Time</label>
-          <input class="form-input" type="time" id="pdfTime" data-field="pdf_delivery_time" value="07:00">
-        </div>
-
-        <div class="form-row">
-          <label class="form-label">Report Tone</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <button class="segment-btn active" data-field="report_tone" data-val="institutional">Institutional</button>
-            <button class="segment-btn" data-field="report_tone" data-val="client">Client-Friendly</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Save button -->
-      <button class="save-btn" id="savePrefsBtn">Save Preferences</button>
-
-      <!-- Sign out -->
-      <div style="margin-top:16px;text-align:center;">
-        <button onclick="signOut()" style="background:none;border:none;font-family:var(--font-mono);
-               font-size:10px;color:var(--text-3);cursor:pointer;
-               letter-spacing:0.08em;transition:color 0.2s;" onmouseover="this.style.color='var(--red)'"
-          onmouseout="this.style.color='var(--text-3)'">
-          SIGN OUT
-        </button>
-      </div>
-
-    </aside>
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <div class="nav-left">
+    <a class="nav-logo" href="/"><span>EconIq</span></a>
+    <span class="nav-firm" id="navFirm">Loading...</span>
   </div>
+  <div class="nav-right">
+    <button class="nav-btn" id="alertsBtn" title="Alerts">🔔<span class="nav-badge" id="alertBadge" style="display:none"></span></button>
+    <div class="nav-user" id="userBtn">
+      <div class="nav-avatar" id="userAvatar">—</div>
+      <span class="nav-user-name" id="userName">Loading</span>
+    </div>
+    <button class="nav-btn" id="signOutBtn" title="Sign out" style="font-size:13px;font-family:var(--font-mono);">↪</button>
+  </div>
+</nav>
 
-  <!-- Toast container -->
-  <div class="toast-container" id="toastContainer"></div>
+<!-- APP LAYOUT -->
+<div class="app-layout">
 
-  <script>
-    'use strict';
+  <!-- ══ SIDEBAR FIRST (left column) ══ -->
+  <aside class="sidebar">
+    <div class="run-status" id="runStatus">
+      <div class="run-status-text">
+        <div class="run-spinner"></div>
+        <span id="runStatusText">Running pipeline...</span>
+      </div>
+    </div>
+    <div class="last-run-info" id="freshnessRow">
+      <div class="freshness-dot fresh" id="freshnessDot"></div>
+      <span id="freshnessText">No runs yet</span>
+    </div>
+    <button class="run-btn" id="runBtn"><span>▶</span> Run Intelligence Engine</button>
 
-    /* ════════════════════════════════════════════════
-       CONFIGURATION — update these values
-       ════════════════════════════════════════════════ */
-    const RAILWAY_URL = 'https://YOUR-RAILWAY-URL.up.railway.app';
-    const SUPABASE_URL = 'https://nurqjuywtypqvciyjlrw.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">
+        Portfolio Profile
+        <span style="font-size:8px;color:var(--blue);cursor:pointer;" id="profileSaveHint">unsaved</span>
+      </div>
+      <div class="form-row">
+        <label class="form-label">AUM Size</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+          <button class="segment-btn" data-field="aum_size" data-val="small">Small</button>
+          <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid</button>
+          <button class="segment-btn" data-field="aum_size" data-val="large">Large</button>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Small: ₹50–200 Cr · Mid: ₹200–500 Cr · Large: 500 Cr+</div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Mandate Type</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="mandateType" data-field="mandate_type">
+            <option value="equity">Equity Long-Only</option>
+            <option value="balanced">Balanced</option>
+            <option value="debt">Debt-Heavy</option>
+            <option value="multi_asset">Multi-Asset</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Risk Tolerance</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+          <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Cons.</button>
+          <button class="segment-btn active" data-field="risk_tolerance" data-val="moderate">Mod.</button>
+          <button class="segment-btn" data-field="risk_tolerance" data-val="aggressive">Aggr.</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Investment Horizon</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+          <button class="segment-btn" data-field="investment_horizon" data-val="short">Short</button>
+          <button class="segment-btn active" data-field="investment_horizon" data-val="medium">Medium</button>
+          <button class="segment-btn" data-field="investment_horizon" data-val="long">Long</button>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Short: 3–6m · Medium: 6–18m · Long: 18m+</div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Benchmark</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="benchmark" data-field="benchmark">
+            <option value="NIFTY50">Nifty 50</option>
+            <option value="NIFTY500">Nifty 500</option>
+            <option value="NIFTYMIDCAP150">Nifty Midcap 150</option>
+            <option value="NIFTYSMALLCAP250">Nifty Smallcap 250</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    /* ════════════════════════════════════════════════
-       SUPABASE INIT
-       ════════════════════════════════════════════════ */
-    const { createClient } = supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Alert Thresholds</div>
+      <div class="threshold-row"><span class="threshold-name">India VIX</span><span class="threshold-val" id="threshVIX" data-key="vix_threshold">22.0</span></div>
+      <div class="threshold-row"><span class="threshold-name">USD/INR</span><span class="threshold-val" id="threshINR" data-key="inr_threshold">85.0</span></div>
+      <div class="threshold-row"><span class="threshold-name">FII Outflow Days</span><span class="threshold-val" id="threshFII" data-key="fii_consecutive_days">3</span></div>
+      <div class="threshold-row"><span class="threshold-name">Challenger Conf.</span><span class="threshold-val" id="threshChallenger" data-key="confidence_breach_threshold">45%</span></div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">Tap any value to edit. Alerts fire via email when thresholds are crossed.</div>
+    </div>
 
-    let _session = null;
-    let _profile = null;
-    let _token = null;
-    let _pollTimer = null;
-    let _prefs = {};
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Reporting</div>
+      <div class="form-row">
+        <label class="form-label">PDF Delivery Time</label>
+        <input class="form-input" type="time" id="pdfTime" data-field="pdf_delivery_time" value="07:00">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Report Tone</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          <button class="segment-btn active" data-field="report_tone" data-val="institutional">Institutional</button>
+          <button class="segment-btn" data-field="report_tone" data-val="client">Client-Friendly</button>
+        </div>
+      </div>
+    </div>
 
-    /* ════════════════════════════════════════════════
-       AUTH — check session on load
-       ════════════════════════════════════════════════ */
-    async function init() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) {
-        window.location.href = 'login.html';
-        return;
+    <button class="save-btn" id="savePrefsBtn">Save Preferences</button>
+    <div style="margin-top:16px;text-align:center;">
+      <button onclick="signOut()" style="background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);cursor:pointer;letter-spacing:0.08em;transition:color 0.2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">SIGN OUT</button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN CONTENT SECOND (right column) ══ -->
+  <main class="main-content" id="mainContent">
+
+    <div class="section-header">
+      <span class="section-title">Macro Regime</span>
+      <span class="section-meta" id="lastRunMeta">—</span>
+    </div>
+
+    <div class="regime-hero" id="regimeHero">
+      <div class="regime-hero-top">
+        <div class="regime-hero-left">
+          <div class="regime-label-row">
+            <span class="regime-eyebrow">Current Regime</span>
+            <div class="regime-status-dot" id="regimeDot"></div>
+          </div>
+          <div class="regime-name" id="regimeName">
+            <div class="skeleton" style="width:280px;height:44px;border-radius:6px;"></div>
+          </div>
+          <div class="regime-narrative" id="regimeNarrative">
+            <div class="skeleton" style="width:100%;height:14px;margin-bottom:6px;"></div>
+            <div class="skeleton" style="width:80%;height:14px;"></div>
+          </div>
+        </div>
+        <div class="regime-hero-right">
+          <div class="confidence-ring">
+            <svg viewBox="0 0 84 84" width="84" height="84">
+              <circle class="ring-bg" cx="42" cy="42" r="36"/>
+              <circle class="ring-fill" id="confRing" cx="42" cy="42" r="36" stroke-dasharray="0 226" stroke-dashoffset="0"/>
+            </svg>
+            <div class="confidence-ring-text">
+              <span class="confidence-pct" id="confPct">—</span>
+              <span class="confidence-lbl">CONF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="regime-pills">
+        <div class="regime-pill"><span class="regime-pill-label">Equity Bias</span><span class="regime-pill-value" id="pillEquity">—</span></div>
+        <div class="regime-pill"><span class="regime-pill-label">Conviction</span><span class="regime-pill-value" id="pillConviction">—</span></div>
+        <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value" id="pillRBI">—</span></div>
+        <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value" id="pillLiquidity">—</span></div>
+      </div>
+      <div class="challenger-banner" id="challengerBanner" style="display:none">
+        ⚠️ Challenger regime: <strong id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds 45%
+      </div>
+    </div>
+
+    <div class="ticker-strip" id="tickerStrip">
+      <span class="ticker-live-badge">LIVE</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Loading market data...</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header">
+      <span class="section-title">Today's Playbook</span>
+      <span class="section-meta" id="convictionMeta">—</span>
+    </div>
+    <div class="playbook-card">
+      <div class="playbook-items" id="playbookItems">
+        <div class="empty-state">
+          <div class="empty-state-icon">🎯</div>
+          <div class="empty-state-title">No intelligence yet</div>
+          <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio playbook.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header"><span class="section-title">Scenario Outlook</span></div>
+    <div class="scenario-grid" id="scenarioGrid">
+      <div class="scenario-card base">
+        <div class="scenario-name">Awaiting Run</div>
+        <div class="scenario-prob" style="font-size:24px;color:var(--text-3)">—%</div>
+        <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header">
+      <span class="section-title">FII / DII Flow Intelligence</span>
+      <span class="section-meta" id="flowDate">—</span>
+    </div>
+    <div class="flows-grid">
+      <div class="flow-card"><div class="flow-type">FII Net</div><div class="flow-amount" id="fiiNet">—</div><div class="flow-signal" id="fiiSignal">Loading...</div></div>
+      <div class="flow-card"><div class="flow-type">DII Net</div><div class="flow-amount" id="diiNet">—</div><div class="flow-signal" id="diiSignal">Loading...</div></div>
+      <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header"><span class="section-title">Yield Curve Intelligence</span></div>
+    <div class="yield-grid">
+      <div class="yield-card"><div class="yield-label">India 10Y-2Y</div><div class="yield-value" id="yieldSpread">—</div><div class="yield-sub" id="yieldShape">Loading...</div></div>
+      <div class="yield-card"><div class="yield-label">India 10Y</div><div class="yield-value" id="yield10y">—</div><div class="yield-sub">G-Sec Benchmark</div></div>
+      <div class="yield-card"><div class="yield-label">US 10Y-2Y</div><div class="yield-value" id="usSpread">—</div><div class="yield-sub" id="usShape">Loading...</div></div>
+      <div class="yield-card"><div class="yield-label">Carry Signal</div><div class="yield-value" id="carrySpread">—</div><div class="yield-sub" id="carrySignal">India-US 10Y</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header">
+      <span class="section-title">Economic Calendar</span>
+      <span class="section-meta">Next 90 days</span>
+    </div>
+    <div class="calendar-list" id="calendarList">
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">Loading calendar...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-header">
+      <span class="section-title">Historical Regime Archive</span>
+      <span class="section-meta">Last 20 runs</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="history-table">
+        <thead><tr><th>Date</th><th>Regime</th><th>Confidence</th><th>Conviction</th><th>Equity Bias</th></tr></thead>
+        <tbody id="historyBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+'use strict';
+const RAILWAY_URL   = 'https://macro-economic-research-algorithm-production.up.railway.app';
+const SUPABASE_URL  = 'https://nurqjuywtypqvciyjlrw.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
+const{createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON);
+let _session=null,_profile=null,_token=null,_pollTimer=null;
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='/login';return;}
+  _session=session;_token=session.access_token;
+  await loadProfile();await loadDashboard();await loadTicker();await loadYieldCurve();await loadCalendar();
+  initNav();initSidebar();
+}
+async function loadProfile(){
+  try{
+    const res=await api('/api/profile');_profile=res.profile;
+    const firm=_profile.firm_name||_profile.full_name||'My Dashboard';
+    const name=_profile.full_name||_profile.email||'';
+    const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'—';
+    document.getElementById('navFirm').textContent=firm;
+    document.getElementById('userName').textContent=name.split(' ')[0]||name;
+    document.getElementById('userAvatar').textContent=initials;
+    populateSidebar(_profile);
+  }catch(e){console.error('Profile load failed:',e);}
+}
+async function loadDashboard(){
+  try{
+    const res=await api('/api/history?limit=1');
+    if(res.history?.length>0)renderRunResult(res.history[0],true);
+    const hist=await api('/api/history?limit=20');
+    renderHistoryTable(hist.history||[]);
+  }catch(e){console.error('Dashboard load failed:',e);}
+}
+async function api(path,options={}){
+  const res=await fetch(RAILWAY_URL+path,{...options,headers:{'Content-Type':'application/json','Authorization':`Bearer ${_token}`,...(options.headers||{})}});
+  if(!res.ok)throw new Error(`API ${path} → ${res.status}`);
+  return res.json();
+}
+async function runEngine(){
+  const btn=document.getElementById('runBtn');
+  const status=document.getElementById('runStatus');
+  const statusTx=document.getElementById('runStatusText');
+  btn.disabled=true;btn.classList.add('running');
+  btn.innerHTML='<div class="run-spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:#fff;"></div> Running...';
+  status.classList.add('visible');statusTx.textContent='Starting pipeline...';
+  try{
+    const{job_id}=await api('/api/run',{method:'POST',body:JSON.stringify({repo:5.25,deficit:4.3,capex:12.2})});
+    statusTx.textContent='Pipeline running — this takes ~30 seconds...';
+    pollJob(job_id);
+  }catch(e){showToast('Pipeline failed to start.','error');resetRunBtn();}
+}
+function pollJob(jobId){
+  const statusTx=document.getElementById('runStatusText');let dots=0;
+  _pollTimer=setInterval(async()=>{
+    try{
+      const res=await api(`/api/run/${jobId}`);
+      dots=(dots+1)%4;statusTx.textContent='Analysing macro data'+'.'.repeat(dots+1);
+      if(res.status==='complete'){
+        clearInterval(_pollTimer);renderRunResult(res.result,false);resetRunBtn();
+        showToast('✓ Intelligence updated','success');
+        document.getElementById('runStatus').classList.remove('visible');
+        const hist=await api('/api/history?limit=20');renderHistoryTable(hist.history||[]);
+      }else if(res.status==='failed'){
+        clearInterval(_pollTimer);showToast('Pipeline error: '+(res.error||'unknown'),'error');
+        resetRunBtn();document.getElementById('runStatus').classList.remove('visible');
       }
-      _session = session;
-      _token = session.access_token;
-      await loadProfile();
-      await loadDashboard();
-      await loadTicker();
-      await loadYieldCurve();
-      await loadCalendar();
-      initNav();
-      initSidebar();
-    }
-
-    /* ════════════════════════════════════════════════
-       PROFILE
-       ════════════════════════════════════════════════ */
-    async function loadProfile() {
-      try {
-        const res = await api('/api/profile');
-        _profile = res.profile;
-        const firm = _profile.firm_name || _profile.full_name || 'My Dashboard';
-        const name = _profile.full_name || _profile.email || '';
-        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '—';
-
-        document.getElementById('navFirm').textContent = firm;
-        document.getElementById('userName').textContent = name.split(' ')[0] || name;
-        document.getElementById('userAvatar').textContent = initials;
-
-        // Populate sidebar with saved profile data
-        populateSidebar(_profile);
-      } catch (e) {
-        console.error('Profile load failed:', e);
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       DASHBOARD — load latest run from history
-       ════════════════════════════════════════════════ */
-    async function loadDashboard() {
-      try {
-        const res = await api('/api/history?limit=1');
-        if (res.history && res.history.length > 0) {
-          renderRunResult(res.history[0], true);
-        }
-        // Also load full history for archive table
-        const hist = await api('/api/history?limit=20');
-        renderHistoryTable(hist.history || []);
-      } catch (e) {
-        console.error('Dashboard load failed:', e);
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       API HELPER
-       ════════════════════════════════════════════════ */
-    async function api(path, options = {}) {
-      const res = await fetch(RAILWAY_URL + path, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${_token}`,
-          ...(options.headers || {}),
-        },
-      });
-      if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
-      return res.json();
-    }
-
-    /* ════════════════════════════════════════════════
-       RUN ENGINE
-       ════════════════════════════════════════════════ */
-    async function runEngine() {
-      const btn = document.getElementById('runBtn');
-      const status = document.getElementById('runStatus');
-      const statusTx = document.getElementById('runStatusText');
-
-      btn.disabled = true;
-      btn.classList.add('running');
-      btn.innerHTML = '<div class="run-spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:#fff;"></div> Running...';
-
-      status.classList.add('visible');
-      statusTx.textContent = 'Starting pipeline...';
-
-      try {
-        const { job_id } = await api('/api/run', {
-          method: 'POST',
-          body: JSON.stringify({ repo: 5.25, deficit: 4.3, capex: 12.2 }),
-        });
-        statusTx.textContent = 'Pipeline running — this takes ~30 seconds...';
-        pollJob(job_id);
-      } catch (e) {
-        showToast('Pipeline failed to start. Check Railway connection.', 'error');
-        resetRunBtn();
-      }
-    }
-
-    function pollJob(jobId) {
-      const statusTx = document.getElementById('runStatusText');
-      let dots = 0;
-      _pollTimer = setInterval(async () => {
-        try {
-          const res = await api(`/api/run/${jobId}`);
-          dots = (dots + 1) % 4;
-          statusTx.textContent = 'Analysing macro data' + '.'.repeat(dots + 1);
-
-          if (res.status === 'complete') {
-            clearInterval(_pollTimer);
-            renderRunResult(res.result, false);
-            resetRunBtn();
-            showToast('✓ Intelligence updated', 'success');
-            document.getElementById('runStatus').classList.remove('visible');
-            // Refresh history table
-            const hist = await api('/api/history?limit=20');
-            renderHistoryTable(hist.history || []);
-          } else if (res.status === 'failed') {
-            clearInterval(_pollTimer);
-            showToast('Pipeline error: ' + (res.error || 'unknown'), 'error');
-            resetRunBtn();
-            document.getElementById('runStatus').classList.remove('visible');
-          }
-        } catch (e) {
-          clearInterval(_pollTimer);
-          resetRunBtn();
-        }
-      }, 2500);
-    }
-
-    function resetRunBtn() {
-      const btn = document.getElementById('runBtn');
-      btn.disabled = false;
-      btn.classList.remove('running');
-      btn.innerHTML = '<span>▶</span> Run Intelligence Engine';
-    }
-
-    /* ════════════════════════════════════════════════
-       RENDER PIPELINE RESULT
-       ════════════════════════════════════════════════ */
-    function renderRunResult(data, fromHistory) {
-      // Handle both live result shape and history shape
-      const regime = fromHistory ? { regime: data.regime, confidence: data.confidence } : data.regime;
-      const strategy = fromHistory ? { conviction: data.conviction } : data.strategy;
-      const positioning = fromHistory ? { allocation: data.allocation } : data.positioning;
-      const scenarios = fromHistory ? null : data.scenarios;
-      const nse = fromHistory ? null : data.nse;
-      const liquidity = fromHistory ? null : data.liquidity;
-      const decision = fromHistory ? { summary: data.summary } : data.decision;
-
-      const regimeName = fromHistory ? data.regime : regime?.regime || '—';
-      const confidence = fromHistory ? data.confidence : regime?.confidence || 0;
-      const conviction = strategy?.conviction || '—';
-      const runAt = data.run_at || new Date().toISOString();
-
-      // ── Regime name ──
-      document.getElementById('regimeName').textContent =
-        regimeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-      // ── Confidence ring ──
-      const pct = Math.round(confidence * 100);
-      const circ = 2 * Math.PI * 36;
-      const dashArr = (circ * pct / 100).toFixed(1) + ' ' + circ.toFixed(1);
-      document.getElementById('confRing').setAttribute('stroke-dasharray', dashArr);
-      document.getElementById('confPct').textContent = pct + '%';
-
-      // ── Regime narrative ──
-      if (!fromHistory && regime?.narrative) {
-        document.getElementById('regimeNarrative').textContent = regime.narrative;
-      } else {
-        document.getElementById('regimeNarrative').textContent =
-          'Run the engine to generate today\'s regime narrative.';
-      }
-
-      // ── Pills ──
-      if (!fromHistory) {
-        const comp = regime?.components || {};
-        document.getElementById('pillEquity').textContent = comp.equity_bias || '—';
-        document.getElementById('pillConviction').textContent = conviction;
-        document.getElementById('pillRBI').textContent = comp.rbi_signal || regime?.rbi_data?.policy_direction || '—';
-        document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime?.replace(/_/g, ' ') || '—';
-      } else {
-        document.getElementById('pillConviction').textContent = conviction;
-      }
-
-      // ── Challenger ──
-      if (!fromHistory && regime?.challenger) {
-        const banner = document.getElementById('challengerBanner');
-        document.getElementById('challengerName').textContent =
-          regime.challenger.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        banner.style.display = 'flex';
-      }
-
-      // ── Conviction meta ──
-      document.getElementById('convictionMeta').textContent =
-        conviction + ' conviction';
-
-      // ── Last run meta ──
-      const runDate = new Date(runAt);
-      const hoursAgo = Math.round((Date.now() - runDate.getTime()) / 3600000);
-      document.getElementById('lastRunMeta').textContent =
-        runDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) +
-        ' · ' + runDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-
-      // ── Freshness ──
-      const dot = document.getElementById('freshnessDot');
-      const text = document.getElementById('freshnessText');
-      dot.className = 'freshness-dot ' + (hoursAgo < 6 ? 'fresh' : hoursAgo < 24 ? 'stale' : 'old');
-      text.textContent = hoursAgo < 1 ? 'Just updated' :
-        hoursAgo < 24 ? `Updated ${hoursAgo}h ago` :
-          `Updated ${Math.round(hoursAgo / 24)}d ago`;
-
-      // ── Playbook ──
-      if (!fromHistory && strategy) {
-        renderPlaybook(data.strategy, data.decision);
-      } else if (fromHistory && data.summary) {
-        const items = document.getElementById('playbookItems');
-        items.innerHTML = `<div class="playbook-item">
-      <span class="playbook-arrow">▸</span>
-      <span class="playbook-text">${data.summary}</span>
-    </div>`;
-      }
-
-      // ── Scenarios ──
-      if (!fromHistory && scenarios?.scenarios) {
-        renderScenarios(scenarios.scenarios);
-      }
-
-      // ── FII/DII ──
-      if (!fromHistory && nse) {
-        renderFlows(nse);
-      }
-    }
-
-    function renderPlaybook(strategy, decision) {
-      const items = document.getElementById('playbookItems');
-      const plays = strategy?.playbook || [];
-
-      if (!plays.length) {
-        items.innerHTML = decision?.summary
-          ? `<div class="playbook-item"><span class="playbook-arrow">▸</span>
-         <span class="playbook-text">${decision.summary}</span></div>`
-          : `<div class="empty-state"><div class="empty-state-icon">🎯</div>
-         <div class="empty-state-title">No playbook generated</div>
-         <div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`;
-        return;
-      }
-
-      items.innerHTML = plays.slice(0, 5).map(p =>
-        `<div class="playbook-item">
-      <span class="playbook-arrow">▸</span>
-      <span class="playbook-text">${p}</span>
-    </div>`
-      ).join('');
-    }
-
-    function renderScenarios(scenarios) {
-      const grid = document.getElementById('scenarioGrid');
-      if (!scenarios?.length) return;
-
-      grid.innerHTML = scenarios.slice(0, 3).map(sc => {
-        const pct = Math.round((sc.probability || 0) * 100);
-        const type = sc.type || 'base';
-        return `<div class="scenario-card ${type}">
-      <div class="scenario-name">${sc.name || type}</div>
-      <div class="scenario-prob">${pct}%</div>
-      <div class="scenario-desc">${sc.description || ''}</div>
-    </div>`;
-      }).join('');
-    }
-
-    function renderFlows(nse) {
-      const fiiRaw = nse.fii_dii || {};
-      const fiiInfo = fiiRaw.fii || {};
-      const diiInfo = fiiRaw.dii || {};
-      const fiiNet = fiiInfo.net || nse.fii_net_crore || 0;
-      const diiNet = diiInfo.net || nse.dii_net_crore || 0;
-      const flowSig = fiiRaw.combined_signal || 'NEUTRAL';
-      const date = fiiRaw.date || '';
-
-      const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
-
-      const fiiEl = document.getElementById('fiiNet');
-      fiiEl.textContent = fmt(fiiNet);
-      fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
-
-      const diiEl = document.getElementById('diiNet');
-      diiEl.textContent = fmt(diiNet);
-      diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
-
-      document.getElementById('fiiSignal').textContent = fiiRaw.fii_signal || '—';
-      document.getElementById('fiiSignal').className = 'flow-signal ' +
-        (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
-
-      document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || '—';
-      document.getElementById('flowDate').textContent = date ? 'Data: ' + date : '';
-
-      const narrative = flowSig === 'RISK_ON'
-        ? `Combined flows are risk-on. FII net: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII net: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr. Institutional support is constructive.`
-        : flowSig === 'RISK_OFF'
-          ? `Risk-off flows detected. FII net: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr. Monitor for regime transition if sustained 3+ sessions.`
-          : `Mixed flows. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr. No directional signal.`;
-
-      document.getElementById('flowNarrative').textContent = narrative;
-    }
-
-    function renderHistoryTable(history) {
-      const tbody = document.getElementById('historyBody');
-      if (!history.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = history.map(r => {
-        const date = new Date(r.run_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const conf = Math.round((r.confidence || 0) * 100) + '%';
-        const conv = r.conviction || '—';
-        const bias = r.allocation ? 'Equity: ' + (Object.entries(r.allocation)[0]?.[1] || '—') : '—';
-        return `<tr>
-      <td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td>
-      <td style="color:var(--text);">${regime}</td>
-      <td>${conf}</td>
-      <td><span class="conviction-badge ${conv}">${conv}</span></td>
-      <td>${bias}</td>
-    </tr>`;
-      }).join('');
-    }
-
-    /* ════════════════════════════════════════════════
-       TICKER
-       ════════════════════════════════════════════════ */
-    async function loadTicker() {
-      try {
-        const res = await api('/api/ticker');
-        const strip = document.getElementById('tickerStrip');
-        if (!res.ticker || !Object.keys(res.ticker).length) return;
-
-        const items = Object.entries(res.ticker).map(([label, d]) => {
-          const price = d.price || 0;
-          const chg = d.chg_pct || 0;
-          const arrow = chg > 0 ? '▲' : chg < 0 ? '▼' : '→';
-          const cls = chg > 0 ? 'up' : chg < 0 ? 'down' : 'flat';
-          if (!price) return '';
-          return `<div class="ticker-item">
-        <span class="ticker-name">${label}</span>
-        <span class="ticker-price">${price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        <span class="ticker-chg ${cls}">${arrow} ${Math.abs(chg).toFixed(2)}%</span>
-      </div>`;
-        }).join('');
-
-        strip.innerHTML = `<span class="ticker-live-badge">LIVE</span>${items}
-      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);padding:0 12px;">
-        ${res.cached ? 'cached' : 'live'} · refreshes 5min
-      </span>`;
-      } catch (e) {
-        console.error('Ticker failed:', e);
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       YIELD CURVE
-       ════════════════════════════════════════════════ */
-    async function loadYieldCurve() {
-      try {
-        const res = await api('/api/yield-curve');
-        const yc = res.yield_curve;
-        if (!yc) return;
-
-        const analysis = yc.analysis || {};
-        const indiaY = yc.india_yields || {};
-        const fmt = v => v !== undefined ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
-
-        document.getElementById('yieldSpread').textContent = fmt(analysis.india_spread_10y_2y);
-        document.getElementById('yield10y').textContent = (indiaY['10Y'] || '—').toFixed ? indiaY['10Y'].toFixed(2) + '%' : '—';
-        document.getElementById('usSpread').textContent = fmt(analysis.us_spread_10y_2y);
-        document.getElementById('carrySpread').textContent = fmt(analysis.india_us_spread_10y);
-        document.getElementById('yieldShape').textContent = analysis.india_curve_shape || '—';
-        document.getElementById('usShape').textContent = analysis.us_curve_shape || '—';
-
-        const carrySignal = analysis.carry_signal || '';
-        document.getElementById('carrySignal').textContent =
-          carrySignal === 'STRONG_FII_MAGNET' ? 'FII Magnet 🟢' :
-            carrySignal === 'FII_OUTFLOW_RISK' ? 'FII Risk 🔴' : 'Neutral';
-      } catch (e) {
-        console.error('Yield curve failed:', e);
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       CALENDAR
-       ════════════════════════════════════════════════ */
-    async function loadCalendar() {
-      try {
-        const res = await api('/api/calendar?days_ahead=90');
-        const events = (res.events || []).slice(0, 8);
-        const list = document.getElementById('calendarList');
-
-        if (!events.length) {
-          list.innerHTML = `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">No upcoming events.</div>`;
-          return;
-        }
-
-        list.innerHTML = events.map(ev => {
-          const days = ev.days_until;
-          const urgency = days <= 7 ? 'soon' : days <= 21 ? 'near' : 'upcoming';
-          const dotCls = days <= 7 ? 'high' : days <= 21 ? 'medium' : 'low';
-          const label = ev.days_label || (days === 0 ? 'Today' : `${days}d`);
-          const dateStr = new Date(ev.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-
-          return `<div class="calendar-item">
-        <div class="calendar-dot ${dotCls}"></div>
-        <span class="calendar-name">${ev.name}</span>
-        <span class="calendar-date">${dateStr}</span>
-        <span class="calendar-days ${urgency}">${label}</span>
-      </div>`;
-        }).join('');
-      } catch (e) {
-        console.error('Calendar failed:', e);
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       SIDEBAR INIT + PREFERENCES
-       ════════════════════════════════════════════════ */
-    function initSidebar() {
-      // Segment buttons
-      document.querySelectorAll('.segment-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const field = btn.dataset.field;
-          document.querySelectorAll(`.segment-btn[data-field="${field}"]`)
-            .forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          markUnsaved();
-        });
-      });
-
-      // Select changes
-      document.querySelectorAll('.form-select, .form-input').forEach(el => {
-        el.addEventListener('change', markUnsaved);
-      });
-
-      // Threshold edit
-      document.querySelectorAll('.threshold-val').forEach(el => {
-        el.addEventListener('click', () => {
-          const key = el.dataset.key;
-          const curr = el.textContent.replace('%', '');
-          const newVal = prompt(`Set new threshold for ${key}:`, curr);
-          if (newVal !== null && !isNaN(newVal)) {
-            el.textContent = newVal + (key.includes('threshold') && key !== 'fii_consecutive_days' ? '%' : '');
-            markUnsaved();
-          }
-        });
-      });
-
-      // Save button
-      document.getElementById('savePrefsBtn').addEventListener('click', savePreferences);
-
-      // Run button
-      document.getElementById('runBtn').addEventListener('click', runEngine);
-
-      // Sign out
-      document.getElementById('signOutBtn').addEventListener('click', signOut);
-    }
-
-    function populateSidebar(profile) {
-      // AUM
-      setSegment('aum_size', profile.aum_size || 'mid');
-      // Mandate
-      const mandateEl = document.getElementById('mandateType');
-      if (mandateEl) mandateEl.value = profile.mandate_type || 'equity';
-      // Risk
-      setSegment('risk_tolerance', profile.risk_tolerance || 'moderate');
-      // Horizon
-      setSegment('investment_horizon', profile.investment_horizon || 'medium');
-      // Benchmark
-      const benchEl = document.getElementById('benchmark');
-      if (benchEl) benchEl.value = profile.benchmark || 'NIFTY50';
-      // PDF time
-      const pdfEl = document.getElementById('pdfTime');
-      if (pdfEl) pdfEl.value = profile.pdf_delivery_time || '07:00';
-      // Report tone
-      setSegment('report_tone', profile.report_tone || 'institutional');
-
-      document.getElementById('profileSaveHint').textContent = 'saved';
-      document.getElementById('profileSaveHint').style.color = 'var(--green)';
-    }
-
-    function setSegment(field, value) {
-      document.querySelectorAll(`.segment-btn[data-field="${field}"]`).forEach(b => {
-        b.classList.toggle('active', b.dataset.val === value);
-      });
-    }
-
-    function markUnsaved() {
-      const hint = document.getElementById('profileSaveHint');
-      hint.textContent = 'unsaved';
-      hint.style.color = 'var(--amber)';
-      document.getElementById('savePrefsBtn').classList.remove('saved');
-    }
-
-    async function savePreferences() {
-      const btn = document.getElementById('savePrefsBtn');
-      const getSegVal = field => {
-        const active = document.querySelector(`.segment-btn[data-field="${field}"].active`);
-        return active ? active.dataset.val : null;
-      };
-
-      const prefs = {
-        aum_size: getSegVal('aum_size'),
-        mandate_type: document.getElementById('mandateType')?.value,
-        risk_tolerance: getSegVal('risk_tolerance'),
-        investment_horizon: getSegVal('investment_horizon'),
-        benchmark: document.getElementById('benchmark')?.value,
-        pdf_delivery_time: document.getElementById('pdfTime')?.value,
-        report_tone: getSegVal('report_tone'),
-      };
-
-      // Thresholds from notification preferences
-      const notifPrefs = {
-        vix_threshold: parseFloat(document.getElementById('threshVIX').textContent),
-        inr_threshold: parseFloat(document.getElementById('threshINR').textContent),
-        fii_consecutive_days: parseInt(document.getElementById('threshFII').textContent),
-        confidence_breach_threshold: parseFloat(document.getElementById('threshChallenger').textContent),
-      };
-
-      try {
-        btn.textContent = 'Saving...';
-        btn.disabled = true;
-
-        // Save profile prefs to Supabase directly
-        const { error } = await sb
-          .from('profiles')
-          .update(prefs)
-          .eq('id', _session.user.id);
-
-        if (error) throw error;
-
-        // Save notification thresholds to API
-        await api('/api/notifications/preferences', {
-          method: 'PUT',
-          body: JSON.stringify(notifPrefs),
-        });
-
-        btn.textContent = '✓ Saved';
-        btn.classList.add('saved');
-        btn.disabled = false;
-        document.getElementById('profileSaveHint').textContent = 'saved';
-        document.getElementById('profileSaveHint').style.color = 'var(--green)';
-        showToast('✓ Preferences saved', 'success');
-
-        setTimeout(() => {
-          btn.textContent = 'Save Preferences';
-          btn.classList.remove('saved');
-        }, 3000);
-
-      } catch (e) {
-        btn.textContent = 'Save Preferences';
-        btn.disabled = false;
-        showToast('Failed to save preferences', 'error');
-      }
-    }
-
-    /* ════════════════════════════════════════════════
-       NAV
-       ════════════════════════════════════════════════ */
-    function initNav() {
-      const nav = document.getElementById('mainNav');
-      window.addEventListener('scroll', () => {
-        nav.classList.toggle('scrolled', window.scrollY > 40);
-      }, { passive: true });
-    }
-
-    /* ════════════════════════════════════════════════
-       AUTH
-       ════════════════════════════════════════════════ */
-    async function signOut() {
-      await sb.auth.signOut();
-      window.location.href = 'login.html';
-    }
-
-    /* ════════════════════════════════════════════════
-       TOAST
-       ════════════════════════════════════════════════ */
-    function showToast(msg, type = '') {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => toast.remove(), 4000);
-    }
-
-    /* ════════════════════════════════════════════════
-       BOOT
-       ════════════════════════════════════════════════ */
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
+    }catch(e){clearInterval(_pollTimer);resetRunBtn();}
+  },2500);
+}
+function resetRunBtn(){
+  const btn=document.getElementById('runBtn');btn.disabled=false;btn.classList.remove('running');
+  btn.innerHTML='<span>▶</span> Run Intelligence Engine';
+}
+function renderRunResult(data,fromHistory){
+  const regime=fromHistory?{regime:data.regime,confidence:data.confidence}:data.regime;
+  const strategy=fromHistory?{conviction:data.conviction}:data.strategy;
+  const scenarios=fromHistory?null:data.scenarios;
+  const nse=fromHistory?null:data.nse;
+  const liquidity=fromHistory?null:data.liquidity;
+  const regimeName=fromHistory?data.regime:regime?.regime||'—';
+  const confidence=fromHistory?data.confidence:regime?.confidence||0;
+  const conviction=strategy?.conviction||'—';
+  const runAt=data.run_at||new Date().toISOString();
+  document.getElementById('regimeName').textContent=regimeName.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const pct=Math.round(confidence*100);const circ=2*Math.PI*36;
+  document.getElementById('confRing').setAttribute('stroke-dasharray',(circ*pct/100).toFixed(1)+' '+circ.toFixed(1));
+  document.getElementById('confPct').textContent=pct+'%';
+  document.getElementById('regimeNarrative').textContent=(!fromHistory&&regime?.narrative)?regime.narrative:'Run the engine to generate today\'s regime narrative.';
+  if(!fromHistory){
+    const comp=regime?.components||{};
+    document.getElementById('pillEquity').textContent=comp.equity_bias||'—';
+    document.getElementById('pillConviction').textContent=conviction;
+    document.getElementById('pillRBI').textContent=comp.rbi_signal||regime?.rbi_data?.policy_direction||'—';
+    document.getElementById('pillLiquidity').textContent=liquidity?.liquidity_regime?.replace(/_/g,' ')||'—';
+  }else{document.getElementById('pillConviction').textContent=conviction;}
+  if(!fromHistory&&regime?.challenger){
+    document.getElementById('challengerName').textContent=regime.challenger.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    document.getElementById('challengerBanner').style.display='flex';
+  }
+  document.getElementById('convictionMeta').textContent=conviction+' conviction';
+  const runDate=new Date(runAt);const hoursAgo=Math.round((Date.now()-runDate.getTime())/3600000);
+  document.getElementById('lastRunMeta').textContent=runDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' · '+runDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const dot=document.getElementById('freshnessDot');const txt=document.getElementById('freshnessText');
+  dot.className='freshness-dot '+(hoursAgo<6?'fresh':hoursAgo<24?'stale':'old');
+  txt.textContent=hoursAgo<1?'Just updated':hoursAgo<24?`Updated ${hoursAgo}h ago`:`Updated ${Math.round(hoursAgo/24)}d ago`;
+  if(!fromHistory&&strategy)renderPlaybook(data.strategy,data.decision);
+  else if(fromHistory&&data.summary){document.getElementById('playbookItems').innerHTML=`<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`;}
+  if(!fromHistory&&scenarios?.scenarios)renderScenarios(scenarios.scenarios);
+  if(!fromHistory&&nse)renderFlows(nse);
+}
+function renderPlaybook(strategy,decision){
+  const items=document.getElementById('playbookItems');const plays=strategy?.playbook||[];
+  if(!plays.length){items.innerHTML=decision?.summary?`<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${decision.summary}</span></div>`:`<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`;return;}
+  items.innerHTML=plays.slice(0,5).map(p=>`<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+}
+function renderScenarios(scenarios){
+  const grid=document.getElementById('scenarioGrid');if(!scenarios?.length)return;
+  grid.innerHTML=scenarios.slice(0,3).map(sc=>{const pct=Math.round((sc.probability||0)*100);return`<div class="scenario-card ${sc.type||'base'}"><div class="scenario-name">${sc.name||sc.type}</div><div class="scenario-prob">${pct}%</div><div class="scenario-desc">${sc.description||''}</div></div>`;}).join('');
+}
+function renderFlows(nse){
+  const fiiRaw=nse.fii_dii||{};const fiiNet=fiiRaw.fii?.net||nse.fii_net_crore||0;const diiNet=fiiRaw.dii?.net||nse.dii_net_crore||0;
+  const flowSig=fiiRaw.combined_signal||'NEUTRAL';const fmt=v=>`${v>=0?'▲':'▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
+  const fiiEl=document.getElementById('fiiNet');fiiEl.textContent=fmt(fiiNet);fiiEl.className='flow-amount '+(fiiNet>=0?'positive':'negative');
+  const diiEl=document.getElementById('diiNet');diiEl.textContent=fmt(diiNet);diiEl.className='flow-amount '+(diiNet>=0?'positive':'negative');
+  document.getElementById('fiiSignal').textContent=fiiRaw.fii_signal||'—';
+  document.getElementById('fiiSignal').className='flow-signal '+(fiiNet>0?'risk-on':fiiNet<0?'risk-off':'neutral');
+  document.getElementById('diiSignal').textContent=fiiRaw.dii_signal||'—';
+  document.getElementById('flowDate').textContent=fiiRaw.date?'Data: '+fiiRaw.date:'';
+  document.getElementById('flowNarrative').textContent=flowSig==='RISK_ON'?`Combined flows risk-on. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr.`:flowSig==='RISK_OFF'?`Risk-off flows. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr. Monitor for regime transition if sustained 3+ sessions.`:`Mixed flows. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr. No directional signal.`;
+}
+function renderHistoryTable(history){
+  const tbody=document.getElementById('historyBody');
+  if(!history.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>`;return;}
+  tbody.innerHTML=history.map(r=>{
+    const date=new Date(r.run_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    const time=new Date(r.run_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const regime=(r.regime||'—').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const conf=Math.round((r.confidence||0)*100)+'%';const conv=r.conviction||'—';
+    const bias=r.allocation?'Equity: '+(Object.entries(r.allocation)[0]?.[1]||'—'):'—';
+    return`<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td></tr>`;
+  }).join('');
+}
+async function loadTicker(){
+  try{
+    const res=await api('/api/ticker');const strip=document.getElementById('tickerStrip');
+    if(!res.ticker||!Object.keys(res.ticker).length)return;
+    const items=Object.entries(res.ticker).map(([label,d])=>{
+      const price=d.price||0;const chg=d.chg_pct||0;
+      const arrow=chg>0?'▲':chg<0?'▼':'→';const cls=chg>0?'up':chg<0?'down':'flat';
+      if(!price)return'';
+      return`<div class="ticker-item"><span class="ticker-name">${label}</span><span class="ticker-price">${price.toLocaleString('en-IN',{maximumFractionDigits:2})}</span><span class="ticker-chg ${cls}">${arrow} ${Math.abs(chg).toFixed(2)}%</span></div>`;
+    }).join('');
+    strip.innerHTML=`<span class="ticker-live-badge">LIVE</span>${items}<span style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);padding:0 12px;">${res.cached?'cached':'live'} · refreshes 5min</span>`;
+  }catch(e){console.error('Ticker failed:',e);}
+}
+async function loadYieldCurve(){
+  try{
+    const res=await api('/api/yield-curve');const yc=res.yield_curve;if(!yc)return;
+    const analysis=yc.analysis||{};const indiaY=yc.india_yields||{};
+    const fmt=v=>v!==undefined?(v>=0?'+':'')+v.toFixed(2)+'%':'—';
+    document.getElementById('yieldSpread').textContent=fmt(analysis.india_spread_10y_2y);
+    document.getElementById('yield10y').textContent=indiaY['10Y']?.toFixed?.(2)+'%'||'—';
+    document.getElementById('usSpread').textContent=fmt(analysis.us_spread_10y_2y);
+    document.getElementById('carrySpread').textContent=fmt(analysis.india_us_spread_10y);
+    document.getElementById('yieldShape').textContent=analysis.india_curve_shape||'—';
+    document.getElementById('usShape').textContent=analysis.us_curve_shape||'—';
+    const cs=analysis.carry_signal||'';
+    document.getElementById('carrySignal').textContent=cs==='STRONG_FII_MAGNET'?'FII Magnet 🟢':cs==='FII_OUTFLOW_RISK'?'FII Risk 🔴':'Neutral';
+  }catch(e){console.error('Yield curve failed:',e);}
+}
+async function loadCalendar(){
+  try{
+    const res=await api('/api/calendar?days_ahead=90');const events=(res.events||[]).slice(0,8);
+    const list=document.getElementById('calendarList');
+    if(!events.length){list.innerHTML=`<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">No upcoming events.</div>`;return;}
+    list.innerHTML=events.map(ev=>{
+      const days=ev.days_until;const urgency=days<=7?'soon':days<=21?'near':'upcoming';
+      const dotCls=days<=7?'high':days<=21?'medium':'low';
+      const label=ev.days_label||(days===0?'Today':`${days}d`);
+      const dateStr=new Date(ev.event_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+      return`<div class="calendar-item"><div class="calendar-dot ${dotCls}"></div><span class="calendar-name">${ev.name}</span><span class="calendar-date">${dateStr}</span><span class="calendar-days ${urgency}">${label}</span></div>`;
+    }).join('');
+  }catch(e){console.error('Calendar failed:',e);}
+}
+function initSidebar(){
+  document.querySelectorAll('.segment-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const field=btn.dataset.field;
+      document.querySelectorAll(`.segment-btn[data-field="${field}"]`).forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');markUnsaved();
+    });
+  });
+  document.querySelectorAll('.form-select,.form-input').forEach(el=>el.addEventListener('change',markUnsaved));
+  document.querySelectorAll('.threshold-val').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const key=el.dataset.key;const curr=el.textContent.replace('%','');
+      const newVal=prompt(`Set new threshold for ${key}:`,curr);
+      if(newVal!==null&&!isNaN(newVal)){el.textContent=newVal+(key.includes('threshold')&&key!=='fii_consecutive_days'?'%':'');markUnsaved();}
+    });
+  });
+  document.getElementById('savePrefsBtn').addEventListener('click',savePreferences);
+  document.getElementById('runBtn').addEventListener('click',runEngine);
+  document.getElementById('signOutBtn').addEventListener('click',signOut);
+}
+function populateSidebar(profile){
+  setSegment('aum_size',profile.aum_size||'mid');
+  const mandateEl=document.getElementById('mandateType');if(mandateEl)mandateEl.value=profile.mandate_type||'equity';
+  setSegment('risk_tolerance',profile.risk_tolerance||'moderate');
+  setSegment('investment_horizon',profile.investment_horizon||'medium');
+  const benchEl=document.getElementById('benchmark');if(benchEl)benchEl.value=profile.benchmark||'NIFTY50';
+  const pdfEl=document.getElementById('pdfTime');if(pdfEl)pdfEl.value=profile.pdf_delivery_time||'07:00';
+  setSegment('report_tone',profile.report_tone||'institutional');
+  document.getElementById('profileSaveHint').textContent='saved';
+  document.getElementById('profileSaveHint').style.color='var(--green)';
+}
+function setSegment(field,value){document.querySelectorAll(`.segment-btn[data-field="${field}"]`).forEach(b=>{b.classList.toggle('active',b.dataset.val===value);});}
+function markUnsaved(){const hint=document.getElementById('profileSaveHint');hint.textContent='unsaved';hint.style.color='var(--amber)';document.getElementById('savePrefsBtn').classList.remove('saved');}
+async function savePreferences(){
+  const btn=document.getElementById('savePrefsBtn');
+  const getSegVal=field=>document.querySelector(`.segment-btn[data-field="${field}"].active`)?.dataset.val;
+  const prefs={aum_size:getSegVal('aum_size'),mandate_type:document.getElementById('mandateType')?.value,risk_tolerance:getSegVal('risk_tolerance'),investment_horizon:getSegVal('investment_horizon'),benchmark:document.getElementById('benchmark')?.value,pdf_delivery_time:document.getElementById('pdfTime')?.value,report_tone:getSegVal('report_tone')};
+  const notifPrefs={vix_threshold:parseFloat(document.getElementById('threshVIX').textContent),inr_threshold:parseFloat(document.getElementById('threshINR').textContent),fii_consecutive_days:parseInt(document.getElementById('threshFII').textContent),confidence_breach_threshold:parseFloat(document.getElementById('threshChallenger').textContent)};
+  try{
+    btn.textContent='Saving...';btn.disabled=true;
+    const{error}=await sb.from('profiles').update(prefs).eq('id',_session.user.id);
+    if(error)throw error;
+    await api('/api/notifications/preferences',{method:'PUT',body:JSON.stringify(notifPrefs)});
+    btn.textContent='✓ Saved';btn.classList.add('saved');btn.disabled=false;
+    document.getElementById('profileSaveHint').textContent='saved';
+    document.getElementById('profileSaveHint').style.color='var(--green)';
+    showToast('✓ Preferences saved','success');
+    setTimeout(()=>{btn.textContent='Save Preferences';btn.classList.remove('saved');},3000);
+  }catch(e){btn.textContent='Save Preferences';btn.disabled=false;showToast('Failed to save preferences','error');}
+}
+function initNav(){
+  const nav=document.getElementById('mainNav');
+  window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>40),{passive:true});
+}
+async function signOut(){await sb.auth.signOut();window.location.href='/login';}
+function showToast(msg,type=''){
+  const container=document.getElementById('toastContainer');const toast=document.createElement('div');
+  toast.className=`toast ${type}`;toast.textContent=msg;container.appendChild(toast);
+  setTimeout(()=>toast.remove(),4000);
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
 </body>
-
 </html>
