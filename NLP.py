@@ -3,24 +3,16 @@ NLP.py — IndianMacroNLP
 Multi-provider LLM engine with graceful fallback chain.
 
 Provider order (cost-optimised, quality-first):
-  1. Google Gemini 1.5 Flash  — best quality, free tier
-  2. Groq llama-3.3-70b       — fast, free tier (current working)
-  3. Mistral Small             — free tokens fallback
+  1. Google Gemini 2.0 Flash  — best quality, free tier
+  2. Google Gemini 1.5 Flash  — fallback model
+  3. Groq llama-3.3-70b       — fast, free tier
   4. Keyword engine            — zero cost, always available
-
-Source field values:
-  "llm+keyword"  — LLM fired and merged with keyword scores
-  "keyword"      — All LLMs failed, keyword engine only
 """
 
 import os
 import json
 import re
 
-
-# =========================
-# 📰 KEYWORD BASELINE
-# =========================
 BULLISH_KEYWORDS = [
     "rally", "surge", "growth", "recovery", "expansion", "capex",
     "investment", "profit", "earnings", "beat", "upgrade", "inflow",
@@ -38,12 +30,16 @@ NEUTRAL_KEYWORDS = [
     "sideways", "flat", "unchanged", "neutral", "consolidation"
 ]
 
+# Gemini models tried in order — first working one wins
+GEMINI_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+]
+
 
 def _get_key(name):
-    """
-    Reads API keys from environment variables.
-    Works on Railway (env vars) and locally (.env / secrets.toml via os.environ).
-    """
     val = os.environ.get(name, "")
     if val and "your_" not in str(val) and len(str(val)) > 8:
         return str(val)
@@ -55,31 +51,20 @@ class IndianMacroNLP:
     def __init__(self):
         self.providers = self._init_providers()
 
-    # =========================
-    # 🔧 PROVIDER INIT
-    # =========================
     def _init_providers(self):
-        """
-        Builds the ordered provider list from available env vars.
-        Only registers providers whose keys are present and valid.
-        """
         providers = []
-
         gemini_key  = _get_key("GEMINI_API_KEY")
         groq_key    = _get_key("GROQ_API_KEY")
         mistral_key = _get_key("MISTRAL_API_KEY")
         openai_key  = _get_key("OPENAI_API_KEY")
 
-        # Priority 1 — Gemini 1.5 Flash (best quality, free)
         if gemini_key:
             providers.append({
-                "name":  "gemini",
-                "key":   gemini_key,
-                "model": "gemini-1.5-flash",
-                "fn":    self._call_gemini
+                "name":   "gemini",
+                "key":    gemini_key,
+                "models": GEMINI_MODELS,
+                "fn":     self._call_gemini
             })
-
-        # Priority 2 — Groq (fast, free tier)
         if groq_key:
             providers.append({
                 "name":  "groq",
@@ -87,8 +72,6 @@ class IndianMacroNLP:
                 "model": "llama-3.3-70b-versatile",
                 "fn":    self._call_groq
             })
-
-        # Priority 3 — Mistral (free tokens)
         if mistral_key:
             providers.append({
                 "name":  "mistral",
@@ -96,8 +79,6 @@ class IndianMacroNLP:
                 "model": "mistral-small-latest",
                 "fn":    self._call_mistral
             })
-
-        # Priority 4 — OpenAI (paid, last resort)
         if openai_key:
             providers.append({
                 "name":  "openai",
@@ -105,12 +86,8 @@ class IndianMacroNLP:
                 "model": "gpt-4o-mini",
                 "fn":    self._call_openai
             })
-
         return providers
 
-    # =========================
-    # 📝 PROMPT BUILDER
-    # =========================
     def _build_prompt(self, news_text):
         return f"""You are an expert Indian macroeconomic analyst.
 
@@ -134,34 +111,39 @@ Return ONLY this JSON structure, no other text:
   "reasoning": "2-3 sentence explanation of your analysis"
 }}"""
 
-    # =========================
-    # 🤖 PROVIDER CALL FUNCTIONS
-    # =========================
     def _call_gemini(self, provider, prompt):
         import urllib.request
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{provider['model']}:generateContent?key={provider['key']}"
-        )
-        payload = json.dumps({
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature":     0.3,
-                "maxOutputTokens": 800,
-                "responseMimeType": "application/json"
-            }
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            url, data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-        return self._parse_llm_response(text)
+        last_error = None
+        for model in provider.get("models", GEMINI_MODELS):
+            try:
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{model}:generateContent?key={provider['key']}"
+                )
+                payload = json.dumps({
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature":      0.3,
+                        "maxOutputTokens":  800,
+                        "responseMimeType": "application/json"
+                    }
+                }).encode("utf-8")
+                req = urllib.request.Request(
+                    url, data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                result = self._parse_llm_response(text)
+                print(f"[NLP] Gemini success with model: {model}")
+                return result
+            except Exception as e:
+                print(f"[NLP] Gemini model {model} failed: {str(e)[:80]}")
+                last_error = e
+                continue
+        raise last_error or Exception("All Gemini models failed")
 
     def _call_groq(self, provider, prompt):
         import urllib.request
@@ -171,7 +153,6 @@ Return ONLY this JSON structure, no other text:
             "temperature": 0.3,
             "max_tokens":  800
         }).encode("utf-8")
-
         req = urllib.request.Request(
             "https://api.groq.com/openai/v1/chat/completions",
             data=payload,
@@ -183,7 +164,6 @@ Return ONLY this JSON structure, no other text:
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-
         text = data["choices"][0]["message"]["content"]
         return self._parse_llm_response(text)
 
@@ -195,7 +175,6 @@ Return ONLY this JSON structure, no other text:
             "temperature": 0.3,
             "max_tokens":  800
         }).encode("utf-8")
-
         req = urllib.request.Request(
             "https://api.mistral.ai/v1/chat/completions",
             data=payload,
@@ -207,7 +186,6 @@ Return ONLY this JSON structure, no other text:
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-
         text = data["choices"][0]["message"]["content"]
         return self._parse_llm_response(text)
 
@@ -219,7 +197,6 @@ Return ONLY this JSON structure, no other text:
             "temperature": 0.3,
             "max_tokens":  800
         }).encode("utf-8")
-
         req = urllib.request.Request(
             "https://api.openai.com/v1/chat/completions",
             data=payload,
@@ -231,34 +208,19 @@ Return ONLY this JSON structure, no other text:
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-
         text = data["choices"][0]["message"]["content"]
         return self._parse_llm_response(text)
 
-    # =========================
-    # 🔍 RESPONSE PARSER
-    # =========================
     def _parse_llm_response(self, text):
-        """
-        Extracts and validates JSON from LLM response.
-        Handles markdown code blocks, leading text, etc.
-        """
         if not text:
             raise ValueError("Empty response from LLM")
-
-        # Strip markdown code fences
         text = re.sub(r"```json\s*", "", text)
-        text = re.sub(r"```\s*",     "", text)
+        text = re.sub(r"```\s*", "", text)
         text = text.strip()
-
-        # Find JSON object in response
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if not match:
             raise ValueError(f"No JSON found in response: {text[:200]}")
-
         parsed = json.loads(match.group())
-
-        # Validate required fields
         required = [
             "dominant_theme", "sentiment_score", "regime_type",
             "rbi_policy_implication", "equity_bias", "confidence"
@@ -266,20 +228,14 @@ Return ONLY this JSON structure, no other text:
         missing = [f for f in required if f not in parsed]
         if missing:
             raise ValueError(f"Missing fields: {missing}")
-
         return parsed
 
-    # =========================
-    # 🔑 KEYWORD ENGINE
-    # (always available, zero cost)
-    # =========================
     def _keyword_scores(self, text):
         text_lower = text.lower()
         bull  = sum(1 for w in BULLISH_KEYWORDS if w.lower() in text_lower)
         bear  = sum(1 for w in BEARISH_KEYWORDS if w.lower() in text_lower)
         neut  = sum(1 for w in NEUTRAL_KEYWORDS if w.lower() in text_lower)
         total = bull + bear + neut + 1
-
         sentiment  = (bull - bear) / total
         regime     = (
             "BULLISH" if sentiment >  0.15 else
@@ -287,14 +243,12 @@ Return ONLY this JSON structure, no other text:
             "NEUTRAL"
         )
         confidence = min(0.5, (bull + bear) / 20)
-
         signals = []
         for kw in BULLISH_KEYWORDS + BEARISH_KEYWORDS:
             if kw.lower() in text_lower and kw not in signals:
                 signals.append(kw)
                 if len(signals) >= 4:
                     break
-
         return {
             "dominant_theme":         "Keyword-derived signal",
             "sentiment_score":         round(sentiment, 3),
@@ -315,71 +269,40 @@ Return ONLY this JSON structure, no other text:
             "provider":                "none"
         }
 
-    # =========================
-    # 🔀 MERGE FUNCTION
-    # =========================
     def _merge_outputs(self, llm_output, keyword_output, provider_name):
-        """
-        Merges LLM intelligence with keyword baseline.
-        LLM fields take priority; keyword fills gaps.
-        """
         merged = {}
-
         for field in [
             "dominant_theme", "regime_type", "rbi_policy_implication",
             "equity_bias", "key_signals", "india_specific_risks",
             "global_macro_factors", "reasoning"
         ]:
             merged[field] = llm_output.get(field, keyword_output.get(field))
-
-        # Blend numeric scores — LLM 70%, keyword 30%
         for field in ["sentiment_score", "confidence", "growth_intensity"]:
             llm_val = float(llm_output.get(field, 0))
             kw_val  = float(keyword_output.get(field, 0))
             merged[field] = round(llm_val * 0.7 + kw_val * 0.3, 3)
-
         merged["source"]   = "llm+keyword"
         merged["provider"] = provider_name
-
         return merged
 
-    # =========================
-    # 🚀 MAIN ENTRY POINT
-    # =========================
     def get_regime_scores(self, news_text):
-        """
-        Runs the full NLP pipeline.
-        Tries each provider in order, falls back to keyword engine.
-        """
         keyword_output = self._keyword_scores(news_text)
-
         if not news_text or len(news_text.strip()) < 20:
             return self._build_output(keyword_output)
-
         prompt = self._build_prompt(news_text)
         errors = []
-
         for provider in self.providers:
             try:
                 llm_output = provider["fn"](provider, prompt)
-                merged     = self._merge_outputs(
-                    llm_output, keyword_output, provider["name"]
-                )
+                merged     = self._merge_outputs(llm_output, keyword_output, provider["name"])
                 return self._build_output(merged)
-
             except Exception as e:
                 errors.append(f"{provider['name']}: {str(e)[:120]}")
                 continue
-
         if errors:
-            print(f"[NLP] All LLM providers failed:\n" +
-                  "\n".join(f"  - {e}" for e in errors))
-
+            print(f"[NLP] All LLM providers failed:\n" + "\n".join(f"  - {e}" for e in errors))
         return self._build_output(keyword_output)
 
-    # =========================
-    # 🏗️ OUTPUT BUILDER
-    # =========================
     def _build_output(self, scores):
         return {
             "dominant_theme":         scores.get("dominant_theme",        ""),
