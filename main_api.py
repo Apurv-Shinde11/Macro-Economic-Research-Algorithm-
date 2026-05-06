@@ -260,7 +260,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         final_intel = eng["aggregator"].build_intel_packet(regime_output=regime, scenario_output=scenarios, asset_output=asset_out.get("assets", {}), triggers=triggers, positioning_output=pos, cause_effect_output=cause, decision_output=dec, strategy_output=strat)
         report = eng["report"].generate_report(final_intel)
         try:
-            _supabase.table("public.runs").insert({"user_id": user_id, "regime": regime.get("regime", ""), "confidence": regime.get("confidence", 0), "conviction": strat.get("conviction", ""), "repo_rate": repo, "deficit": deficit, "capex": capex, "summary": dec.get("summary", ""), "report_text": report if isinstance(report, str) else "", "allocation": pos.get("allocation", {}), "stress_test": {"repo_rate": repo, "deficit": deficit, "capex": capex}}).execute()
+            _supabase.table("runs").insert({"user_id": user_id, "regime": regime.get("regime", ""), "confidence": regime.get("confidence", 0), "conviction": strat.get("conviction", ""), "repo_rate": repo, "deficit": deficit, "capex": capex, "summary": dec.get("summary", ""), "report_text": report if isinstance(report, str) else "", "allocation": pos.get("allocation", {}), "stress_test": {"repo_rate": repo, "deficit": deficit, "capex": capex}}).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
@@ -323,7 +323,7 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 30, profile: dict = Depends(require_access)):
-    result = _supabase.table("public.runs").select("*").eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
+    result = _supabase.table("runs").select("*").eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
     return {"history": result.data or []}
 
 @app.get("/api/profile")
