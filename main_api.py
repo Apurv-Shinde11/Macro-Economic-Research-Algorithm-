@@ -317,8 +317,8 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "report_text":   report if isinstance(report, str) else "",
                 "allocation":    pos.get("allocation", {}),
                 "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
-                "fii_net_crore": nse_snapshot.get("fii_net_crore") or None,
-                "dii_net_crore": nse_snapshot.get("dii_net_crore") or None,
+                "fii_net_crore": nse_snapshot.get("fii_net_crore"),
+                "dii_net_crore": nse_snapshot.get("dii_net_crore"),
                 "implied_action": _implied,
             }).execute()
         except Exception as e:

@@ -1550,10 +1550,11 @@
     /* ══ CONFIDENCE SPARKLINE ══ */
     .conf-sparkline-wrap {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       margin-top: 8px;
+      overflow: visible;
     }
 
     /* ══ ADMIN OVERLAY ══ */
@@ -2317,7 +2318,7 @@
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
-    let _session = null, _profile = null, _token = null, _pollTimer = null;
+    let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [];
 
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
@@ -2464,11 +2465,11 @@
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && nse) {
         renderFlows(nse);
-      } else if (fromHistory && (data.fii_net_crore || data.dii_net_crore)) {
+      } else if (fromHistory && (data.fii_net_crore != null || data.dii_net_crore != null)) {
         renderFlows({
-          fii_net_crore:  data.fii_net_crore || 0,
-          dii_net_crore:  data.dii_net_crore || 0,
-          fii_dii_source: 'cached',
+          fii_net_crore:  data.fii_net_crore ?? 0,
+          dii_net_crore:  data.dii_net_crore ?? 0,
+          fii_dii_source: (data.fii_net_crore != null || data.dii_net_crore != null) ? 'cached' : 'unavailable',
           fii_dii_stale:  true,
           fii_trade_date: data.run_at,
         });
@@ -2493,6 +2494,22 @@
           + lowPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
         return;
       }
+
+      if (conviction === 'MEDIUM') {
+        const mediumPlays = [
+          'Selectively add to regime-appropriate sectors — avoid broad deployment',
+          'Increase allocation modestly (5–10% toward risk assets)',
+          'Favour large-cap over mid/small-cap until conviction firms to HIGH',
+          'Keep cash buffer at 10–12% — do not reduce below this level yet',
+          'Review position sizing before adding any new exposures'
+        ];
+        const mandateNote = _getMandatePlaybookNote(mandate, conviction);
+        items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
+          + mediumPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+        return;
+      }
+
+      // HIGH conviction (and any unrecognised values) — use AI-generated regime playbook
       const plays = strategy?.playbook || [];
       if (!plays.length) {
         items.innerHTML = decision?.summary
@@ -2524,24 +2541,36 @@
       }).join('');
     }
 
+    function _fmtFlowDate(raw) {
+      if (!raw) return '';
+      // Try ISO parse first (handles "2026-05-08T..." and "2026-05-08")
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      // Already a formatted string (e.g. "08-May-2026") — return as-is, strip any time portion
+      return String(raw).split('T')[0];
+    }
+
     function renderFlows(nse) {
       const fiiRaw = nse.fii_dii || {};
-      const fiiNet = fiiRaw.fii?.net || nse.fii_net_crore || 0;
-      const diiNet = fiiRaw.dii?.net || nse.dii_net_crore || 0;
-      const source = nse.fii_dii_source || (fiiNet !== 0 ? 'nse_live' : 'unavailable');
-      const stale  = nse.fii_dii_stale || false;
+      const fiiNet = fiiRaw.fii?.net ?? nse.fii_net_crore ?? 0;
+      const diiNet = fiiRaw.dii?.net ?? nse.dii_net_crore ?? 0;
+      const source   = nse.fii_dii_source || (fiiNet !== 0 ? 'nse_live' : 'unavailable');
+      const stale    = nse.fii_dii_stale || false;
       const cachedAt = nse.fii_dii_cached_at || nse.fii_trade_date || fiiRaw.date || null;
+      const dateLabel = _fmtFlowDate(cachedAt);
 
-      if (source === 'unavailable' || (fiiNet === 0 && diiNet === 0)) {
+      if (source === 'unavailable') {
         document.getElementById('fiiNet').textContent = '—';
         document.getElementById('fiiNet').className = 'flow-amount neutral';
         document.getElementById('diiNet').textContent = '—';
         document.getElementById('diiNet').className = 'flow-amount neutral';
         document.getElementById('fiiSignal').textContent = '—';
         document.getElementById('diiSignal').textContent = '—';
-        document.getElementById('flowDate').textContent = cachedAt ? 'Last: ' + cachedAt.slice(0, 10) : '';
-        document.getElementById('flowNarrative').textContent = cachedAt
-          ? `Last confirmed: ${cachedAt.slice(0, 10)} — live data unavailable. Run again after market hours.`
+        document.getElementById('flowDate').textContent = dateLabel ? 'Last: ' + dateLabel : '';
+        document.getElementById('flowNarrative').textContent = dateLabel
+          ? `Last confirmed: ${dateLabel} — live data unavailable. Run again after market hours.`
           : 'FII/DII data unavailable. NSE may be closed or unreachable.';
         return;
       }
@@ -2557,7 +2586,7 @@
       document.getElementById('fiiSignal').textContent = (fiiRaw.fii_signal || (fiiNet > 0 ? 'BUY' : fiiNet < 0 ? 'SELL' : '—')) + staleSuffix;
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || (diiNet > 0 ? 'BUY' : diiNet < 0 ? 'SELL' : '—');
-      document.getElementById('flowDate').textContent = cachedAt ? 'Data: ' + cachedAt.slice(0, 10) + staleSuffix : '';
+      document.getElementById('flowDate').textContent = dateLabel ? 'Data: ' + dateLabel + staleSuffix : '';
       document.getElementById('flowNarrative').textContent = flowSig === 'RISK_ON'
         ? `Combined flows risk-on. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr.`
         : flowSig === 'RISK_OFF'
@@ -2615,7 +2644,9 @@
 
     async function loadCalendar() {
       try {
-        const res = await api('/api/calendar?days_ahead=90'); const events = (res.events || []).slice(0, 8);
+        const res = await api('/api/calendar?days_ahead=90');
+        _calendarEvents = res.events || [];
+        const events = _calendarEvents.slice(0, 8);
         const list = document.getElementById('calendarList');
         if (!events.length) { list.innerHTML = `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">No upcoming events.</div>`; return; }
         list.innerHTML = events.map(ev => {
@@ -2785,28 +2816,35 @@
     function renderConfSparkline(values) {
       const wrap = document.getElementById('confSparklineWrap');
       if (!wrap || !values || values.length < 2) return;
-      const W = 80, H = 24;
-      const min = Math.min(...values), max = Math.max(...values);
-      const range = max - min || 1;
-      const pts = values.map((v, i) => {
-        const x = (i / (values.length - 1)) * W;
-        const y = H - ((v - min) / range) * (H - 6) - 3;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(' ');
-      const last = values[values.length - 1], first = values[0];
-      const diff = last - first;
+      const W = 72, H = 22;
+      // Use hardcoded hex so SVG stroke attribute never relies on CSS vars
+      const isLight = document.documentElement.classList.contains('light');
+      const last  = values[values.length - 1];
+      const first = values[0];
+      const diff  = last - first;
       const trend = diff > 2 ? 'up' : diff < -2 ? 'down' : 'flat';
       const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
-      const strokeColor = trend === 'up' ? 'var(--green)' : trend === 'down' ? 'var(--amber, #f59e0b)' : 'var(--text-3)';
-      const dotColor = strokeColor;
+      const hexColor = trend === 'up'
+        ? (isLight ? '#059669' : '#10d48a')
+        : trend === 'down'
+          ? (isLight ? '#b45309' : '#fbbf24')
+          : (isLight ? '#9aaabb' : '#2e3d58');
+      const min   = Math.min(...values);
+      const max   = Math.max(...values);
+      const range = max - min || 1;
+      const pts   = values.map((v, i) => {
+        const x = Math.round((i / (values.length - 1)) * W * 10) / 10;
+        const y = Math.round((H - 4 - ((v - min) / range) * (H - 8) + 2) * 10) / 10;
+        return `${x},${y}`;
+      }).join(' ');
       const lastX = W;
-      const lastY = H - ((last - min) / range) * (H - 6) - 3;
-      wrap.innerHTML = `
-      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible;display:block;">
-        <polyline points="${pts}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${dotColor}"/>
-      </svg>
-      <span style="font-family:var(--font-mono);font-size:11px;color:${strokeColor};margin-left:3px;">${arrow}</span>`;
+      const lastY = Math.round((H - 4 - ((last - min) / range) * (H - 8) + 2) * 10) / 10;
+      wrap.innerHTML =
+        `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;flex-shrink:0;">`
+        + `<polyline points="${pts}" fill="none" stroke="${hexColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
+        + `<circle cx="${lastX}" cy="${lastY}" r="2.5" fill="${hexColor}"/>`
+        + `</svg>`
+        + `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${hexColor};">${arrow}</span>`;
     }
 
     /* ── SECTION C HELPERS ── */
@@ -2841,6 +2879,17 @@
       pill.className   = `act-signal-pill ${signal}`;
     }
 
+    function _getNextCalendarWatchpoint() {
+      const near = _calendarEvents
+        .filter(ev => typeof ev.days_until === 'number' && ev.days_until >= 0 && ev.days_until <= 30)
+        .sort((a, b) => a.days_until - b.days_until);
+      if (!near.length) return 'Monitor FII flows for regime confirmation';
+      const ev   = near[0];
+      const days = ev.days_until;
+      const lbl  = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} days away`;
+      return `${ev.name} — ${lbl}`;
+    }
+
     // FEATURE 7: Decision Prompt Card
     function renderDecisionPrompt(regime, strategy, decision) {
       const card = document.getElementById('decisionPrompt');
@@ -2852,13 +2901,10 @@
       const rationale  = drivers.length
         ? drivers.slice(0, 2).join(' · ')
         : (regime?.narrative || '').slice(0, 120) + (regime?.narrative?.length > 120 ? '…' : '');
-      const triggers   = decision?.triggers || decision?.watchpoints || [];
-      const watchpoint = Array.isArray(triggers) && triggers.length
-        ? (typeof triggers[0] === 'string' ? triggers[0] : (triggers[0]?.trigger || triggers[0]?.event || ''))
-        : 'Monitor regime confidence trajectory for confirmation.';
+      const watchpoint = _getNextCalendarWatchpoint();
       document.getElementById('dpAction').textContent     = action;
       document.getElementById('dpRationale').textContent  = rationale || '—';
-      document.getElementById('dpWatchpoint').textContent = watchpoint || '—';
+      document.getElementById('dpWatchpoint').textContent = watchpoint;
       card.classList.add('visible');
     }
 
