@@ -240,25 +240,29 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": 0, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
-        # Fix 1: FII/DII — fall back to DataIngestor (has Supabase fii_dii_cache) when NSE returns zero
+        # FII/DII — fall back to DataIngestor (has Supabase fii_dii_cache) when NSE returns zero/None
         if not nse_snapshot.get("fii_net_crore"):
             try:
                 _fii = eng["ingestor"].fetch_fii_dii()
-                if _fii.get("fii_net_crore") and _fii["fii_net_crore"] != 0:
+                if _fii.get("fii_net_crore") is not None:
                     nse_snapshot.update({
-                        "fii_net_crore":   _fii["fii_net_crore"],
-                        "dii_net_crore":   _fii.get("dii_net_crore", 0),
-                        "fii_dii_source":  _fii.get("source", "supabase_cache"),
-                        "fii_dii_stale":   _fii.get("stale", False),
+                        "fii_net_crore":     _fii["fii_net_crore"],
+                        "dii_net_crore":     _fii.get("dii_net_crore", 0),
+                        "fii_dii_source":    _fii.get("source", "supabase_cache"),
+                        "fii_dii_stale":     _fii.get("stale", False),
                         "fii_dii_cached_at": _fii.get("cached_at"),
-                        "fii_trade_date":  _fii.get("trade_date"),
+                        "fii_trade_date":    _fii.get("trade_date"),
                     })
+                    print(f"[FII] ingestor fallback: fii={_fii['fii_net_crore']} dii={_fii.get('dii_net_crore')} src={_fii.get('source')}", flush=True)
                 else:
+                    print("[FII] ingestor returned fii_net_crore=None — unavailable", flush=True)
                     nse_snapshot.setdefault("fii_dii_source", "unavailable")
-            except Exception:
+            except Exception as _fii_err:
+                print(f"[FII] ingestor fallback error: {_fii_err}", flush=True)
                 nse_snapshot.setdefault("fii_dii_source", "unavailable")
         else:
             nse_snapshot["fii_dii_source"] = "nse_live"
+            print(f"[FII] NSE live: fii={nse_snapshot.get('fii_net_crore')}", flush=True)
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -305,6 +309,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         report = eng["report"].generate_report(final_intel)
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
+            print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
             _supabase.table("runs").insert({
                 "user_id":       user_id,
                 "regime":        regime.get("regime", ""),

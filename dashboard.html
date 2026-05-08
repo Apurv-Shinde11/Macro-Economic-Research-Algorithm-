@@ -1555,6 +1555,7 @@
       gap: 4px;
       margin-top: 8px;
       overflow: visible;
+      border: 1px solid red; /* diagnostic — remove after confirming sparkline renders */
     }
 
     /* ══ ADMIN OVERLAY ══ */
@@ -2815,7 +2816,11 @@
 
     function renderConfSparkline(values) {
       const wrap = document.getElementById('confSparklineWrap');
-      if (!wrap || !values || values.length < 2) return;
+      console.log('[Sparkline] values:', values, '| wrap found:', !!wrap);
+      if (!wrap || !values || values.length < 2) {
+        console.log('[Sparkline] early return — wrap:', !!wrap, '| length:', values?.length);
+        return;
+      }
       const W = 72, H = 22;
       // Use hardcoded hex so SVG stroke attribute never relies on CSS vars
       const isLight = document.documentElement.classList.contains('light');
@@ -2824,11 +2829,12 @@
       const diff  = last - first;
       const trend = diff > 2 ? 'up' : diff < -2 ? 'down' : 'flat';
       const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+      // flat color was #2e3d58 (dark mode) — same as --text-3, invisible; use blue instead
       const hexColor = trend === 'up'
         ? (isLight ? '#059669' : '#10d48a')
         : trend === 'down'
           ? (isLight ? '#b45309' : '#fbbf24')
-          : (isLight ? '#9aaabb' : '#2e3d58');
+          : (isLight ? '#9aaabb' : '#4f83ff');
       const min   = Math.min(...values);
       const max   = Math.max(...values);
       const range = max - min || 1;
@@ -2845,6 +2851,7 @@
         + `<circle cx="${lastX}" cy="${lastY}" r="2.5" fill="${hexColor}"/>`
         + `</svg>`
         + `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${hexColor};">${arrow}</span>`;
+      console.log('[Sparkline] rendered — trend:', trend, '| color:', hexColor, '| pts:', pts);
     }
 
     /* ── SECTION C HELPERS ── */
