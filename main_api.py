@@ -248,6 +248,16 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         cause     = ensure_dict(eng["cause"].analyze(intel, regime))
         scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
         scenarios = rep.repair(scenarios, SCENARIO_SCHEMA)
+        # Crude price threshold — follow same pattern as VIX
+        crude_price = _ticker_cache.get("data", {}).get("Crude", {}).get("price", 0)
+        if crude_price and crude_price >= 95:
+            for sc in scenarios.get("scenarios", []):
+                sc_type = (sc.get("type") or "").lower()
+                sc_name = (sc.get("name") or "").lower()
+                if "external" in sc_type or "shock" in sc_type or "external" in sc_name or "shock" in sc_name:
+                    sc["probability"] = max(sc.get("probability", 0), 0.20)
+                    sc["description"] = f"⚠️ Crude at ${crude_price:.0f} — External Shock threshold reached. " + (sc.get("description") or "")
+                    break
         asset_out = ensure_dict(eng["asset"].analyze_assets(regime, scenarios, liq))
         asset_out = rep.repair(asset_out, ASSET_SCHEMA)
         triggers  = eng["trigger"].generate_triggers(regime, cause)
