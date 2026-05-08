@@ -1,7 +1,7 @@
 import requests
 import os
 import feedparser
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 
 
@@ -19,26 +19,242 @@ class DataIngestor:
         # data.gov.in — India official macro (free, register at data.gov.in)
         self.datagov_key = os.environ.get("DATAGOV_KEY", None)
 
+        # Supabase — last-known-good cache
+        self.supabase_url = os.environ.get("SUPABASE_URL", None)
+        self.supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", None)  # service role key for server-side writes
+
         self.av_url   = "https://www.alphavantage.co/query"
         self.fred_url = "https://api.stlouisfed.org/fred/series/observations"
+
+        # NSE requires a live session cookie — initialise lazily
+        self._nse_session = None
 
     # =========================
     # 🧰 SAFE REQUEST
     # =========================
-    def _safe_request(self, url, params=None):
+    def _safe_request(self, url, params=None, headers=None, session=None):
         try:
-            headers = {"User-Agent": "Mozilla/5.0"}
-            res = requests.get(
-                url, params=params,
-                headers=headers,
-                timeout=8
-            )
+            _headers = {"User-Agent": "Mozilla/5.0"}
+            if headers:
+                _headers.update(headers)
+            caller = session if session else requests
+            res = caller.get(url, params=params, headers=_headers, timeout=8)
             if res.status_code != 200:
                 return {}
             data = res.json()
             return data if isinstance(data, (dict, list)) else {}
         except Exception:
             return {}
+
+    # =========================
+    # 🏦 SUPABASE HELPERS
+    # =========================
+    def _sb_headers(self):
+        return {
+            "apikey":        self.supabase_key,
+            "Authorization": f"Bearer {self.supabase_key}",
+            "Content-Type":  "application/json",
+            "Prefer":        "return=minimal"
+        }
+
+    def _sb_available(self):
+        return bool(self.supabase_url and self.supabase_key)
+
+    def _fetch_last_fii_dii(self):
+        """Pull the most recent confirmed FII/DII row from Supabase."""
+        if not self._sb_available():
+            return None
+        try:
+            url = (
+                f"{self.supabase_url}/rest/v1/fii_dii_cache"
+                "?order=fetched_at.desc&limit=1"
+            )
+            res = requests.get(url, headers=self._sb_headers(), timeout=6)
+            if res.status_code == 200:
+                rows = res.json()
+                if isinstance(rows, list) and rows:
+                    return rows[0]
+        except Exception:
+            pass
+        return None
+
+    def _store_fii_dii(self, row: dict):
+        """Upsert a successful FII/DII fetch into Supabase for future fallback."""
+        if not self._sb_available():
+            return
+        try:
+            url = f"{self.supabase_url}/rest/v1/fii_dii_cache"
+            headers = {**self._sb_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"}
+            requests.post(url, json=row, headers=headers, timeout=6)
+        except Exception:
+            pass
+
+    # =========================
+    # 🏛️  NSE SESSION
+    # NSE blocks direct API calls — we need a warm session with cookies first.
+    # =========================
+    def _get_nse_session(self):
+        if self._nse_session:
+            return self._nse_session
+        try:
+            s = requests.Session()
+            s.headers.update({
+                "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                   "Chrome/124.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Referer":         "https://www.nseindia.com/"
+            })
+            # Warm up — sets cookies
+            s.get("https://www.nseindia.com", timeout=10)
+            self._nse_session = s
+            return s
+        except Exception:
+            return None
+
+    # =========================
+    # 📊 FII / DII FLOWS  ← THE FIX
+    # Primary  : NSE live API
+    # Fallback : Supabase last-known-good  (stale=True + timestamp)
+    # =========================
+    def fetch_fii_dii(self):
+        """
+        Returns a dict:
+        {
+          "fii_net_crore": float,
+          "dii_net_crore": float,
+          "fii_buy":  float, "fii_sell":  float,
+          "dii_buy":  float, "dii_sell":  float,
+          "trade_date": "DD-Mon-YYYY",
+          "stale":  bool,          # True  → value from Supabase cache
+          "cached_at": str | None, # ISO timestamp of cached row (stale only)
+          "source": str
+        }
+        """
+        result = self._try_nse_fii_dii()
+
+        if result:
+            # Persist the fresh value so future stale-fallback is accurate
+            self._store_fii_dii({
+                "fetched_at":    datetime.now(timezone.utc).isoformat(),
+                "trade_date":    result.get("trade_date"),
+                "fii_net_crore": result["fii_net_crore"],
+                "dii_net_crore": result["dii_net_crore"],
+                "fii_buy":       result.get("fii_buy"),
+                "fii_sell":      result.get("fii_sell"),
+                "dii_buy":       result.get("dii_buy"),
+                "dii_sell":      result.get("dii_sell"),
+                "source":        "nse_live"
+            })
+            result["stale"]     = False
+            result["cached_at"] = None
+            return result
+
+        # ── Live fetch failed: try Supabase last-known-good ──
+        cached = self._fetch_last_fii_dii()
+        if cached:
+            return {
+                "fii_net_crore": cached.get("fii_net_crore", 0.0),
+                "dii_net_crore": cached.get("dii_net_crore", 0.0),
+                "fii_buy":       cached.get("fii_buy"),
+                "fii_sell":      cached.get("fii_sell"),
+                "dii_buy":       cached.get("dii_buy"),
+                "dii_sell":      cached.get("dii_sell"),
+                "trade_date":    cached.get("trade_date"),
+                "stale":         True,
+                "cached_at":     cached.get("fetched_at"),
+                "source":        "supabase_cache"
+            }
+
+        # ── Nothing available at all ──
+        return {
+            "fii_net_crore": None,
+            "dii_net_crore": None,
+            "fii_buy":  None, "fii_sell":  None,
+            "dii_buy":  None, "dii_sell":  None,
+            "trade_date": None,
+            "stale":      False,
+            "cached_at":  None,
+            "source":     "unavailable"
+        }
+
+    def _try_nse_fii_dii(self):
+        """
+        Hit NSE's FII/DII API.  Returns a partial dict on success, None on failure.
+        NSE returns a list of category dicts like:
+          [{"category":"FII/FPI","buyValue":12000,"sellValue":10000,"netValue":2000,...}, ...]
+        """
+        try:
+            session = self._get_nse_session()
+            if not session:
+                return None
+
+            data = self._safe_request(
+                "https://www.nseindia.com/api/fiidiiTradeReact",
+                headers={"Referer": "https://www.nseindia.com/market-data/fii-dii-activity"},
+                session=session
+            )
+
+            if not isinstance(data, list) or not data:
+                return None
+
+            # Normalise category names (NSE sometimes varies capitalisation)
+            fii_row = next(
+                (r for r in data if "FII" in str(r.get("category", "")).upper()),
+                None
+            )
+            dii_row = next(
+                (r for r in data if "DII" in str(r.get("category", "")).upper()),
+                None
+            )
+
+            if not fii_row and not dii_row:
+                return None
+
+            def _net(row):
+                if not row:
+                    return 0.0
+                # NSE field names vary: netValue / netPurchaseSales / net
+                for key in ("netValue", "netPurchaseSales", "net"):
+                    val = row.get(key)
+                    if isinstance(val, (int, float)):
+                        return round(float(val), 2)
+                # Derive from buy/sell
+                buy  = row.get("buyValue")  or row.get("grossPurchase") or 0
+                sell = row.get("sellValue") or row.get("grossSales")    or 0
+                return round(float(buy) - float(sell), 2)
+
+            def _val(row, *keys):
+                if not row:
+                    return None
+                for k in keys:
+                    v = row.get(k)
+                    if isinstance(v, (int, float)):
+                        return round(float(v), 2)
+                return None
+
+            # Trade date — first row usually carries it
+            trade_date = (
+                data[0].get("date") or
+                data[0].get("tradeDate") or
+                datetime.now(timezone.utc).strftime("%d-%b-%Y")
+            )
+
+            return {
+                "fii_net_crore": _net(fii_row),
+                "dii_net_crore": _net(dii_row),
+                "fii_buy":  _val(fii_row, "buyValue",  "grossPurchase"),
+                "fii_sell": _val(fii_row, "sellValue", "grossSales"),
+                "dii_buy":  _val(dii_row, "buyValue",  "grossPurchase"),
+                "dii_sell": _val(dii_row, "sellValue", "grossSales"),
+                "trade_date": trade_date,
+                "source": "nse_live"
+            }
+
+        except Exception:
+            return None
 
     # =========================
     # 📰 NEWS SENTIMENT
@@ -102,7 +318,6 @@ class DataIngestor:
             except Exception:
                 pass
 
-        # Deduplicate while preserving order
         seen = set()
         unique_headlines = []
         for h in headlines:
@@ -124,7 +339,6 @@ class DataIngestor:
     # =========================
     def fetch_macro_indicators(self):
 
-        # Hardcoded fallback baseline — always present
         macro = {
             "repo_rate":   6.5,
             "us_fed_rate": 5.25,
@@ -157,7 +371,7 @@ class DataIngestor:
         except Exception:
             pass
 
-        # --- US Fed Funds Rate via FRED (free API key required) ---
+        # --- US Fed Funds Rate via FRED ---
         if self.fred_api_key:
             try:
                 params = {
@@ -196,7 +410,7 @@ class DataIngestor:
             except Exception:
                 pass
 
-        # --- India CPI via data.gov.in (free, official MOSPI data) ---
+        # --- India CPI via data.gov.in ---
         if self.datagov_key:
             try:
                 url    = (
@@ -317,8 +531,9 @@ class DataIngestor:
     # =========================
     def get_all_data(self):
         return self.validate_data({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "macro":     self.fetch_macro_indicators(),
             "market":    self.fetch_market_data(),
-            "news":      self.fetch_news_sentiment()
+            "news":      self.fetch_news_sentiment(),
+            "fii_dii":   self.fetch_fii_dii()        # ← now a top-level key
         })
