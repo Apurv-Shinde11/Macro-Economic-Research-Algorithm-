@@ -1556,6 +1556,316 @@
       margin-top: 8px;
     }
 
+    /* ══ ADMIN OVERLAY ══ */
+    .admin-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      display: none;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px 40px;
+      overflow-y: auto;
+    }
+    .admin-overlay.open { display: flex; }
+    .admin-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 900px;
+      padding: 28px 28px 36px;
+    }
+    .admin-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .admin-panel-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .admin-close-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-2);
+      font-size: 13px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+    }
+    .admin-close-btn:hover { background: var(--surface-3); }
+    .admin-metrics {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .admin-metric {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .admin-metric-val {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .admin-metric-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .admin-section-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin: 20px 0 10px;
+    }
+    .admin-user-row {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .admin-user-email { color: var(--text); font-family: var(--font-mono); font-size: 11px; }
+    .admin-user-firm  { color: var(--text-2); font-size: 11px; }
+    .admin-tier-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid currentColor;
+    }
+    .admin-tier-badge.paid    { color: var(--green); }
+    .admin-tier-badge.trial   { color: var(--blue); }
+    .admin-tier-badge.pending { color: var(--amber, #f59e0b); }
+    .admin-tier-badge.expired { color: var(--red); }
+    .admin-tier-badge.admin   { color: var(--purple, #8b5cf6); }
+    .admin-action-btn {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-3);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .admin-action-btn:hover { background: var(--surface-4, var(--surface-3)); color: var(--text); }
+    .admin-log-row {
+      display: grid;
+      grid-template-columns: 1.4fr 2fr 1fr 0.8fr;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-2);
+    }
+    .admin-nav-btn {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      cursor: pointer;
+      margin-top: 12px;
+      width: 100%;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .admin-nav-btn:hover { color: var(--text); border-color: var(--text-3); }
+
+    /* ══ DECISION PROMPT CARD (F7) ══ */
+    .decision-prompt {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--blue);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .decision-prompt.visible { display: block; }
+    .decision-prompt-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .decision-prompt-rows { display: flex; flex-direction: column; gap: 8px; }
+    .decision-prompt-row { display: flex; gap: 10px; align-items: baseline; }
+    .dp-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      min-width: 80px;
+    }
+    .dp-value { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    /* ══ ACT/WAIT/HOLD SIGNAL (F8) ══ */
+    .act-signal-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1.5px solid currentColor;
+      font-weight: 700;
+    }
+    .act-signal-pill.ACT  { color: var(--green); }
+    .act-signal-pill.WAIT { color: var(--amber, #f59e0b); }
+    .act-signal-pill.HOLD { color: var(--text-3); }
+
+    /* ══ WHAT THIS MEANS FOR YOU (F11) ══ */
+    .wtmfy-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .wtmfy-card.visible { display: block; }
+    .wtmfy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .wtmfy-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .wtmfy-mandate-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-3);
+    }
+    .wtmfy-body {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .wtmfy-actions { display: flex; flex-direction: column; gap: 6px; }
+    .wtmfy-action-row {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      font-size: 13px;
+    }
+    .wtmfy-action-icon { color: var(--blue); font-size: 12px; min-width: 16px; }
+    .wtmfy-action-text { color: var(--text-2); line-height: 1.4; }
+
+    /* ══ ONBOARDING CARD ══ */
+    .onboarding-card {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 36px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .onboarding-card.visible { display: block; }
+    .onboarding-icon {
+      font-size: 40px;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .onboarding-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .onboarding-body {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+      max-width: 480px;
+      margin: 0 auto 24px;
+    }
+    .onboarding-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 560px;
+      margin: 0 auto 28px;
+      text-align: left;
+    }
+    .onboarding-step {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .onboarding-step-num {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--blue);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .onboarding-step-text {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 900px) {
       .app-layout {
@@ -1721,6 +2031,7 @@
       </div>
 
       <button class="save-btn" id="savePrefsBtn">Save Preferences</button>
+      <button class="admin-nav-btn" id="adminNavBtn" onclick="openAdminPanel()">⬡ ADMIN PANEL</button>
       <div style="margin-top:16px;text-align:center;">
         <button onclick="signOut()"
           style="background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);cursor:pointer;letter-spacing:0.08em;transition:color 0.2s;"
@@ -1728,12 +2039,69 @@
       </div>
     </aside>
 
+    <!-- ADMIN OVERLAY -->
+    <div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
+      <div class="admin-panel">
+        <div class="admin-panel-header">
+          <span class="admin-panel-title">Admin Panel</span>
+          <button class="admin-close-btn" onclick="closeAdminPanel()">✕ Close</button>
+        </div>
+        <div class="admin-metrics" id="adminMetrics">
+          <div class="admin-metric"><div class="admin-metric-val" id="amTotal">—</div><div class="admin-metric-label">Total Users</div></div>
+          <div class="admin-metric"><div class="admin-metric-val" id="amPaid">—</div><div class="admin-metric-label">Paid</div></div>
+          <div class="admin-metric"><div class="admin-metric-val" id="amTrial">—</div><div class="admin-metric-label">Trial</div></div>
+          <div class="admin-metric"><div class="admin-metric-val" id="amPending">—</div><div class="admin-metric-label">Pending</div></div>
+          <div class="admin-metric"><div class="admin-metric-val" id="amJobs">—</div><div class="admin-metric-label">Active Jobs</div></div>
+        </div>
+        <div class="admin-section-title">Users</div>
+        <div id="adminUserList"></div>
+        <div class="admin-section-title">Recent Email Logs</div>
+        <div id="adminEmailLogs"></div>
+      </div>
+    </div>
+
     <!-- MAIN -->
     <main class="main-content" id="mainContent">
 
       <div class="section-header">
         <span class="section-title">Macro Regime</span>
         <span class="section-meta" id="lastRunMeta">—</span>
+      </div>
+
+      <!-- FEATURE 7: Decision Prompt Card -->
+      <div class="decision-prompt" id="decisionPrompt">
+        <div class="decision-prompt-title">Today's Decision Signal</div>
+        <div class="decision-prompt-rows">
+          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value" id="dpAction">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Rationale</span><span class="dp-value" id="dpRationale">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Watchpoint</span><span class="dp-value" id="dpWatchpoint">—</span></div>
+        </div>
+      </div>
+
+      <!-- BUILD 6: First-run onboarding card -->
+      <div class="onboarding-card" id="onboardingCard">
+        <div class="onboarding-icon">📡</div>
+        <div class="onboarding-title">Welcome to SENTINEL</div>
+        <div class="onboarding-body">
+          Your macro intelligence terminal is ready. Run the engine to generate your first regime assessment — it analyses RBI policy, FII flows, liquidity conditions, and macro data to classify India's current investment environment.
+        </div>
+        <div class="onboarding-steps">
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">Step 01</div>
+            <div class="onboarding-step-text">Click <strong>Run Intelligence Engine</strong> below to start the pipeline (~30 seconds)</div>
+          </div>
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">Step 02</div>
+            <div class="onboarding-step-text">Review the <strong>Regime Card</strong> — conviction level, playbook, and asset class implications</div>
+          </div>
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">Step 03</div>
+            <div class="onboarding-step-text">Configure <strong>alerts</strong> in the sidebar — email and WhatsApp when the regime shifts</div>
+          </div>
+        </div>
+        <button class="run-btn" id="onboardRunBtn" onclick="document.getElementById('runBtn').click()">
+          <span>▶</span> Run Your First Analysis
+        </button>
       </div>
 
       <div class="regime-hero" id="regimeHero">
@@ -1785,6 +2153,9 @@
               id="pillRBI">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
               id="pillLiquidity">—</span></div>
+          <div class="regime-pill" style="align-items:center;justify-content:center;">
+            <span class="act-signal-pill HOLD" id="actSignalPill">HOLD</span>
+          </div>
         </div>
         <div class="challenger-banner" id="challengerBanner" style="display:none">
           <div>⚠️ Challenger regime: <strong id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
@@ -1814,6 +2185,16 @@
               playbook.</div>
           </div>
         </div>
+      </div>
+
+      <!-- FEATURE 11: What This Means For You -->
+      <div class="wtmfy-card" id="wtmfyCard">
+        <div class="wtmfy-header">
+          <span class="wtmfy-title">What This Means For You</span>
+          <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
+        </div>
+        <div class="wtmfy-body" id="wtmfyBody">—</div>
+        <div class="wtmfy-actions" id="wtmfyActions"></div>
       </div>
 
       <div class="divider"></div>
@@ -1899,12 +2280,13 @@
               <th>Confidence</th>
               <th>Conviction</th>
               <th>Equity Bias</th>
+              <th>Implied Action</th>
               <th>Outcome</th>
             </tr>
           </thead>
           <tbody id="historyBody">
             <tr>
-              <td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td>
+              <td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td>
             </tr>
           </tbody>
         </table>
@@ -1954,6 +2336,9 @@
         document.getElementById('navFirm').textContent = firm;
         document.getElementById('userName').textContent = name.split(' ')[0] || name;
         document.getElementById('userAvatar').textContent = initials;
+        if (_profile.tier === 'admin') {
+          document.getElementById('adminNavBtn').style.display = 'block';
+        }
         populateSidebar(_profile);
       } catch (e) { console.error('Profile load failed:', e); }
     }
@@ -1961,27 +2346,20 @@
     async function loadDashboard() {
       try {
         const res = await api('/api/history?limit=1');
-        if (res.history?.length > 0) renderRunResult(res.history[0], true);
+        const onboarding = document.getElementById('onboardingCard');
+        const hero       = document.getElementById('regimeHero');
+        if (res.history?.length > 0) {
+          renderRunResult(res.history[0], true);
+          onboarding.classList.remove('visible');
+        } else {
+          onboarding.classList.add('visible');
+          hero.style.opacity = '0.35';
+        }
         const hist = await api('/api/history?limit=20');
         renderHistoryTable(hist.history || []);
         const sparkVals = (hist.history || []).slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
         renderConfSparkline(sparkVals);
       } catch (e) { console.error('Dashboard load failed:', e); }
-      try {
-        const nse = await api('/api/ticker');
-        const fiiNet = nse.ticker?.['FII Net']?.price || 0;
-        const diiNet = nse.ticker?.['DII Net']?.price || 0;
-        const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
-        const fiiEl = document.getElementById('fiiNet');
-        if (fiiEl && fiiEl.textContent === '—') {
-          fiiEl.textContent = fmt(fiiNet);
-          fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
-          document.getElementById('diiNet').textContent = fmt(diiNet);
-          document.getElementById('diiNet').className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
-          document.getElementById('flowNarrative').textContent =
-            `Live data from NSE. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr.`;
-        }
-      } catch (e) { console.error('Live FII load failed:', e); }
     }
 
     async function api(path, options = {}) {
@@ -2015,6 +2393,8 @@
           dots = (dots + 1) % 4; statusTx.textContent = 'Analysing macro data' + '.'.repeat(dots + 1);
           if (res.status === 'complete') {
             clearInterval(_pollTimer); renderRunResult(res.result, false); resetRunBtn();
+            document.getElementById('onboardingCard').classList.remove('visible');
+            document.getElementById('regimeHero').style.opacity = '';
             showToast('✓ Intelligence updated', 'success');
             document.getElementById('runStatus').classList.remove('visible');
             const hist = await api('/api/history?limit=20'); renderHistoryTable(hist.history || []);
@@ -2065,15 +2445,41 @@
       const dot = document.getElementById('freshnessDot'); const txt = document.getElementById('freshnessText');
       dot.className = 'freshness-dot ' + (hoursAgo < 6 ? 'fresh' : hoursAgo < 24 ? 'stale' : 'old');
       txt.textContent = hoursAgo < 1 ? 'Just updated' : hoursAgo < 24 ? `Updated ${hoursAgo}h ago` : `Updated ${Math.round(hoursAgo / 24)}d ago`;
-      if (!fromHistory && strategy) renderPlaybook(data.strategy, data.decision);
-      else if (fromHistory && data.summary) { document.getElementById('playbookItems').innerHTML = `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`; }
+      // F8: ACT/WAIT/HOLD signal
+      renderActSignal(fromHistory ? data.regime : regime?.regime, conviction);
+
+      if (!fromHistory && strategy) {
+        renderPlaybook(data.strategy, data.decision);
+        renderDecisionPrompt(regime, data.strategy, data.decision);   // F7
+        renderWtmfy(regime, data.strategy, data.decision);            // F11
+      } else if (fromHistory && data.summary) {
+        document.getElementById('playbookItems').innerHTML = `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`;
+        // F11: render from history record using derived values
+        renderWtmfy(
+          { regime: data.regime, confidence: data.confidence, narrative: data.summary, drivers: [] },
+          { conviction: data.conviction },
+          { summary: data.summary }
+        );
+      }
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
-      if (!fromHistory && nse) renderFlows(nse);
+      if (!fromHistory && nse) {
+        renderFlows(nse);
+      } else if (fromHistory && (data.fii_net_crore || data.dii_net_crore)) {
+        renderFlows({
+          fii_net_crore:  data.fii_net_crore || 0,
+          dii_net_crore:  data.dii_net_crore || 0,
+          fii_dii_source: 'cached',
+          fii_dii_stale:  true,
+          fii_trade_date: data.run_at,
+        });
+      }
     }
 
     function renderPlaybook(strategy, decision) {
       const items = document.getElementById('playbookItems');
       const conviction = (strategy?.conviction || '').toUpperCase();
+      const mandate    = (_profile?.mandate_type || '').toLowerCase();
+
       if (conviction === 'LOW') {
         const lowPlays = [
           'Hold existing positions — do not add aggressively until conviction builds',
@@ -2082,12 +2488,32 @@
           'Watch for 2 consecutive MEDIUM+ conviction runs before deploying',
           'Reduce leverage-sensitive exposure'
         ];
-        items.innerHTML = lowPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+        const mandateNote = _getMandatePlaybookNote(mandate, conviction);
+        items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
+          + lowPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
         return;
       }
       const plays = strategy?.playbook || [];
-      if (!plays.length) { items.innerHTML = decision?.summary ? `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${decision.summary}</span></div>` : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`; return; }
-      items.innerHTML = plays.slice(0, 5).map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+      if (!plays.length) {
+        items.innerHTML = decision?.summary
+          ? `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${decision.summary}</span></div>`
+          : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`;
+        return;
+      }
+      const mandateNote = _getMandatePlaybookNote(mandate, conviction);
+      items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
+        + plays.slice(0, 5).map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+    }
+
+    function _getMandatePlaybookNote(mandate, conviction) {
+      if (!mandate) return '';
+      const notes = {
+        debt:        'Debt mandate: Focus on duration positioning and credit quality. Equity items below are for context only.',
+        equity:      conviction === 'HIGH' ? 'Equity mandate: Full regime playbook applies — prioritise conviction deployment.' : 'Equity mandate: Selective deployment recommended given current conviction level.',
+        balanced:    'Balanced mandate: Apply equity plays to your equity sleeve; review debt items separately.',
+        multi_asset: 'Multi-asset mandate: Regime playbook covers all asset classes — apply proportionally to each sleeve.',
+      };
+      return notes[mandate] || '';
     }
 
     function renderScenarios(scenarios) {
@@ -2099,14 +2525,39 @@
     }
 
     function renderFlows(nse) {
-      const fiiRaw = nse.fii_dii || {}; const fiiNet = fiiRaw.fii?.net || nse.fii_net_crore || 0; const diiNet = fiiRaw.dii?.net || nse.dii_net_crore || 0;
-      const flowSig = fiiRaw.combined_signal || 'NEUTRAL'; const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
-      const fiiEl = document.getElementById('fiiNet'); fiiEl.textContent = fmt(fiiNet); fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
-      const diiEl = document.getElementById('diiNet'); diiEl.textContent = fmt(diiNet); diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
-      document.getElementById('fiiSignal').textContent = fiiRaw.fii_signal || '—';
+      const fiiRaw = nse.fii_dii || {};
+      const fiiNet = fiiRaw.fii?.net || nse.fii_net_crore || 0;
+      const diiNet = fiiRaw.dii?.net || nse.dii_net_crore || 0;
+      const source = nse.fii_dii_source || (fiiNet !== 0 ? 'nse_live' : 'unavailable');
+      const stale  = nse.fii_dii_stale || false;
+      const cachedAt = nse.fii_dii_cached_at || nse.fii_trade_date || fiiRaw.date || null;
+
+      if (source === 'unavailable' || (fiiNet === 0 && diiNet === 0)) {
+        document.getElementById('fiiNet').textContent = '—';
+        document.getElementById('fiiNet').className = 'flow-amount neutral';
+        document.getElementById('diiNet').textContent = '—';
+        document.getElementById('diiNet').className = 'flow-amount neutral';
+        document.getElementById('fiiSignal').textContent = '—';
+        document.getElementById('diiSignal').textContent = '—';
+        document.getElementById('flowDate').textContent = cachedAt ? 'Last: ' + cachedAt.slice(0, 10) : '';
+        document.getElementById('flowNarrative').textContent = cachedAt
+          ? `Last confirmed: ${cachedAt.slice(0, 10)} — live data unavailable. Run again after market hours.`
+          : 'FII/DII data unavailable. NSE may be closed or unreachable.';
+        return;
+      }
+
+      const flowSig = fiiRaw.combined_signal || 'NEUTRAL';
+      const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
+      const staleSuffix = stale ? ' (cached)' : '';
+
+      const fiiEl = document.getElementById('fiiNet');
+      fiiEl.textContent = fmt(fiiNet); fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
+      const diiEl = document.getElementById('diiNet');
+      diiEl.textContent = fmt(diiNet); diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
+      document.getElementById('fiiSignal').textContent = (fiiRaw.fii_signal || (fiiNet > 0 ? 'BUY' : fiiNet < 0 ? 'SELL' : '—')) + staleSuffix;
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
-      document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || '—';
-      document.getElementById('flowDate').textContent = fiiRaw.date ? 'Data: ' + fiiRaw.date : '';
+      document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || (diiNet > 0 ? 'BUY' : diiNet < 0 ? 'SELL' : '—');
+      document.getElementById('flowDate').textContent = cachedAt ? 'Data: ' + cachedAt.slice(0, 10) + staleSuffix : '';
       document.getElementById('flowNarrative').textContent = flowSig === 'RISK_ON'
         ? `Combined flows risk-on. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr.`
         : flowSig === 'RISK_OFF'
@@ -2116,7 +2567,7 @@
 
     function renderHistoryTable(history) {
       const tbody = document.getElementById('historyBody');
-      if (!history.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>`; return; }
+      if (!history.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>`; return; }
       const thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
       tbody.innerHTML = history.map(r => {
         const date = new Date(r.run_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -2124,10 +2575,11 @@
         const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
         const bias = r.allocation?.equities ? Math.round(r.allocation.equities * 100) + '% Eq' : '—';
+        const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
         const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';
         const outcomeCls = (outcome !== 'Pending') ? 'color:var(--green);' : 'color:var(--text-3);';
-        return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
+        return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;color:var(--text-2);">${impliedAction}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
       }).join('');
     }
 
@@ -2314,8 +2766,15 @@
       }
       if (!mapping) { bridgeEl.style.display = 'none'; return; }
       bridgeEl.style.display = 'block';
+      const riskTol   = (_profile?.risk_tolerance || '').toLowerCase();
+      const riskNote  = riskTol === 'conservative'
+        ? '<div class="regime-bridge-row" style="border-left:2px solid var(--amber,#f59e0b);padding-left:8px;margin-bottom:4px;"><span class="regime-bridge-text" style="color:var(--amber,#f59e0b);font-size:11px;">Conservative profile: Prioritise the Risk row. Equity deployment only on HIGH conviction.</span></div>'
+        : riskTol === 'aggressive'
+          ? '<div class="regime-bridge-row" style="border-left:2px solid var(--green);padding-left:8px;margin-bottom:4px;"><span class="regime-bridge-text" style="color:var(--green);font-size:11px;">Aggressive profile: Full playbook applies. Currency and risk overlays are your alpha levers.</span></div>'
+          : '';
       bridgeEl.innerHTML = `
       <div class="regime-bridge-title">Actionable Implications</div>
+      ${riskNote}
       <div class="regime-bridge-row"><span class="regime-bridge-label">Equity</span><span class="regime-bridge-text">${mapping.equity}</span></div>
       <div class="regime-bridge-row"><span class="regime-bridge-label">Debt</span><span class="regime-bridge-text">${mapping.debt}</span></div>
       <div class="regime-bridge-row"><span class="regime-bridge-label">Currency</span><span class="regime-bridge-text">${mapping.currency}</span></div>
@@ -2323,29 +2782,229 @@
     `;
     }
 
-    /* ── FIX 3: Confidence sparkline ── */
     function renderConfSparkline(values) {
       const wrap = document.getElementById('confSparklineWrap');
       if (!wrap || !values || values.length < 2) return;
-      const W = 60, H = 26;
+      const W = 80, H = 24;
       const min = Math.min(...values), max = Math.max(...values);
       const range = max - min || 1;
       const pts = values.map((v, i) => {
         const x = (i / (values.length - 1)) * W;
-        const y = H - ((v - min) / range) * (H - 4) - 2;
+        const y = H - ((v - min) / range) * (H - 6) - 3;
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       }).join(' ');
       const last = values[values.length - 1], first = values[0];
       const diff = last - first;
       const trend = diff > 2 ? 'up' : diff < -2 ? 'down' : 'flat';
       const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
-      const color = trend === 'up' ? 'var(--green)' : trend === 'down' ? 'var(--red)' : 'var(--text-3)';
+      const strokeColor = trend === 'up' ? 'var(--green)' : trend === 'down' ? 'var(--amber, #f59e0b)' : 'var(--text-3)';
+      const dotColor = strokeColor;
+      const lastX = W;
+      const lastY = H - ((last - min) / range) * (H - 6) - 3;
       wrap.innerHTML = `
-      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible;">
-        <polyline points="${pts}" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="${(values.length - 1) / (values.length - 1) * W}" cy="${(H - ((last - min) / range) * (H - 4) - 2).toFixed(1)}" r="2" fill="var(--blue)"/>
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible;display:block;">
+        <polyline points="${pts}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${dotColor}"/>
       </svg>
-      <span style="font-family:var(--font-mono);font-size:11px;color:${color};">${arrow}</span>`;
+      <span style="font-family:var(--font-mono);font-size:11px;color:${strokeColor};margin-left:3px;">${arrow}</span>`;
+    }
+
+    /* ── SECTION C HELPERS ── */
+
+    const _PRO_REGIMES = new Set(['LIQUIDITY_DRIVEN_EXPANSION','EARLY_CYCLE_RECOVERY','STABLE_GROWTH']);
+    const _DEF_REGIMES = new Set(['MONETARY_TIGHTENING','EXTERNAL_SHOCK','STAGFLATION_RISK','STAGFLATIONARY_RISK','INFLATION_PRESSURE_WITH_EXTERNAL_RISK','GROWTH_SLOWDOWN_SUPPORT']);
+
+    function _deriveImpliedAction(regimeKey, conviction) {
+      const conv = (conviction || '').toUpperCase();
+      const key  = (regimeKey  || '').toUpperCase();
+      if (conv === 'LOW')                              return 'Hold current positions';
+      if (_DEF_REGIMES.has(key))                      return 'Reduce risk exposure';
+      if (conv === 'HIGH' && _PRO_REGIMES.has(key))   return 'Deploy — high conviction window';
+      if (conv === 'MEDIUM' && _PRO_REGIMES.has(key)) return 'Selectively add to risk assets';
+      return 'Monitor and hold';
+    }
+
+    function _deriveActSignal(regimeKey, conviction) {
+      const conv = (conviction || '').toUpperCase();
+      const key  = (regimeKey  || '').toUpperCase();
+      if (conv === 'LOW' || _DEF_REGIMES.has(key)) return 'HOLD';
+      if (conv === 'HIGH' && _PRO_REGIMES.has(key)) return 'ACT';
+      return 'WAIT';
+    }
+
+    // FEATURE 8: update ACT/WAIT/HOLD pill
+    function renderActSignal(regimeKey, conviction) {
+      const pill   = document.getElementById('actSignalPill');
+      if (!pill) return;
+      const signal = _deriveActSignal(regimeKey, conviction);
+      pill.textContent = signal;
+      pill.className   = `act-signal-pill ${signal}`;
+    }
+
+    // FEATURE 7: Decision Prompt Card
+    function renderDecisionPrompt(regime, strategy, decision) {
+      const card = document.getElementById('decisionPrompt');
+      if (!card) return;
+      const regimeKey  = (regime?.regime || '').toUpperCase();
+      const conviction = (strategy?.conviction || '').toUpperCase();
+      const action     = _deriveImpliedAction(regimeKey, conviction);
+      const drivers    = regime?.drivers || [];
+      const rationale  = drivers.length
+        ? drivers.slice(0, 2).join(' · ')
+        : (regime?.narrative || '').slice(0, 120) + (regime?.narrative?.length > 120 ? '…' : '');
+      const triggers   = decision?.triggers || decision?.watchpoints || [];
+      const watchpoint = Array.isArray(triggers) && triggers.length
+        ? (typeof triggers[0] === 'string' ? triggers[0] : (triggers[0]?.trigger || triggers[0]?.event || ''))
+        : 'Monitor regime confidence trajectory for confirmation.';
+      document.getElementById('dpAction').textContent     = action;
+      document.getElementById('dpRationale').textContent  = rationale || '—';
+      document.getElementById('dpWatchpoint').textContent = watchpoint || '—';
+      card.classList.add('visible');
+    }
+
+    // FEATURE 11: What This Means For You
+    function renderWtmfy(regime, strategy, decision) {
+      const card = document.getElementById('wtmfyCard');
+      if (!card) return;
+      const regimeKey  = (regime?.regime  || '').toUpperCase();
+      const conviction = (strategy?.conviction || '').toUpperCase();
+      const mandate    = (_profile?.mandate_type   || '').toLowerCase();
+      const riskTol    = (_profile?.risk_tolerance  || '').toLowerCase();
+      const firmName   = _profile?.firm_name || '';
+      const conf       = Math.round((regime?.confidence || 0) * 100);
+
+      // Badge
+      document.getElementById('wtmfyBadge').textContent =
+        [mandate || 'general', riskTol || ''].filter(Boolean).join(' · ').toUpperCase() || 'ALL MANDATES';
+
+      // Body — plain English synthesis
+      const regimeLabel = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const signal      = _deriveActSignal(regimeKey, conviction);
+      const isDefen     = _DEF_REGIMES.has(regimeKey);
+      const isPro       = _PRO_REGIMES.has(regimeKey);
+
+      let body = '';
+      if (signal === 'ACT') {
+        body = `The macro environment is in a confirmed ${regimeLabel} phase with ${conf}% confidence. ` +
+               `This is a high-conviction window for ${mandate === 'debt' ? 'extending duration and adding credit' : 'deploying into risk assets'}. ` +
+               `${firmName ? firmName + "'s " : 'Your '}positioning should lean into this regime while it holds.`;
+      } else if (signal === 'WAIT') {
+        body = `India's macro regime reads ${regimeLabel} at ${conf}% confidence — ` +
+               `directional but not yet at the threshold for aggressive deployment. ` +
+               `${riskTol === 'conservative' ? 'Given your conservative profile, hold steady and wait for HIGH conviction before acting.' : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms.'}`;
+      } else {
+        body = `Current macro signals are ${isDefen ? 'defensive' : 'ambiguous'} — the ${regimeLabel} regime warrants caution. ` +
+               `${riskTol === 'aggressive' ? 'Even for an aggressive profile, this environment calls for capital preservation over deployment.' : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk.'}`;
+      }
+      document.getElementById('wtmfyBody').textContent = body;
+
+      // Personalised action items
+      const actions = _buildWtmfyActions(regimeKey, conviction, mandate, riskTol);
+      document.getElementById('wtmfyActions').innerHTML = actions
+        .map(a => `<div class="wtmfy-action-row"><span class="wtmfy-action-icon">›</span><span class="wtmfy-action-text">${a}</span></div>`)
+        .join('');
+
+      card.classList.add('visible');
+    }
+
+    function _buildWtmfyActions(regimeKey, conviction, mandate, riskTol) {
+      const signal  = _deriveActSignal(regimeKey, conviction);
+      const isPro   = _PRO_REGIMES.has(regimeKey);
+      const isDefen = _DEF_REGIMES.has(regimeKey);
+      const actions = [];
+
+      if (mandate === 'debt') {
+        if (isPro)   actions.push('Duration: Consider extending to 7–10 year segment as rates stabilise.');
+        if (isDefen) actions.push('Duration: Shorten to 1–3 years; credit spreads may widen.');
+        actions.push('Credit: Favour AAA/AA rated paper; avoid high-yield in uncertain regimes.');
+      } else if (mandate === 'equity') {
+        if (signal === 'ACT')  actions.push('Deploy systematically — STP into large-cap quality and rate-sensitive leaders.');
+        if (signal === 'WAIT') actions.push('Hold equity exposure; avoid fresh mid/small-cap bets until conviction hardens.');
+        if (signal === 'HOLD') actions.push('Trim high-beta. Rotate into defensives: FMCG, IT exporters, Pharma.');
+      } else if (mandate === 'balanced' || mandate === 'multi_asset') {
+        if (signal === 'ACT')  actions.push('Tilt equity sleeve to 60–65%. Review fixed-income duration in context of rate environment.');
+        if (signal === 'WAIT') actions.push('Maintain neutral allocation; favour quality within each sleeve.');
+        if (signal === 'HOLD') actions.push('Increase cash/short-duration FI. Reduce equity to below benchmark weight.');
+        actions.push('Gold: ' + (isDefen ? 'Add 5–8% as hedge — defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'));
+      } else {
+        if (signal === 'ACT')  actions.push('Broad-based deployment warranted — prioritise quality and liquidity.');
+        if (signal === 'WAIT') actions.push('Selective additions only — wait for conviction to build before full deployment.');
+        if (signal === 'HOLD') actions.push('Preserve capital — defensive posture until regime clarity returns.');
+      }
+
+      if (riskTol === 'conservative' && signal !== 'HOLD') {
+        actions.push('Risk overlay: Conservative profile — limit single-security concentration; prefer diversified vehicles.');
+      }
+      if (riskTol === 'aggressive' && signal === 'ACT') {
+        actions.push('Alpha opportunity: Aggressive profile — mid-cap and sector tilts appropriate in high-conviction window.');
+      }
+
+      return actions.slice(0, 4);
+    }
+
+    /* ── BUILD 5: Admin Panel ── */
+    function openAdminPanel() {
+      document.getElementById('adminOverlay').classList.add('open');
+      loadAdminStats();
+    }
+    function closeAdminPanel() {
+      document.getElementById('adminOverlay').classList.remove('open');
+    }
+    async function loadAdminStats() {
+      try {
+        const d = await api('/api/admin/stats');
+        const s = d.summary || {};
+        document.getElementById('amTotal').textContent   = s.total_users ?? d.users?.length ?? '—';
+        document.getElementById('amPaid').textContent    = s.paid_users   ?? '—';
+        document.getElementById('amTrial').textContent   = s.trial_users  ?? '—';
+        document.getElementById('amPending').textContent = (d.users || []).filter(u => u.tier === 'pending').length;
+        document.getElementById('amJobs').textContent    = s.active_jobs  ?? '—';
+        renderAdminUsers(d.users || []);
+        renderAdminEmailLogs(d.email_logs || []);
+      } catch (e) { console.error('Admin stats failed:', e); }
+    }
+    function renderAdminUsers(users) {
+      const el = document.getElementById('adminUserList');
+      if (!users.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No users found.</div>'; return; }
+      el.innerHTML = users.map(u => {
+        const tier   = u.tier || 'pending';
+        const trialEnd = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
+        const trialLabel = trialEnd ? ` · ends ${trialEnd}` : '';
+        return `<div class="admin-user-row">
+          <div><div class="admin-user-email">${u.email || '—'}</div><div class="admin-user-firm">${u.firm_name || u.full_name || '—'}${trialLabel}</div></div>
+          <div class="admin-user-firm">${u.full_name || '—'}</div>
+          <span class="admin-tier-badge ${tier}">${tier.toUpperCase()}</span>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);">${(u.trial_ends_at||'').slice(0,10)||'—'}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            ${tier==='pending'||tier==='expired' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','trial',14)">Trial 14d</button>` : ''}
+            ${tier!=='paid'                      ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','paid',0)">Paid</button>` : ''}
+            ${tier!=='expired'&&tier!=='pending'  ? `<button class="admin-action-btn" style="color:var(--red);" onclick="adminSetTier('${u.id}','expired',0)">Suspend</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function renderAdminEmailLogs(logs) {
+      const el = document.getElementById('adminEmailLogs');
+      if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No logs yet.</div>'; return; }
+      el.innerHTML = logs.slice(0, 20).map(l => {
+        const ts     = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '—';
+        const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
+        return `<div class="admin-log-row">
+          <span>${ts}</span>
+          <span style="color:var(--text);">${(l.recipient||'').slice(0,32)}</span>
+          <span>${(l.regime||'—').replace(/_/g,' ').slice(0,20)}</span>
+          <span style="color:${statusClr};">${l.status||'—'}</span>
+        </div>`;
+      }).join('');
+    }
+    async function adminSetTier(userId, tier, trialDays) {
+      try {
+        await api(`/api/admin/users/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ tier, trial_days: trialDays || null }),
+        });
+        loadAdminStats();
+      } catch (e) { alert('Update failed: ' + e.message); }
     }
 
     document.addEventListener('DOMContentLoaded', init);

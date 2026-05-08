@@ -212,6 +212,21 @@ async def require_admin(profile: dict = Depends(get_profile)) -> dict:
     return profile
 
 
+def _derive_implied_action(regime_key: str, conviction: str) -> str:
+    _PRO = {"LIQUIDITY_DRIVEN_EXPANSION", "EARLY_CYCLE_RECOVERY", "STABLE_GROWTH"}
+    _DEF = {"MONETARY_TIGHTENING", "EXTERNAL_SHOCK", "STAGFLATION_RISK", "STAGFLATIONARY_RISK", "INFLATION_PRESSURE_WITH_EXTERNAL_RISK"}
+    conv = (conviction or "").upper()
+    if conv == "LOW":
+        return "Hold current positions"
+    if regime_key in _DEF:
+        return "Reduce risk exposure"
+    if conv == "HIGH" and regime_key in _PRO:
+        return "Deploy — high conviction window"
+    if conv == "MEDIUM" and regime_key in _PRO:
+        return "Selectively add to risk assets"
+    return "Monitor and hold"
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -225,6 +240,25 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": 0, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
+        # Fix 1: FII/DII — fall back to DataIngestor (has Supabase fii_dii_cache) when NSE returns zero
+        if not nse_snapshot.get("fii_net_crore"):
+            try:
+                _fii = eng["ingestor"].fetch_fii_dii()
+                if _fii.get("fii_net_crore") and _fii["fii_net_crore"] != 0:
+                    nse_snapshot.update({
+                        "fii_net_crore":   _fii["fii_net_crore"],
+                        "dii_net_crore":   _fii.get("dii_net_crore", 0),
+                        "fii_dii_source":  _fii.get("source", "supabase_cache"),
+                        "fii_dii_stale":   _fii.get("stale", False),
+                        "fii_dii_cached_at": _fii.get("cached_at"),
+                        "fii_trade_date":  _fii.get("trade_date"),
+                    })
+                else:
+                    nse_snapshot.setdefault("fii_dii_source", "unavailable")
+            except Exception:
+                nse_snapshot.setdefault("fii_dii_source", "unavailable")
+        else:
+            nse_snapshot["fii_dii_source"] = "nse_live"
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -270,7 +304,23 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         final_intel = eng["aggregator"].build_intel_packet(regime_output=regime, scenario_output=scenarios, asset_output=asset_out.get("assets", {}), triggers=triggers, positioning_output=pos, cause_effect_output=cause, decision_output=dec, strategy_output=strat)
         report = eng["report"].generate_report(final_intel)
         try:
-            _supabase.table("runs").insert({"user_id": user_id, "regime": regime.get("regime", ""), "confidence": regime.get("confidence", 0), "conviction": strat.get("conviction", ""), "repo_rate": repo, "deficit": deficit, "capex": capex, "summary": dec.get("summary", ""), "report_text": report if isinstance(report, str) else "", "allocation": pos.get("allocation", {}), "stress_test": {"repo_rate": repo, "deficit": deficit, "capex": capex}}).execute()
+            _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
+            _supabase.table("runs").insert({
+                "user_id":       user_id,
+                "regime":        regime.get("regime", ""),
+                "confidence":    regime.get("confidence", 0),
+                "conviction":    strat.get("conviction", ""),
+                "repo_rate":     repo,
+                "deficit":       deficit,
+                "capex":         capex,
+                "summary":       dec.get("summary", ""),
+                "report_text":   report if isinstance(report, str) else "",
+                "allocation":    pos.get("allocation", {}),
+                "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
+                "fii_net_crore": nse_snapshot.get("fii_net_crore") or None,
+                "dii_net_crore": nse_snapshot.get("dii_net_crore") or None,
+                "implied_action": _implied,
+            }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
@@ -413,6 +463,30 @@ async def get_admin_stats(profile: dict = Depends(require_admin)):
     notif_logs    = _supabase.table("notification_logs").select("*").order("sent_at", desc=True).limit(50).execute()
     regime_alerts = _supabase.table("regime_alerts").select("*").order("created_at", desc=True).limit(20).execute()
     return {"users": users.data or [], "email_logs": email_logs.data or [], "notification_logs": notif_logs.data or [], "regime_alerts": regime_alerts.data or [], "summary": {"total_users": len(users.data or []), "paid_users": sum(1 for u in (users.data or []) if u.get("tier") == "paid"), "trial_users": sum(1 for u in (users.data or []) if u.get("tier") == "trial"), "active_jobs": len([j for j in _jobs.values() if j["status"] == "running"])}}
+
+class AdminUserUpdate(BaseModel):
+    tier:          Optional[str]  = None
+    trial_days:    Optional[int]  = None
+    notes:         Optional[str]  = None
+
+@app.patch("/api/admin/users/{user_id}")
+async def admin_update_user(user_id: str, body: AdminUserUpdate, _profile: dict = Depends(require_admin)):
+    update: dict = {}
+    if body.tier:
+        update["tier"] = body.tier
+        if body.tier == "paid":
+            update["trial_ends_at"] = None
+        elif body.tier == "trial" and body.trial_days:
+            from datetime import timedelta
+            update["trial_ends_at"] = (datetime.now() + timedelta(days=body.trial_days)).isoformat()
+        elif body.tier in ("expired", "pending"):
+            pass
+    if body.notes is not None:
+        update["notes"] = body.notes
+    if not update:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+    _supabase.table("profiles").update(update).eq("id", user_id).execute()
+    return {"ok": True, "updated": update}
 
 @app.post("/api/pdf/{job_id}")
 async def generate_pdf(job_id: str, profile: dict = Depends(require_access)):

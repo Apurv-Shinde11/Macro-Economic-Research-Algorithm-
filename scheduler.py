@@ -133,7 +133,7 @@ def fetch_users_direct(supabase_url, service_key):
     base    = supabase_url.rstrip("/")
     url     = (
         f"{base}/rest/v1/profiles"
-        f"?select=id,email,full_name,firm_name,tier,trial_ends_at"
+        f"?select=id,email,full_name,firm_name,tier,trial_ends_at,whatsapp_number"
     )
     headers = {
         "apikey":        service_key,
@@ -203,6 +203,58 @@ def log_regime_alert(supabase_url, service_key,
                   f"{r.text[:200]}")
     except Exception as e:
         print(f"  [AlertLog] Failed to log regime alert: {e}")
+
+
+def log_whatsapp_direct(supabase_url, service_key,
+                        user_id, wa_number, message_type,
+                        regime, status, error=None):
+    url = f"{supabase_url.rstrip('/')}/rest/v1/whatsapp_logs"
+    payload = {
+        "user_id":      user_id,
+        "wa_number":    wa_number,
+        "message_type": message_type,
+        "regime":       regime,
+        "status":       status,
+        "error":        error[:300] if error else None,
+    }
+    try:
+        requests.post(url, headers=_sb_headers(service_key),
+                      json=payload, timeout=10)
+    except Exception as e:
+        print(f"  [Log] Failed to write WhatsApp log: {e}")
+
+
+def build_whatsapp_briefing(pipeline, firm_name, upcoming_events, dashboard_url=""):
+    reg        = pipeline["regime"]
+    strat      = pipeline["strategy"]
+    dec        = pipeline["decision"]
+    regime_name = reg.get("regime", "UNKNOWN").replace("_", " ").title()
+    conf       = int(reg.get("confidence", 0) * 100)
+    conviction = strat.get("conviction", "MEDIUM")
+    action     = dec.get("summary", "Review full briefing.")
+    if len(action) > 120:
+        action = action[:117] + "..."
+    today_str  = datetime.date.today().strftime("%d %b %Y")
+    display_firm = firm_name or "SENTINEL"
+
+    watchpoint = ""
+    if upcoming_events:
+        ev  = upcoming_events[0]
+        lbl = days_until_label(ev["days_until"])
+        watchpoint = f"{ev['name']} — {lbl}"
+    else:
+        watchpoint = "Monitor regime confidence trajectory"
+
+    url_line = f"\nFull dashboard: {dashboard_url}" if dashboard_url else ""
+
+    return (
+        f"{display_firm} | Sentinel Briefing — {today_str}\n"
+        f"Regime: {regime_name} | Confidence: {conf}% | Conviction: {conviction}\n"
+        f"Action: {action}\n"
+        f"Watchpoint: {watchpoint}"
+        f"{url_line}\n"
+        f"_Not investment advice._"
+    )
 
 
 def already_alerted_today(supabase_url, service_key, new_regime):
@@ -1001,6 +1053,7 @@ def main():
     twilio_token         = get_secret("TWILIO_AUTH_TOKEN",     "")
     wa_from              = get_secret("TWILIO_WHATSAPP_FROM",  "")
     wa_to                = get_secret("TWILIO_WHATSAPP_TO",    "")
+    dashboard_url        = get_secret("DASHBOARD_URL",         "")
 
     if not supabase_url or not supabase_service_key:
         print("  [Error] SUPABASE_URL or SUPABASE_SERVICE_KEY missing.")
@@ -1178,6 +1231,74 @@ def main():
                 user_id, user_email, subject,
                 regime_name, "failed", error
             )
+
+    # =========================================================
+    # Step 3b — PER-USER WHATSAPP DAILY BRIEFING
+    # =========================================================
+    wa_users = [
+        u for u in active_users
+        if u.get("whatsapp_number")
+    ]
+    print(f"\n  [Step 3b] WhatsApp briefings — "
+          f"{len(wa_users)} user(s) with number on file")
+
+    if not (twilio_sid and twilio_token and wa_from):
+        print("  [Step 3b] Twilio credentials missing — skipping WhatsApp")
+    elif not wa_users:
+        print("  [Step 3b] No users with whatsapp_number — skipping")
+    else:
+        wa_briefing_sent   = 0
+        wa_briefing_failed = 0
+        for u in wa_users:
+            wa_num    = u["whatsapp_number"].strip()
+            user_id   = u.get("id", "")
+            firm_name = u.get("firm_name", "") or "SENTINEL"
+            print(f"  → WhatsApp briefing: {wa_num} ({firm_name})...",
+                  end=" ", flush=True)
+
+            wa_msg = build_whatsapp_briefing(
+                pipeline        = pipeline,
+                firm_name       = firm_name,
+                upcoming_events = upcoming_events,
+                dashboard_url   = dashboard_url,
+            )
+
+            if dry_run:
+                print("DRY RUN")
+                print(
+                    f"\n{'─'*48}\n"
+                    f"WHATSAPP BRIEFING PREVIEW:\n{wa_msg}\n"
+                    f"{'─'*48}\n"
+                )
+                wa_briefing_sent += 1
+                continue
+
+            wa_ok, wa_result = send_whatsapp(
+                message     = wa_msg,
+                account_sid = twilio_sid,
+                auth_token  = twilio_token,
+                from_number = wa_from,
+                to_number   = wa_num,
+            )
+            if wa_ok:
+                print(f"✅ sent (SID: {wa_result})")
+                wa_briefing_sent += 1
+                log_whatsapp_direct(
+                    supabase_url, supabase_service_key,
+                    user_id, wa_num, "daily_briefing",
+                    regime_name, "sent"
+                )
+            else:
+                print(f"❌ failed: {wa_result}")
+                wa_briefing_failed += 1
+                log_whatsapp_direct(
+                    supabase_url, supabase_service_key,
+                    user_id, wa_num, "daily_briefing",
+                    regime_name, "failed", wa_result
+                )
+
+        print(f"  [Step 3b] Sent: {wa_briefing_sent}  "
+              f"Failed: {wa_briefing_failed}")
 
     # =========================================================
     # Step 4 — REGIME CHANGE ALERT SYSTEM
