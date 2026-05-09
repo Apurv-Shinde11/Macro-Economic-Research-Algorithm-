@@ -240,29 +240,26 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": 0, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
-        # FII/DII — fall back to DataIngestor (has Supabase fii_dii_cache) when NSE returns zero/None
-        if not nse_snapshot.get("fii_net_crore"):
-            try:
-                _fii = eng["ingestor"].fetch_fii_dii()
-                if _fii.get("fii_net_crore") is not None:
-                    nse_snapshot.update({
-                        "fii_net_crore":     _fii["fii_net_crore"],
-                        "dii_net_crore":     _fii.get("dii_net_crore", 0),
-                        "fii_dii_source":    _fii.get("source", "supabase_cache"),
-                        "fii_dii_stale":     _fii.get("stale", False),
-                        "fii_dii_cached_at": _fii.get("cached_at"),
-                        "fii_trade_date":    _fii.get("trade_date"),
-                    })
-                    print(f"[FII] ingestor fallback: fii={_fii['fii_net_crore']} dii={_fii.get('dii_net_crore')} src={_fii.get('source')}", flush=True)
-                else:
-                    print("[FII] ingestor returned fii_net_crore=None — unavailable", flush=True)
-                    nse_snapshot.setdefault("fii_dii_source", "unavailable")
-            except Exception as _fii_err:
-                print(f"[FII] ingestor fallback error: {_fii_err}", flush=True)
+        # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase)
+        # Always called: NSEDataFetcher rarely has reliable FII data
+        try:
+            _fii = eng["ingestor"].fetch_fii_dii()
+            if _fii.get("fii_net_crore") is not None:
+                nse_snapshot.update({
+                    "fii_net_crore":     _fii["fii_net_crore"],
+                    "dii_net_crore":     _fii.get("dii_net_crore", 0),
+                    "fii_dii_source":    _fii.get("source", "unknown"),
+                    "fii_dii_stale":     _fii.get("stale", False),
+                    "fii_dii_cached_at": _fii.get("cached_at"),
+                    "fii_trade_date":    _fii.get("trade_date"),
+                })
+                print(f"[FII] resolved: fii={_fii['fii_net_crore']} dii={_fii.get('dii_net_crore')} src={_fii.get('source')}", flush=True)
+            else:
+                print("[FII] all sources returned None — fii_net_crore will be null in this run", flush=True)
                 nse_snapshot.setdefault("fii_dii_source", "unavailable")
-        else:
-            nse_snapshot["fii_dii_source"] = "nse_live"
-            print(f"[FII] NSE live: fii={nse_snapshot.get('fii_net_crore')}", flush=True)
+        except Exception as _fii_err:
+            print(f"[FII] fetch_fii_dii error: {_fii_err}", flush=True)
+            nse_snapshot.setdefault("fii_dii_source", "unavailable")
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -322,8 +319,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "report_text":   report if isinstance(report, str) else "",
                 "allocation":    pos.get("allocation", {}),
                 "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
-                "fii_net_crore": nse_snapshot.get("fii_net_crore"),
-                "dii_net_crore": nse_snapshot.get("dii_net_crore"),
+                # Never store null — Supabase FLOAT column accepts 0 as sentinel
+                "fii_net_crore": nse_snapshot.get("fii_net_crore") if nse_snapshot.get("fii_net_crore") is not None else 0,
+                "dii_net_crore": nse_snapshot.get("dii_net_crore") if nse_snapshot.get("dii_net_crore") is not None else 0,
                 "implied_action": _implied,
             }).execute()
         except Exception as e:

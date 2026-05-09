@@ -1,3 +1,4 @@
+import re
 import requests
 import os
 import feedparser
@@ -121,22 +122,33 @@ class DataIngestor:
     # =========================
     def fetch_fii_dii(self):
         """
-        Returns a dict:
-        {
-          "fii_net_crore": float,
-          "dii_net_crore": float,
-          "fii_buy":  float, "fii_sell":  float,
-          "dii_buy":  float, "dii_sell":  float,
-          "trade_date": "DD-Mon-YYYY",
-          "stale":  bool,          # True  → value from Supabase cache
-          "cached_at": str | None, # ISO timestamp of cached row (stale only)
-          "source": str
-        }
+        Returns FII/DII flow dict. Source chain (first non-null wins):
+          1. BSE India HTML scrape   (primary)
+          2. NSDL HTML scrape        (secondary)
+          3. NSE API                 (tertiary — kept as best-effort)
+          4. Supabase fii_dii_cache  (stale fallback)
+          5. Supabase runs table     (last-known-good from history)
+
+        fii_net_crore / dii_net_crore are NEVER null in the return value —
+        if all live sources fail, historical data is substituted.
+
+        Return shape:
+          fii_net_crore, dii_net_crore, fii_buy, fii_sell,
+          dii_buy, dii_sell, trade_date, stale, cached_at, source
         """
-        result = self._try_nse_fii_dii()
+        # ── 1. BSE India (primary) ──────────────────────────────────────
+        result = self._try_bse_fii_dii()
+
+        # ── 2. NSDL (secondary) ────────────────────────────────────────
+        if not result:
+            result = self._try_nsdl_fii_dii()
+
+        # ── 3. NSE API (tertiary — best-effort) ────────────────────────
+        if not result:
+            result = self._try_nse_fii_dii()
 
         if result:
-            # Persist the fresh value so future stale-fallback is accurate
+            # Persist fresh value for future stale fallbacks
             self._store_fii_dii({
                 "fetched_at":    datetime.now(timezone.utc).isoformat(),
                 "trade_date":    result.get("trade_date"),
@@ -146,18 +158,23 @@ class DataIngestor:
                 "fii_sell":      result.get("fii_sell"),
                 "dii_buy":       result.get("dii_buy"),
                 "dii_sell":      result.get("dii_sell"),
-                "source":        "nse_live"
+                "source":        result.get("source", "unknown"),
             })
             result["stale"]     = False
             result["cached_at"] = None
             return result
 
-        # ── Live fetch failed: try Supabase last-known-good ──
+        # ── 4. Supabase fii_dii_cache ───────────────────────────────────
         cached = self._fetch_last_fii_dii()
-        if cached:
+        if cached and cached.get("fii_net_crore") is not None:
+            print(
+                f"[FII] Supabase cache fallback: fii={cached.get('fii_net_crore')} "
+                f"fetched_at={cached.get('fetched_at','')}",
+                flush=True,
+            )
             return {
-                "fii_net_crore": cached.get("fii_net_crore", 0.0),
-                "dii_net_crore": cached.get("dii_net_crore", 0.0),
+                "fii_net_crore": cached.get("fii_net_crore"),
+                "dii_net_crore": cached.get("dii_net_crore"),
                 "fii_buy":       cached.get("fii_buy"),
                 "fii_sell":      cached.get("fii_sell"),
                 "dii_buy":       cached.get("dii_buy"),
@@ -165,10 +182,27 @@ class DataIngestor:
                 "trade_date":    cached.get("trade_date"),
                 "stale":         True,
                 "cached_at":     cached.get("fetched_at"),
-                "source":        "supabase_cache"
+                "source":        "supabase_cache",
             }
 
-        # ── Nothing available at all ──
+        # ── 5. Supabase runs table (last-known-good) ────────────────────
+        runs_fb = self._fetch_last_fii_from_runs()
+        if runs_fb and runs_fb.get("fii_net_crore") is not None:
+            return {
+                "fii_net_crore": runs_fb["fii_net_crore"],
+                "dii_net_crore": runs_fb.get("dii_net_crore"),
+                "fii_buy":       None,
+                "fii_sell":      None,
+                "dii_buy":       None,
+                "dii_sell":      None,
+                "trade_date":    runs_fb.get("trade_date"),
+                "stale":         True,
+                "cached_at":     runs_fb.get("cached_at"),
+                "source":        "supabase_runs",
+            }
+
+        # ── Nothing available at all ────────────────────────────────────
+        print("[FII] All sources exhausted — returning unavailable", flush=True)
         return {
             "fii_net_crore": None,
             "dii_net_crore": None,
@@ -177,7 +211,7 @@ class DataIngestor:
             "trade_date": None,
             "stale":      False,
             "cached_at":  None,
-            "source":     "unavailable"
+            "source":     "unavailable",
         }
 
     def _try_nse_fii_dii(self):
@@ -255,6 +289,205 @@ class DataIngestor:
 
         except Exception:
             return None
+
+    # =========================
+    # 🔍 HTML TABLE PARSER — shared by BSE + NSDL scrapers
+    # =========================
+    def _parse_html_table_row(self, html, min_cols=7):
+        """
+        Find the first <tr> that looks like a FII/DII data row:
+          - has at least min_cols <td> cells
+          - first cell contains a date (digits + separator)
+          - at least 4 of the next 6 cells are numeric
+        Returns list of cleaned strings, or None.
+        """
+        row_re  = re.compile(r'<tr[^>]*>(.*?)</tr>',       re.DOTALL | re.IGNORECASE)
+        cell_re = re.compile(r'<t[dh][^>]*>(.*?)</t[dh]>', re.DOTALL | re.IGNORECASE)
+        tag_re  = re.compile(r'<[^>]+>')
+        date_re = re.compile(
+            r'\d{1,2}[-/]\w{2,3}[-/]\d{2,4}'   # 08-May-2026 / 08/05/2026
+            r'|\d{1,2}/\d{1,2}/\d{4}'            # 08/05/2026
+            r'|\d{4}-\d{2}-\d{2}'                # 2026-05-08
+        )
+        num_re  = re.compile(r'^-?[\d,]+\.?\d*$')
+
+        def _clean(s):
+            return tag_re.sub('', s).replace('&nbsp;', ' ').strip()
+
+        for row_m in row_re.finditer(html):
+            cells = [_clean(m.group(1)) for m in cell_re.finditer(row_m.group(1))]
+            if len(cells) < min_cols:
+                continue
+            if not date_re.search(cells[0]):
+                continue
+            numeric = sum(
+                1 for c in cells[1:7]
+                if num_re.match(c.replace(',', '').replace('(', '-').replace(')', ''))
+            )
+            if numeric >= 4:
+                return cells
+        return None
+
+    # =========================
+    # 🏛️ BSE INDIA — PRIMARY FII/DII SOURCE
+    # URL: https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx
+    # Table: Date | FII Buy | FII Sell | FII Net | DII Buy | DII Sell | DII Net  (Rs. Cr)
+    # =========================
+    def _try_bse_fii_dii(self):
+        """Scrape BSE India FII/DII activity page. Returns partial dict or None."""
+        try:
+            headers = {
+                "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                   "Chrome/124.0.0.0 Safari/537.36",
+                "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-IN,en-US;q=0.9",
+                "Referer":         "https://www.bseindia.com/",
+            }
+            res = requests.get(
+                "https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx",
+                headers=headers, timeout=15, allow_redirects=True,
+            )
+            if res.status_code != 200:
+                print(f"[FII] BSE returned HTTP {res.status_code}", flush=True)
+                return None
+
+            cols = self._parse_html_table_row(res.text, min_cols=7)
+            if not cols:
+                print("[FII] BSE: no parseable data row found", flush=True)
+                return None
+
+            def _crore(s):
+                try:
+                    cleaned = str(s).replace(",", "").replace("(", "-").replace(")", "").strip()
+                    return round(float(cleaned), 2)
+                except Exception:
+                    return None
+
+            fii_net = _crore(cols[3])
+            dii_net = _crore(cols[6]) if len(cols) > 6 else _crore(cols[-1])
+
+            if fii_net is None and dii_net is None:
+                return None
+            if fii_net == 0.0 and (dii_net is None or dii_net == 0.0):
+                return None
+
+            result = {
+                "fii_net_crore": fii_net,
+                "dii_net_crore": dii_net,
+                "fii_buy":       _crore(cols[1]),
+                "fii_sell":      _crore(cols[2]),
+                "dii_buy":       _crore(cols[4]) if len(cols) > 4 else None,
+                "dii_sell":      _crore(cols[5]) if len(cols) > 5 else None,
+                "trade_date":    str(cols[0]).strip(),
+                "source":        "bse_live",
+            }
+            print(
+                f"[FII] BSE live: fii={fii_net} dii={dii_net} date={result['trade_date']}",
+                flush=True,
+            )
+            return result
+
+        except Exception as e:
+            print(f"[FII] BSE fetch error: {e}", flush=True)
+            return None
+
+    # =========================
+    # 🏦 NSDL — SECONDARY FII/DII SOURCE
+    # =========================
+    def _try_nsdl_fii_dii(self):
+        """Scrape NSDL FII activity data. Returns partial dict or None."""
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) "
+                              "Chrome/124.0.0.0 Safari/537.36",
+                "Accept":     "text/html,application/xhtml+xml,*/*;q=0.8",
+                "Referer":    "https://nsdl.co.in/",
+            }
+            res = requests.get(
+                "https://nsdl.co.in/publications/fii_data.php",
+                headers=headers, timeout=12,
+            )
+            if res.status_code != 200:
+                print(f"[FII] NSDL returned HTTP {res.status_code}", flush=True)
+                return None
+
+            cols = self._parse_html_table_row(res.text, min_cols=4)
+            if not cols:
+                print("[FII] NSDL: no parseable data row found", flush=True)
+                return None
+
+            def _crore(s):
+                try:
+                    return round(float(str(s).replace(",", "").strip()), 2)
+                except Exception:
+                    return None
+
+            # NSDL table may have fewer DII columns — be flexible
+            fii_net = _crore(cols[3]) if len(cols) > 3 else None
+            dii_net = _crore(cols[6]) if len(cols) > 6 else None
+
+            if fii_net is None or (fii_net == 0.0 and dii_net in (None, 0.0)):
+                return None
+
+            result = {
+                "fii_net_crore": fii_net,
+                "dii_net_crore": dii_net,
+                "fii_buy":       _crore(cols[1]) if len(cols) > 1 else None,
+                "fii_sell":      _crore(cols[2]) if len(cols) > 2 else None,
+                "dii_buy":       _crore(cols[4]) if len(cols) > 4 else None,
+                "dii_sell":      _crore(cols[5]) if len(cols) > 5 else None,
+                "trade_date":    str(cols[0]).strip(),
+                "source":        "nsdl",
+            }
+            print(
+                f"[FII] NSDL: fii={fii_net} dii={dii_net} date={result['trade_date']}",
+                flush=True,
+            )
+            return result
+
+        except Exception as e:
+            print(f"[FII] NSDL fetch error: {e}", flush=True)
+            return None
+
+    # =========================
+    # 🗄️ SUPABASE RUNS FALLBACK
+    # Last resort: pull the most recent non-null FII row from the runs table.
+    # =========================
+    def _fetch_last_fii_from_runs(self):
+        """Query the runs table for the most recent row with non-null fii_net_crore."""
+        if not self._sb_available():
+            return None
+        try:
+            url = (
+                f"{self.supabase_url}/rest/v1/runs"
+                "?select=fii_net_crore,dii_net_crore,run_at"
+                "&fii_net_crore=not.is.null"
+                "&order=run_at.desc&limit=1"
+            )
+            res = requests.get(url, headers=self._sb_headers(), timeout=6)
+            if res.status_code == 200:
+                rows = res.json()
+                if isinstance(rows, list) and rows:
+                    r = rows[0]
+                    fii = r.get("fii_net_crore")
+                    if fii is not None:
+                        print(
+                            f"[FII] Supabase runs fallback: fii={fii} run_at={r.get('run_at','')}",
+                            flush=True,
+                        )
+                        return {
+                            "fii_net_crore": fii,
+                            "dii_net_crore": r.get("dii_net_crore"),
+                            "trade_date":    r.get("run_at", "")[:10],
+                            "stale":         True,
+                            "cached_at":     r.get("run_at"),
+                            "source":        "supabase_runs",
+                        }
+        except Exception:
+            pass
+        return None
 
     # =========================
     # 📰 NEWS SENTIMENT
