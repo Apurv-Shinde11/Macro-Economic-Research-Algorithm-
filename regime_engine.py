@@ -247,12 +247,203 @@ class MacroRegimeEngine:
 
     def _adjust_confidence(self, base_confidence,
                             nlp_confidence, nlp_source):
+        # Kept for backward compatibility; superseded by _compute_signal_alignment.
         if nlp_source == "llm+keyword":
             return round(
                 0.7 * base_confidence + 0.3 * nlp_confidence, 2
             )
         else:
             return round(base_confidence * 0.92, 2)
+
+    # =========================
+    # ✅ THREE-STATE SIGNAL HELPER
+    # =========================
+    def _sig(self, value, strong_t, neutral_t, direction="above"):
+        """
+        Maps a continuous value onto a three-state signal weight.
+        direction='above': STRONG when value >= strong_t, NEUTRAL when >= neutral_t
+        direction='below': STRONG when value <= strong_t, NEUTRAL when <= neutral_t
+        """
+        if direction == "above":
+            if value >= strong_t:  return 1.0
+            if value >= neutral_t: return 0.3
+            return 0.0
+        else:
+            if value <= strong_t:  return 1.0
+            if value <= neutral_t: return 0.3
+            return 0.0
+
+    # =========================
+    # ✅ SIGNAL ALIGNMENT SCORER
+    # Replaces fixed base_confidence_map + binary margin penalty.
+    # Each signal is STRONG (1.0) / NEUTRAL (0.3) / WEAK (0.0).
+    # Weighted average → alignment score in [0, 1].
+    # =========================
+    def _compute_signal_alignment(
+        self, regime, policy_stance, liquidity_score,
+        growth, inflation, sentiment, equity_bias,
+        nlp_regime, rbi_signal, fiscal_supportive
+    ):
+        """
+        Returns (alignment: float [0,1], details: list[dict]).
+        alignment = weighted mean of per-signal states for the winning regime.
+        details   = full per-signal breakdown for diagnostics and dashboard output.
+        """
+        S, N, W = 1.0, 0.3, 0.0
+
+        # ── pre-compute common signal states ──────────────────────────────
+        liq_expan  = self._sig(liquidity_score,  0.5,  0.1)           # abundant
+        liq_tight  = self._sig(liquidity_score, -0.5, -0.1, "below")  # tight
+        liq_pos    = self._sig(liquidity_score,  0.3,  0.0)           # positive
+
+        gdp_str    = self._sig(growth, 7.0, 6.0)                      # above trend
+        gdp_weak   = self._sig(growth, 5.0, 5.5, "below")             # weak
+
+        infl_hot   = self._sig(inflation, 6.0, 4.5)                   # above target
+        infl_ok    = (S if inflation < 4.0 else N if inflation < 5.5 else W)
+
+        eq_on      = (S if equity_bias == "RISK_ON"  else N if equity_bias == "NEUTRAL" else W)
+        eq_off     = (S if equity_bias == "RISK_OFF" else N if equity_bias == "NEUTRAL" else W)
+
+        nlp_dov    = (S if nlp_regime == "DOVISH"  else N if "NEUTRAL" in str(nlp_regime) else W)
+        nlp_haw    = (S if nlp_regime == "HAWKISH" else N if "NEUTRAL" in str(nlp_regime) else W)
+
+        pol_dov    = (S if policy_stance == "dovish"  else N if policy_stance == "neutral" else W)
+        pol_haw    = (S if policy_stance == "hawkish" else N if policy_stance == "neutral" else W)
+        pol_neu    = (S if policy_stance == "neutral" else N)
+
+        rbi_cut    = (S if rbi_signal == "CUT"  else N if rbi_signal in ("PAUSE", "UNKNOWN") else W)
+        rbi_hike   = (S if rbi_signal == "HIKE" else N if rbi_signal in ("PAUSE", "UNKNOWN") else W)
+
+        fiscal     = (S if fiscal_supportive else N)
+        sent_neg   = (S if sentiment < -0.3  else N if sentiment < 0.0  else W)
+        sent_calm  = (S if abs(sentiment) < 0.1 else N if abs(sentiment) < 0.3 else W)
+
+        # ── per-regime signal tables: (label, weight, state) ──────────────
+        tables = {
+            "LIQUIDITY_DRIVEN_EXPANSION": [
+                ("System Liquidity",       0.30, liq_expan),
+                ("GDP Growth",             0.25, gdp_str),
+                ("Market Bias (RISK_ON)",  0.20, eq_on),
+                ("NLP Tone (Dovish)",      0.15, nlp_dov),
+                ("Fiscal Support",         0.10, fiscal),
+            ],
+            "LIQUIDITY_TIGHTENING": [
+                ("Liquidity Drain",        0.35, liq_tight),
+                ("Policy Hawkishness",     0.25, pol_haw),
+                ("Market Bias (RISK_OFF)", 0.20, eq_off),
+                ("NLP Tone (Hawkish)",     0.20, nlp_haw),
+            ],
+            "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": [
+                ("Inflation Level",        0.35, infl_hot),
+                ("Policy Hawkishness",     0.25, pol_haw),
+                ("NLP Tone (Hawkish)",     0.25, nlp_haw),
+                ("RBI Hike Signal",        0.15, rbi_hike),
+            ],
+            "EARLY_CYCLE_RECOVERY": [
+                ("Policy Dovishness",      0.35, pol_dov),
+                ("RBI Cut Signal",         0.30, rbi_cut),
+                ("Liquidity Improving",    0.20, liq_pos),
+                ("Market Bias (RISK_ON)",  0.15, eq_on),
+            ],
+            "MONETARY_TIGHTENING": [
+                ("Policy Hawkishness",     0.35, pol_haw),
+                ("RBI Hike Signal",        0.30, rbi_hike),
+                ("Inflation Above Target", 0.20, infl_hot),
+                ("Liquidity Signal",       0.15, (S if liquidity_score < 0 else N)),
+            ],
+            "GROWTH_SLOWDOWN_SUPPORT": [
+                ("Growth Weakness",        0.40, gdp_weak),
+                ("Policy Dovishness",      0.30, pol_dov),
+                ("Market Bias (RISK_OFF)", 0.20, eq_off),
+                ("Negative Sentiment",     0.10, sent_neg),
+            ],
+            "STABLE_GROWTH": [
+                ("Policy Neutral",         0.30, pol_neu),
+                ("GDP Above Trend",        0.25, self._sig(growth, 6.5, 5.5)),
+                ("Inflation Contained",    0.25, infl_ok),
+                ("Subdued Sentiment",      0.20, sent_calm),
+            ],
+            "STAGFLATION_RISK": [
+                ("Inflation Elevated",     0.40, infl_hot),
+                ("Growth Weakness",        0.40, gdp_weak),
+                ("Bearish Sentiment",      0.20, eq_off),
+            ],
+            "TRANSITION_PHASE": [
+                ("Signal Clarity",         1.00, N),
+            ],
+        }
+
+        signals   = tables.get(regime, [("Default", 1.0, N)])
+        total_w   = sum(w for _, w, _ in signals)
+        alignment = sum(w * s for _, w, s in signals) / total_w if total_w > 0 else 0.5
+        alignment = max(0.0, min(1.0, alignment))
+
+        details = [
+            {
+                "signal":       label,
+                "weight":       w,
+                "state":        "STRONG" if s >= 0.9 else "NEUTRAL" if s >= 0.2 else "WEAK",
+                "state_value":  round(s, 2),
+                "contribution": round(w * s, 4),
+            }
+            for label, w, s in signals
+        ]
+
+        n_strong  = sum(1 for d in details if d["state"] == "STRONG")
+        n_neutral = sum(1 for d in details if d["state"] == "NEUTRAL")
+        n_weak    = sum(1 for d in details if d["state"] == "WEAK")
+        print(
+            f"  [Regime] Signal alignment for {regime}: {alignment:.3f} "
+            f"({n_strong}S / {n_neutral}N / {n_weak}W)",
+            flush=True
+        )
+        return alignment, details
+
+    # =========================
+    # ✅ DATA STALENESS PENALTY
+    # GDP (quarterly) and CPI (monthly) lose confidence weight as they age.
+    # Confidence drifts down between releases, spikes on fresh data.
+    # Max penalty: 0.07 (CPI 0.03 + GDP 0.04).
+    # =========================
+    def _compute_data_staleness_penalty(self):
+        """
+        Returns a float [0.0, 0.07] to subtract from confidence.
+        CPI: released ~12th of each month. Max penalty 0.03 at 30 days old.
+        GDP: quarterly, published ~60 days after quarter-end. Max penalty 0.04 at 90+ days.
+        """
+        try:
+            today = datetime.date.today()
+
+            # CPI staleness
+            cpi_release = today.replace(day=12)
+            if today >= cpi_release:
+                days_since_cpi = (today - cpi_release).days
+            else:
+                prev_month = (today.replace(day=1) - datetime.timedelta(days=1))
+                days_since_cpi = (today - prev_month.replace(day=12)).days
+            cpi_penalty = min(0.03, max(0, days_since_cpi) / 30 * 0.03)
+
+            # GDP staleness
+            m = today.month
+            if   m <= 3:  qend = datetime.date(today.year - 1, 12, 31)
+            elif m <= 6:  qend = datetime.date(today.year,      3, 31)
+            elif m <= 9:  qend = datetime.date(today.year,      6, 30)
+            else:         qend = datetime.date(today.year,      9, 30)
+            # GDP is not yet published until ~60 days after quarter end
+            days_since_gdp = max(0, (today - qend).days - 60)
+            gdp_penalty = min(0.04, days_since_gdp / 90 * 0.04)
+
+            penalty = round(cpi_penalty + gdp_penalty, 3)
+            print(
+                f"  [Regime] Data staleness: CPI={days_since_cpi}d ({cpi_penalty:.3f}) "
+                f"GDP={days_since_gdp}d ({gdp_penalty:.3f}) total_penalty={penalty:.3f}",
+                flush=True
+            )
+            return penalty
+        except Exception as e:
+            print(f"  [Regime] Staleness check skipped: {e}", flush=True)
+            return 0.0
 
     def _score_regimes(
         self,
@@ -610,40 +801,63 @@ class MacroRegimeEngine:
         top_score = scores[regime]
 
         # -------------------------
-        # Base confidence by regime
+        # Score ordering (shared by confidence + challenger)
         # -------------------------
-        base_confidence_map = {
-            "LIQUIDITY_TIGHTENING":                  0.82,
-            "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": 0.76,
-            "LIQUIDITY_DRIVEN_EXPANSION":            0.78,
-            "EARLY_CYCLE_RECOVERY":                  0.72,
-            "MONETARY_TIGHTENING":                   0.70,
-            "GROWTH_SLOWDOWN_SUPPORT":               0.72,
-            "STABLE_GROWTH":                         0.68,
-            "STAGFLATION_RISK":                      0.80,
-            "TRANSITION_PHASE":                      0.55
-        }
-        base_conf = base_confidence_map.get(regime, 0.60)
-
         sorted_scores  = sorted(scores.values(), reverse=True)
-        margin         = (
-            sorted_scores[0] - sorted_scores[1]
-            if len(sorted_scores) > 1 else 1.0
-        )
-        if margin < 1.0:
-            base_conf *= 0.90
-
-        confidence = self._adjust_confidence(
-            base_conf, nlp_confidence, nlp_source
-        )
+        sorted_regimes = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        challenger     = sorted_regimes[1][0] if len(sorted_regimes) > 1 else None
 
         # -------------------------
-        # Challenger regime
+        # Confidence — three-state signal alignment pipeline
+        #
+        # Band mapping:
+        #   alignment 1.0 → base 0.92  (all primaries strongly agree)
+        #   alignment 0.7 → base 0.76  (most agree, a few neutral)
+        #   alignment 0.5 → base 0.66  (mix of strong + neutral)
+        #   alignment 0.3 → base 0.56  (majority neutral/weak)
+        #   alignment 0.0 → base 0.40  (signals disagree)
         # -------------------------
-        sorted_regimes = sorted(
-            scores.items(), key=lambda x: x[1], reverse=True
+        alignment, signal_details = self._compute_signal_alignment(
+            regime            = regime,
+            policy_stance     = policy_stance,
+            liquidity_score   = liquidity_score,
+            growth            = growth,
+            inflation         = inflation,
+            sentiment         = sentiment,
+            equity_bias       = equity_bias,
+            nlp_regime        = nlp_regime,
+            rbi_signal        = rbi_signal,
+            fiscal_supportive = fiscal_supportive,
         )
-        challenger = sorted_regimes[1][0] if len(sorted_regimes) > 1 else None
+        base_conf = 0.40 + alignment * 0.52
+
+        # NLP blend: LLM source is more reliable — pull 30% toward nlp_confidence
+        if nlp_source == "llm+keyword":
+            confidence = round(0.70 * base_conf + 0.30 * nlp_confidence, 4)
+        else:
+            confidence = round(base_conf * 0.93, 4)
+
+        # Challenger inverse pressure: a strong challenger regime
+        # mathematically reduces primary regime confidence
+        primary_score_val    = sorted_scores[0] if sorted_scores else 1.0
+        challenger_score_val = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
+        challenger_ratio     = challenger_score_val / max(primary_score_val, 0.001)
+        challenger_pressure  = round(min(0.10, challenger_ratio * 0.12), 4)
+        confidence          -= challenger_pressure
+
+        # Time decay: GDP (quarterly) and CPI (monthly) erode confidence
+        # as they age; fresh release = spike back up
+        staleness_penalty = self._compute_data_staleness_penalty()
+        confidence       -= staleness_penalty
+
+        print(
+            f"  [Regime] Confidence pipeline: base={base_conf:.3f} "
+            f"post_nlp_blend={confidence + challenger_pressure + staleness_penalty:.3f} "
+            f"challenger_pressure={challenger_pressure:.3f} "
+            f"staleness={staleness_penalty:.3f} "
+            f"pre_persistence={confidence:.3f}",
+            flush=True
+        )
 
         # -------------------------
         # ✅ SINGLE SUPABASE FETCH
@@ -783,8 +997,17 @@ class MacroRegimeEngine:
 
             "regime_scores": scores,
             "challenger":    challenger,
+            "challenger_confidence": round(challenger_ratio, 3),
             "drivers":       drivers,
             "rbi_data":      rbi_data_out,
+
+            # Signal alignment breakdown — used for diagnostics and dashboard
+            "signal_alignment": {
+                "score":               round(alignment, 3),
+                "details":             signal_details,
+                "challenger_pressure": challenger_pressure,
+                "staleness_penalty":   staleness_penalty,
+            },
 
             # ✅ Change detection flows downstream
             # scheduler.py reads this to decide whether to fire alerts
