@@ -472,7 +472,7 @@ class DataIngestor:
                 if isinstance(rows, list) and rows:
                     r = rows[0]
                     fii = r.get("fii_net_crore")
-                    if fii is not None:
+                    if fii is not None and fii != 0:
                         print(
                             f"[FII] Supabase runs fallback: fii={fii} run_at={r.get('run_at','')}",
                             flush=True,

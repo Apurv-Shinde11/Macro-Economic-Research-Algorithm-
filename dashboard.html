@@ -2466,14 +2466,16 @@
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && nse) {
         renderFlows(nse);
-      } else if (fromHistory && (data.fii_net_crore != null || data.dii_net_crore != null)) {
+      } else if (fromHistory && ((data.fii_net_crore != null && data.fii_net_crore !== 0) || (data.dii_net_crore != null && data.dii_net_crore !== 0))) {
         renderFlows({
-          fii_net_crore:  data.fii_net_crore ?? 0,
-          dii_net_crore:  data.dii_net_crore ?? 0,
-          fii_dii_source: (data.fii_net_crore != null || data.dii_net_crore != null) ? 'cached' : 'unavailable',
+          fii_net_crore:  data.fii_net_crore,
+          dii_net_crore:  data.dii_net_crore,
+          fii_dii_source: 'cached',
           fii_dii_stale:  true,
           fii_trade_date: data.run_at,
         });
+      } else if (fromHistory) {
+        renderFlows({ fii_dii_source: 'unavailable' });
       }
     }
 
@@ -2572,7 +2574,7 @@
         document.getElementById('flowDate').textContent = dateLabel ? 'Last: ' + dateLabel : '';
         document.getElementById('flowNarrative').textContent = dateLabel
           ? `Last confirmed: ${dateLabel} — live data unavailable. Run again after market hours.`
-          : 'FII/DII data unavailable. NSE may be closed or unreachable.';
+          : 'FII/DII data pending — check after market close.';
         return;
       }
 

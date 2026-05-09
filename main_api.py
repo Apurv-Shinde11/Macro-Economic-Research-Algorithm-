@@ -319,9 +319,8 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "report_text":   report if isinstance(report, str) else "",
                 "allocation":    pos.get("allocation", {}),
                 "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
-                # Never store null — Supabase FLOAT column accepts 0 as sentinel
-                "fii_net_crore": nse_snapshot.get("fii_net_crore") if nse_snapshot.get("fii_net_crore") is not None else 0,
-                "dii_net_crore": nse_snapshot.get("dii_net_crore") if nse_snapshot.get("dii_net_crore") is not None else 0,
+                "fii_net_crore": nse_snapshot.get("fii_net_crore"),
+                "dii_net_crore": nse_snapshot.get("dii_net_crore"),
                 "implied_action": _implied,
             }).execute()
         except Exception as e:
