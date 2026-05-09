@@ -260,6 +260,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as _fii_err:
             print(f"[FII] fetch_fii_dii error: {_fii_err}", flush=True)
             nse_snapshot.setdefault("fii_dii_source", "unavailable")
+        # Crude live price — use ticker cache if warm, else fetch direct via yfinance
+        _crude_live = _ticker_cache.get("data", {}).get("Crude", {}).get("price") or 0
+        if not _crude_live:
+            try:
+                import yfinance as yf
+                _ch = yf.Ticker("CL=F").history(period="2d", interval="1d")
+                if len(_ch) >= 1:
+                    _crude_live = round(float(_ch["Close"].iloc[-1]), 2)
+                    print(f"[PIPELINE] Crude fetched direct: ${_crude_live}", flush=True)
+            except Exception as _ce:
+                print(f"[PIPELINE] Crude fetch failed: {_ce}", flush=True)
+        nse_snapshot["crude_price"] = _crude_live
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -283,14 +295,15 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         cause     = ensure_dict(eng["cause"].analyze(intel, regime))
         scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
         scenarios = rep.repair(scenarios, SCENARIO_SCHEMA)
-        # Crude price threshold — follow same pattern as VIX
-        crude_price = _ticker_cache.get("data", {}).get("Crude", {}).get("price", 0)
+        # Crude price threshold — read from nse_snapshot (injected above, always fresh)
+        crude_price = nse_snapshot.get("crude_price", 0)
         if crude_price and crude_price >= 95:
             for sc in scenarios.get("scenarios", []):
                 sc_type = (sc.get("type") or "").lower()
                 sc_name = (sc.get("name") or "").lower()
                 if "external" in sc_type or "shock" in sc_type or "external" in sc_name or "shock" in sc_name:
-                    sc["probability"] = max(sc.get("probability", 0), 0.20)
+                    min_prob = 0.30 if crude_price >= 100 else 0.20
+                    sc["probability"] = max(sc.get("probability", 0), min_prob)
                     sc["description"] = f"⚠️ Crude at ${crude_price:.0f} — External Shock threshold reached. " + (sc.get("description") or "")
                     break
         asset_out = ensure_dict(eng["asset"].analyze_assets(regime, scenarios, liq))
