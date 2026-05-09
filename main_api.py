@@ -39,24 +39,23 @@ from schema_validator     import SchemaValidator
 from schema_repair_engine import SchemaRepairEngine
 from nse_data             import NSEDataFetcher
 from yield_curve          import get_yield_curve_data
-from notifications        import NotificationEngine
 from schemas import (
     REGIME_SCHEMA, SCENARIO_SCHEMA,
     ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA
 )
-from economic_calendar import get_upcoming_events, get_events_by_window, days_until_label
+from economic_calendar      import get_events_by_window, days_until_label
+from pdf_report_generator   import PDFReportGenerator
 
 JOB_TTL_SECONDS = 3600
 
-_engines:      dict                      = {}
-_supabase:     Client | None             = None
-_notif_engine: NotificationEngine | None = None
-_config:       dict                      = {}
+_engines:  dict        = {}
+_supabase: Client | None = None
+_config:   dict        = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _engines, _supabase, _notif_engine, _config
+    global _engines, _supabase, _config
 
     print("[SENTINEL API] Starting up...", flush=True)
 
@@ -83,8 +82,7 @@ async def lifespan(app: FastAPI):
         "custom_domain":        custom_domain,
     }
 
-    _supabase     = create_client(supabase_url, supabase_service_key)
-    _notif_engine = NotificationEngine(_supabase)
+    _supabase = create_client(supabase_url, supabase_service_key)
     print("[SENTINEL API] Supabase connected.", flush=True)
 
     print("[SENTINEL API] Initialising engines...", flush=True)
@@ -156,7 +154,7 @@ def _expire_old_jobs():
     for jid in expired:
         del _jobs[jid]
 
-def ensure_dict(obj, name=""):
+def ensure_dict(obj):
     import json
     if isinstance(obj, str):
         try:
@@ -201,7 +199,8 @@ async def require_access(profile: dict = Depends(get_profile)) -> dict:
                 if end_dt.date() >= datetime.now().date():
                     return profile
             except Exception:
-                return profile
+                print(f"[AUTH] Malformed trial_ends_at for user {profile.get('id')}: {trial_end!r} — denying access", flush=True)
+                raise HTTPException(status_code=403, detail="Trial date invalid — contact support")
         raise HTTPException(status_code=403, detail="Trial expired")
     raise HTTPException(status_code=403, detail="Access pending or not authorised")
 
@@ -212,17 +211,31 @@ async def require_admin(profile: dict = Depends(get_profile)) -> dict:
     return profile
 
 
+POSITIVE_REGIMES = {
+    "LIQUIDITY_DRIVEN_EXPANSION",
+    "EARLY_CYCLE_RECOVERY",
+    "STABLE_GROWTH",
+}
+DEFENSIVE_REGIMES = {
+    "MONETARY_TIGHTENING",
+    "EXTERNAL_SHOCK",
+    "STAGFLATION_RISK",
+    "STAGFLATIONARY_RISK",
+    "INFLATION_PRESSURE_WITH_EXTERNAL_RISK",
+    "LIQUIDITY_TIGHTENING",
+    "GROWTH_SLOWDOWN_SUPPORT",
+}
+
+
 def _derive_implied_action(regime_key: str, conviction: str) -> str:
-    _PRO = {"LIQUIDITY_DRIVEN_EXPANSION", "EARLY_CYCLE_RECOVERY", "STABLE_GROWTH"}
-    _DEF = {"MONETARY_TIGHTENING", "EXTERNAL_SHOCK", "STAGFLATION_RISK", "STAGFLATIONARY_RISK", "INFLATION_PRESSURE_WITH_EXTERNAL_RISK"}
     conv = (conviction or "").upper()
     if conv == "LOW":
         return "Hold current positions"
-    if regime_key in _DEF:
+    if regime_key in DEFENSIVE_REGIMES:
         return "Reduce risk exposure"
-    if conv == "HIGH" and regime_key in _PRO:
+    if conv == "HIGH" and regime_key in POSITIVE_REGIMES:
         return "Deploy — high conviction window"
-    if conv == "MEDIUM" and regime_key in _PRO:
+    if conv == "MEDIUM" and regime_key in POSITIVE_REGIMES:
         return "Selectively add to risk assets"
     return "Monitor and hold"
 
@@ -239,7 +252,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         try:
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
-            nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": 0, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
+            nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
         # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase)
         # Always called: NSEDataFetcher rarely has reliable FII data
         try:
@@ -276,7 +289,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
             "gdp_growth": macro.get("growth", {}).get("gdp", 7.2),
-            "fii_net_crore": nse_snapshot.get("fii_net_crore", 0),
+            "fii_net_crore": nse_snapshot.get("fii_net_crore"),
             "india_vix": nse_snapshot.get("india_vix", 15),
             "nifty_pcr": nse_snapshot.get("pcr", 1.0),
         })
@@ -286,11 +299,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
         regime = ensure_dict(eng["regime"].detect_regime(intel, liq))
         regime = rep.repair(regime, REGIME_SCHEMA)
-        _PRO  = {"LIQUIDITY_DRIVEN_EXPANSION", "EARLY_CYCLE_RECOVERY", "STABLE_GROWTH"}
-        _ROFF = {"LIQUIDITY_TIGHTENING", "MONETARY_TIGHTENING", "GROWTH_SLOWDOWN_SUPPORT", "STAGFLATION_RISK", "INFLATION_PRESSURE_WITH_EXTERNAL_RISK"}
-        if regime.get("regime") in _PRO  and regime.get("confidence", 0) > 0.65:
+        if regime.get("regime") in POSITIVE_REGIMES and regime.get("confidence", 0) > 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_ON"
-        elif regime.get("regime") in _ROFF and regime.get("confidence", 0) > 0.65:
+        elif regime.get("regime") in DEFENSIVE_REGIMES and regime.get("confidence", 0) > 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_OFF"
         cause     = ensure_dict(eng["cause"].analyze(intel, regime))
         scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
@@ -334,7 +345,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
                 "fii_net_crore": nse_snapshot.get("fii_net_crore"),
                 "dii_net_crore": nse_snapshot.get("dii_net_crore"),
+                "crude_price":   nse_snapshot.get("crude_price"),
                 "implied_action": _implied,
+                "scenarios":     scenarios,
+                "triggers":      triggers,
+                "asset_out":     asset_out,
+                "strat":         strat,
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
@@ -386,7 +402,7 @@ async def health():
 async def start_run(body: RunRequest, background_tasks: BackgroundTasks, profile: dict = Depends(require_access)):
     _expire_old_jobs()
     job_id = _create_job(profile["id"])
-    background_tasks.add_task(asyncio.get_event_loop().run_in_executor, None, _run_pipeline_sync, job_id, profile["id"], body.repo, body.deficit, body.capex)
+    background_tasks.add_task(asyncio.get_running_loop().run_in_executor, None, _run_pipeline_sync, job_id, profile["id"], body.repo, body.deficit, body.capex)
     return {"job_id": job_id, "status": "running"}
 
 @app.get("/api/run/{job_id}")
@@ -398,7 +414,8 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 30, profile: dict = Depends(require_access)):
-    result = _supabase.table("runs").select("*").eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
+    _HISTORY_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
+    result = _supabase.table("runs").select(_HISTORY_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
     return {"history": result.data or []}
 
 @app.get("/api/profile")
@@ -421,13 +438,13 @@ async def get_ticker(_=Depends(get_current_user)):
                 h = yf.Ticker(sym).history(period="5d", interval="1d")
                 if len(h) >= 2:
                     prev = float(h["Close"].iloc[-2]); last = float(h["Close"].iloc[-1]); chg = (last - prev) / prev * 100 if prev else 0
+                    result[label] = {"price": round(last, 2), "chg_pct": round(chg, 2)}
                 elif len(h) == 1:
-                    last, chg = float(h["Close"].iloc[-1]), 0.0
+                    result[label] = {"price": round(float(h["Close"].iloc[-1]), 2), "chg_pct": 0.0}
                 else:
-                    last, chg = 0.0, 0.0
-                result[label] = {"price": round(last, 2), "chg_pct": round(chg, 2)}
+                    result[label] = {"price": None, "chg_pct": None}
             except Exception:
-                result[label] = {"price": 0, "chg_pct": 0}
+                result[label] = {"price": None, "chg_pct": None}
         _ticker_cache = {"data": result, "fetched_at": time.time()}
         return {"ticker": result, "cached": False}
     except Exception as e:
@@ -460,7 +477,7 @@ async def get_notif_prefs(profile: dict = Depends(require_access)):
 
 @app.put("/api/notifications/preferences")
 async def update_notif_prefs(body: NotificationPrefsUpdate, profile: dict = Depends(require_access)):
-    update_data = {k: v for k, v in body.dict().items() if v is not None}
+    update_data = {k: v for k, v in body.model_dump().items() if v is not None}
     if not update_data: raise HTTPException(status_code=400, detail="No fields to update")
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     existing = _supabase.table("notification_preferences").select("user_id").eq("user_id", profile["id"]).execute()
@@ -492,7 +509,6 @@ async def admin_update_user(user_id: str, body: AdminUserUpdate, _profile: dict 
         if body.tier == "paid":
             update["trial_ends_at"] = None
         elif body.tier == "trial" and body.trial_days:
-            from datetime import timedelta
             update["trial_ends_at"] = (datetime.now() + timedelta(days=body.trial_days)).isoformat()
         elif body.tier in ("expired", "pending"):
             pass
@@ -510,7 +526,6 @@ async def generate_pdf(job_id: str, profile: dict = Depends(require_access)):
     if job["user_id"] != profile["id"]: raise HTTPException(status_code=403, detail="Not your job")
     if job["status"] != "complete": raise HTTPException(status_code=400, detail=f"Job status: {job['status']}")
     try:
-        from pdf_report_generator import PDFReportGenerator
         firm_name = profile.get("firm_name") or "SENTINEL Intelligence"
         pdf_bytes = PDFReportGenerator(firm_name=firm_name).generate(job["result"]["final_intel"])
         filename  = f"SENTINEL_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
