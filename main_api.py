@@ -253,14 +253,14 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
-        # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase)
-        # Always called: NSEDataFetcher rarely has reliable FII data
+        # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase fallback)
+        # dii_net_crore defaults to None, never 0 — 0 is indistinguishable from missing data
         try:
             _fii = eng["ingestor"].fetch_fii_dii()
             if _fii.get("fii_net_crore") is not None:
                 nse_snapshot.update({
                     "fii_net_crore":     _fii["fii_net_crore"],
-                    "dii_net_crore":     _fii.get("dii_net_crore", 0),
+                    "dii_net_crore":     _fii.get("dii_net_crore"),   # None if absent — never 0
                     "fii_dii_source":    _fii.get("source", "unknown"),
                     "fii_dii_stale":     _fii.get("stale", False),
                     "fii_dii_cached_at": _fii.get("cached_at"),
@@ -273,9 +273,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as _fii_err:
             print(f"[FII] fetch_fii_dii error: {_fii_err}", flush=True)
             nse_snapshot.setdefault("fii_dii_source", "unavailable")
-        # Crude live price — use ticker cache if warm, else fetch direct via yfinance
-        _crude_live = _ticker_cache.get("data", {}).get("Crude", {}).get("price") or 0
-        if not _crude_live:
+        # Crude live price — None when unavailable, never 0 (0 is a valid price sentinel)
+        _crude_live = None
+        _cached_crude = _ticker_cache.get("data", {}).get("Crude", {}).get("price")
+        if _cached_crude:
+            _crude_live = _cached_crude
+        else:
             try:
                 import yfinance as yf
                 _ch = yf.Ticker("CL=F").history(period="2d", interval="1d")
@@ -283,7 +286,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     _crude_live = round(float(_ch["Close"].iloc[-1]), 2)
                     print(f"[PIPELINE] Crude fetched direct: ${_crude_live}", flush=True)
             except Exception as _ce:
-                print(f"[PIPELINE] Crude fetch failed: {_ce}", flush=True)
+                print(f"[PIPELINE] Crude fetch failed — storing NULL: {_ce}", flush=True)
         nse_snapshot["crude_price"] = _crude_live
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
@@ -321,26 +324,27 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
             _supabase.table("runs").insert({
-                "user_id":       user_id,
-                "regime":        regime.get("regime", ""),
-                "confidence":    regime.get("confidence", 0),
-                "conviction":    strat.get("conviction", ""),
-                "equity_bias":   regime.get("components", {}).get("equity_bias", "NEUTRAL"),
-                "repo_rate":     repo,
-                "deficit":       deficit,
-                "capex":         capex,
-                "summary":       dec.get("summary", ""),
-                "report_text":   report if isinstance(report, str) else "",
-                "allocation":    pos.get("allocation", {}),
-                "stress_test":   {"repo_rate": repo, "deficit": deficit, "capex": capex},
-                "fii_net_crore": nse_snapshot.get("fii_net_crore"),
-                "dii_net_crore": nse_snapshot.get("dii_net_crore"),
-                "crude_price":   nse_snapshot.get("crude_price"),
+                "user_id":        user_id,
+                "regime":         regime.get("regime", ""),
+                "confidence":     regime.get("confidence", 0),
+                "conviction":     strat.get("conviction", ""),
+                "equity_bias":    regime.get("components", {}).get("equity_bias", "NEUTRAL"),
                 "implied_action": _implied,
-                "scenarios":     scenarios,
-                "triggers":      triggers,
-                "asset_out":     asset_out,
-                "strat":         strat,
+                "outcome":        None,
+                "fii_net_crore":  nse_snapshot.get("fii_net_crore"),
+                "dii_net_crore":  nse_snapshot.get("dii_net_crore"),
+                "crude_price":    nse_snapshot.get("crude_price"),
+                "repo_rate":      repo,
+                "deficit":        deficit,
+                "capex":          capex,
+                "summary":        dec.get("summary", ""),
+                "report_text":    report if isinstance(report, str) else "",
+                "allocation":     pos.get("allocation", {}),
+                "stress_test":    {"repo_rate": repo, "deficit": deficit, "capex": capex},
+                "scenarios":      scenarios,
+                "triggers":       triggers,
+                "asset_out":      asset_out,
+                "strat":          strat,
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
@@ -403,7 +407,7 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
     return {"job_id": job_id, "status": job["status"], "result": job["result"] if job["status"] == "complete" else None, "error": job["error"] if job["status"] == "failed" else None}
 
 @app.get("/api/history")
-async def get_history(limit: int = 30, profile: dict = Depends(require_access)):
+async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
     _FULL_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
     _SAFE_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action"
     try:
