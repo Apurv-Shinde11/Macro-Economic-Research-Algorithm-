@@ -299,17 +299,18 @@ class ScenarioEngine:
             "time_horizon": "short-term"
         })
 
-        # ── ✅ ITEM 2 — MARKET STRESS ADJUSTMENTS ──
-        # Applied before normalisation so all three signals
-        # (VIX, FII, Crude) shift weights while total stays 1.0.
-        # crude is now unpacked from _read_market_stress —
-        # no more undefined variable error.
+        # ── MARKET STRESS ADJUSTMENTS ──
+        # Probability shifts (VIX, FII, Crude) applied before normalisation.
+        # Description override and probability floor for crude >= $95 also live here —
+        # not in main_api.py — so edits to main_api.py cannot regress this behaviour.
         stress_meta = {}
         if nse_snapshot:
             vix, fii_net, crude = self._read_market_stress(nse_snapshot)
             stress_meta         = self._apply_market_stress_adjustments(
                 scenarios, vix, fii_net, crude
             )
+            if crude >= 95:
+                self._apply_crude_description_override(scenarios, crude)
 
         # ── NORMALISE PROBABILITIES ──
         total = sum(safe_float(safe_get(s, "probability", 0)) for s in scenarios)
@@ -353,6 +354,24 @@ class ScenarioEngine:
                 "crude_signal":      stress_meta.get("crude_signal",  "NEUTRAL"),
             }
         }
+
+    def _apply_crude_description_override(self, scenarios, crude):
+        """
+        When crude >= $95, floor the External Shock probability and prepend
+        a live warning to its description. Probability shifts already applied
+        by _apply_market_stress_adjustments; this adds the floor + label.
+        """
+        min_prob = 0.30 if crude >= 100 else 0.20
+        for sc in scenarios:
+            sc_type = (sc.get("type") or "").lower()
+            sc_name = (sc.get("name") or "").lower()
+            if "external" in sc_type or "shock" in sc_type or "external" in sc_name or "shock" in sc_name:
+                sc["probability"] = max(safe_float(sc.get("probability", 0)), min_prob)
+                sc["description"] = (
+                    f"⚠️ Crude at ${crude:.0f} — External Shock threshold reached. "
+                    + (sc.get("description") or "")
+                )
+                break
 
     def _asset_impact_for_regime(self, regime):
         regime  = str(regime)

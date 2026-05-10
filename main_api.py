@@ -306,17 +306,6 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         cause     = ensure_dict(eng["cause"].analyze(intel, regime))
         scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
         scenarios = rep.repair(scenarios, SCENARIO_SCHEMA)
-        # Crude price threshold — read from nse_snapshot (injected above, always fresh)
-        crude_price = nse_snapshot.get("crude_price", 0)
-        if crude_price and crude_price >= 95:
-            for sc in scenarios.get("scenarios", []):
-                sc_type = (sc.get("type") or "").lower()
-                sc_name = (sc.get("name") or "").lower()
-                if "external" in sc_type or "shock" in sc_type or "external" in sc_name or "shock" in sc_name:
-                    min_prob = 0.30 if crude_price >= 100 else 0.20
-                    sc["probability"] = max(sc.get("probability", 0), min_prob)
-                    sc["description"] = f"⚠️ Crude at ${crude_price:.0f} — External Shock threshold reached. " + (sc.get("description") or "")
-                    break
         asset_out = ensure_dict(eng["asset"].analyze_assets(regime, scenarios, liq))
         asset_out = rep.repair(asset_out, ASSET_SCHEMA)
         triggers  = eng["trigger"].generate_triggers(regime, cause)
@@ -414,9 +403,14 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 30, profile: dict = Depends(require_access)):
-    _HISTORY_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
-    result = _supabase.table("runs").select(_HISTORY_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
-    return {"history": result.data or []}
+    _FULL_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
+    _SAFE_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action"
+    try:
+        result = _supabase.table("runs").select(_FULL_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
+        return {"history": result.data or []}
+    except Exception:
+        result = _supabase.table("runs").select(_SAFE_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
+        return {"history": result.data or []}
 
 @app.get("/api/profile")
 async def get_user_profile(profile: dict = Depends(get_profile)):

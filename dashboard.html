@@ -2148,7 +2148,7 @@
                   stroke-dashoffset="0" />
               </svg>
               <div class="confidence-ring-text">
-                <span class="confidence-pct" id="confPct">—</span>
+                <span class="confidence-pct" id="confPct">—</span><span id="confArrow" style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
                 <span class="confidence-lbl">CONF</span>
               </div>
             </div>
@@ -2371,6 +2371,7 @@
         renderHistoryTable(hist.history || []);
         const sparkVals = (hist.history || []).slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
         renderConfSparkline(sparkVals);
+        renderConfArrow(hist.history || []);
       } catch (e) { console.error('Dashboard load failed:', e); }
     }
 
@@ -2411,6 +2412,7 @@
             document.getElementById('runStatus').classList.remove('visible');
             const hist = await api('/api/history?limit=20'); renderHistoryTable(hist.history || []);
             renderConfSparkline((hist.history || []).slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
+            renderConfArrow(hist.history || []);
           } else if (res.status === 'failed') {
             clearInterval(_pollTimer); showToast('Pipeline error: ' + (res.error || 'unknown'), 'error');
             resetRunBtn(); document.getElementById('runStatus').classList.remove('visible');
@@ -2497,62 +2499,52 @@
         ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
         : `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`;
 
-      const mandatePlays = _getMandatePlays(mandate, conviction);
-      const mandateHTML  = mandatePlays.map(p => _mkItem(p, true)).join('');
-
+      // Single source of truth: _getMandatePlays for mandate-specific content.
+      // Returns [] for equity mandate — falls through to generic base.
       if (conviction === 'LOW') {
-        const base = mandate === 'debt' ? [
-          'Hold existing bonds — do not add duration until conviction firms above LOW',
-          'Credit: AAA/sovereign only — avoid high-yield and lower-rated corporates',
-          'Maintain short-to-medium duration; do not chase yield in this environment',
-          'Watch for 2 consecutive MEDIUM+ conviction runs before any rebalancing'
-        ] : mandate === 'multi_asset' ? [
-          'Raise cash buffer to 15–20%; reduce all risk-asset sleeves proportionally',
-          'Gold: Maintain or add to 5–8% — safe-haven allocation warranted at LOW conviction',
-          'INR: Maintain full hedge on all foreign currency exposure',
-          'Equity sleeve: Reduce to minimum mandate weight — no new positions'
-        ] : [
+        const mPlays = _getMandatePlays(mandate, conviction);
+        if (mPlays.length) {
+          items.innerHTML = mPlays.slice(0, 5).map(p => _mkItem(p, false)).join('');
+          return;
+        }
+        items.innerHTML = [
           'Hold existing positions — do not add aggressively until conviction builds',
           'Maintain higher cash buffer (15–20%)',
           'Avoid initiating new high-beta or mid/small-cap positions',
           'Watch for 2 consecutive MEDIUM+ conviction runs before deploying',
           'Reduce leverage-sensitive exposure'
-        ];
-        items.innerHTML = mandateHTML + base.map(p => _mkItem(p, false)).join('');
+        ].map(p => _mkItem(p, false)).join('');
         return;
       }
 
       if (conviction === 'MEDIUM') {
-        const base = mandate === 'debt' ? [
-          'Duration: Neutral — hold existing allocation; add selectively on spread compression',
-          'Credit: Favour short-to-medium duration corporate credit (AAA/AA rated)',
-          'Avoid long G-Sec until conviction firms to HIGH — rate risk remains elevated',
-          'Selective additions in floating rate or 3–5Y corporate bonds only'
-        ] : mandate === 'multi_asset' ? [
-          'Equity sleeve: Maintain allocation; selective additions in large-cap quality only',
-          'Fixed income: Neutral duration; balanced G-Sec and corporate credit mix',
-          'Gold: Hold structural 5% allocation — no change warranted at MEDIUM conviction',
-          'INR: Partial hedge — maintain existing exposure, do not add or reduce'
-        ] : [
+        const mPlays = _getMandatePlays(mandate, conviction);
+        if (mPlays.length) {
+          items.innerHTML = mPlays.slice(0, 5).map(p => _mkItem(p, false)).join('');
+          return;
+        }
+        items.innerHTML = [
           'Selectively add to regime-appropriate sectors — avoid broad deployment',
           'Increase allocation modestly (5–10% toward risk assets)',
           'Favour large-cap over mid/small-cap until conviction firms to HIGH',
           'Keep cash buffer at 10–12% — do not reduce below this level yet',
           'Review position sizing before adding any new exposures'
-        ];
-        items.innerHTML = mandateHTML + base.map(p => _mkItem(p, false)).join('');
+        ].map(p => _mkItem(p, false)).join('');
         return;
       }
 
-      // HIGH conviction — regime AI playbook + mandate overlay
+      // HIGH conviction — mandate overlay (blue accents) + AI regime playbook, max 5 total
+      const mandatePlays = _getMandatePlays(mandate, conviction);
       const plays = strategy?.playbook || [];
-      if (!plays.length) {
-        items.innerHTML = mandateHTML + (decision?.summary
+      if (!plays.length && !mandatePlays.length) {
+        items.innerHTML = decision?.summary
           ? _mkItem(decision.summary, false)
-          : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`);
+          : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`;
         return;
       }
-      items.innerHTML = mandateHTML + plays.slice(0, 5).map(p => _mkItem(p, false)).join('');
+      const mCount = Math.min(mandatePlays.length, 5);
+      items.innerHTML = mandatePlays.slice(0, mCount).map(p => _mkItem(p, true)).join('')
+        + plays.slice(0, 5 - mCount).map(p => _mkItem(p, false)).join('');
     }
 
     function _getMandatePlays(mandate, conviction) {
@@ -2679,7 +2671,7 @@
         const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
         const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
-        const bias = r.allocation?.equities ? Math.round(r.allocation.equities * 100) + '% Eq' : '—';
+        const bias = r.allocation?.equity != null ? Math.round(r.allocation.equity) + '% Eq' : '—';
         const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
         const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';
@@ -2940,6 +2932,25 @@
         + `</svg>`
         + `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${hexColor};">${arrow}</span>`;
       console.log('[Sparkline] rendered — trend:', trend, '| color:', hexColor, '| pts:', pts);
+    }
+
+    function renderConfArrow(history) {
+      const el = document.getElementById('confArrow');
+      if (!el || !history || history.length < 2) { if (el) el.textContent = ''; return; }
+      const curr = (history[0].confidence || 0) * 100;
+      const prev = (history[1].confidence || 0) * 100;
+      const diff = curr - prev;
+      const isLight = document.documentElement.classList.contains('light');
+      if (diff > 2) {
+        el.textContent = '↑';
+        el.style.color = isLight ? '#059669' : '#10d48a';
+      } else if (diff < -2) {
+        el.textContent = '↓';
+        el.style.color = isLight ? '#b45309' : '#fbbf24';
+      } else {
+        el.textContent = '→';
+        el.style.color = isLight ? '#9aaabb' : '#4f83ff';
+      }
     }
 
     /* ── SECTION C HELPERS ── */

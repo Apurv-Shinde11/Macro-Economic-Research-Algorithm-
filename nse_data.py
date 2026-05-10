@@ -6,7 +6,6 @@ Uses multiple endpoint strategies with robust session management.
 """
 
 import requests
-import json
 import time
 import datetime
 import random
@@ -330,22 +329,29 @@ class NSEDataFetcher:
         indices = self.get_indices()
         pcr     = self.get_pcr()
 
-        fii_net = fii_dii.get("fii", {}).get("net", 0)
-        dii_net = fii_dii.get("dii", {}).get("net", 0)
+        # Use None when FII/DII fetch failed — fii_signal UNKNOWN means fallback was used
+        fii_failed = fii_dii.get("fii_signal") == "UNKNOWN"
+        fii_net = None if fii_failed else fii_dii.get("fii", {}).get("net")
+        dii_net = None if fii_failed else fii_dii.get("dii", {}).get("net")
+        # Treat explicit zero as None — zero is ambiguous (closed market vs actual zero flow)
+        if fii_net == 0:
+            fii_net = None
+        if dii_net == 0:
+            dii_net = None
 
-        print(f"[NSE] Snapshot — FII: ₹{fii_net:.0f} Cr, DII: ₹{dii_net:.0f} Cr, VIX: {indices.get('india_vix', {}).get('last', 'N/A')}")
+        fii_display = f"₹{fii_net:.0f} Cr" if fii_net is not None else "None"
+        print(f"[NSE] Snapshot — FII: {fii_display}, VIX: {indices.get('india_vix', {}).get('last', 'N/A')}")
 
         return {
-            "fii_dii":      fii_dii,
-            "indices":      indices,
-            "pcr":          pcr,
-            "timestamp":    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "fii_dii":       fii_dii,
+            "indices":       indices,
+            "pcr":           pcr,
+            "timestamp":     datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "fii_net_crore": fii_net,
             "dii_net_crore": dii_net,
-            "india_vix":    indices.get("india_vix",  {}).get("last", 15),
-            "nifty_change": indices.get("nifty50",    {}).get("change_pct", 0),
-            "crude_price":  0,
-            "pcr":          pcr.get("pcr", 1.0),
-            "flow_signal":  fii_dii.get("combined_signal", "NEUTRAL"),
-            "market_bias":  indices.get("market_bias", "NEUTRAL"),
+            "india_vix":     indices.get("india_vix",  {}).get("last", 15),
+            "nifty_change":  indices.get("nifty50",    {}).get("change_pct", 0),
+            "crude_price":   0,
+            "flow_signal":   fii_dii.get("combined_signal", "NEUTRAL"),
+            "market_bias":   indices.get("market_bias", "NEUTRAL"),
         }
