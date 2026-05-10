@@ -2478,10 +2478,10 @@
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && nse) {
         renderFlows(nse);
-      } else if (fromHistory && ((data.fii_net_crore != null && data.fii_net_crore !== 0) || (data.dii_net_crore != null && data.dii_net_crore !== 0))) {
+      } else if (fromHistory && ((data.fii_net_score != null && data.fii_net_score !== 0) || (data.dii_net_score != null && data.dii_net_score !== 0))) {
         renderFlows({
-          fii_net_crore:  data.fii_net_crore,
-          dii_net_crore:  data.dii_net_crore,
+          fii_net_crore:  data.fii_net_score,
+          dii_net_crore:  data.dii_net_score,
           fii_dii_source: 'cached',
           fii_dii_stale:  true,
           fii_trade_date: data.run_at,
@@ -2671,7 +2671,8 @@
         const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
         const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
-        const bias = r.equity_bias || '—';
+        const _alloc = (typeof r.allocation === 'string') ? JSON.parse(r.allocation) : (r.allocation || {});
+        const bias = _alloc.equity_bias || '—';
         const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
         const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';

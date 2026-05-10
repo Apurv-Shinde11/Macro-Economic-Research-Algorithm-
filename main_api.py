@@ -323,23 +323,24 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
+            _allocation = dict(pos.get("allocation", {}) or {})
+            _allocation["equity_bias"] = regime.get("components", {}).get("equity_bias", "NEUTRAL")
             _supabase.table("runs").insert({
                 "user_id":        user_id,
                 "regime":         regime.get("regime", ""),
                 "confidence":     regime.get("confidence", 0),
                 "conviction":     strat.get("conviction", ""),
-                "equity_bias":    regime.get("components", {}).get("equity_bias", "NEUTRAL"),
                 "implied_action": _implied,
                 "outcome":        None,
-                "fii_net_crore":  nse_snapshot.get("fii_net_crore"),
-                "dii_net_crore":  nse_snapshot.get("dii_net_crore"),
+                "fii_net_score":  nse_snapshot.get("fii_net_crore"),
+                "dii_net_score":  nse_snapshot.get("dii_net_crore"),
                 "crude_price":    nse_snapshot.get("crude_price"),
                 "repo_rate":      repo,
                 "deficit":        deficit,
                 "capex":          capex,
                 "summary":        dec.get("summary", ""),
                 "report_text":    report if isinstance(report, str) else "",
-                "allocation":     pos.get("allocation", {}),
+                "allocation":     _allocation,
                 "stress_test":    {"repo_rate": repo, "deficit": deficit, "capex": capex},
                 "scenarios":      scenarios,
                 "triggers":       triggers,
@@ -408,14 +409,9 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
-    _FULL_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
-    _SAFE_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action"
-    try:
-        result = _supabase.table("runs").select(_FULL_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
-        return {"history": result.data or []}
-    except Exception:
-        result = _supabase.table("runs").select(_SAFE_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
-        return {"history": result.data or []}
+    _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_score,dii_net_score,crude_price,scenarios,triggers,asset_out,strat"
+    result = _supabase.table("runs").select(_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
+    return {"history": result.data or []}
 
 @app.get("/api/profile")
 async def get_user_profile(profile: dict = Depends(get_profile)):
