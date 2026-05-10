@@ -47,6 +47,7 @@
       --font-serif: 'Cormorant Garamond', Georgia, serif;
       --font-sans: 'DM Sans', sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
+      --surface: var(--bg-2);
       --nav-h: 68px;
       --sidebar-w: 300px;
       --radius: 8px;
@@ -1762,26 +1763,27 @@
 
     /* ══ WHAT THIS MEANS FOR YOU (F11) ══ */
     .wtmfy-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(79, 131, 255, 0.06) 0%, var(--bg-2) 100%);
+      border: 1px solid rgba(79, 131, 255, 0.20);
       border-radius: 14px;
-      padding: 22px 24px;
+      padding: 26px 28px;
       margin-bottom: 20px;
       display: none;
+      box-shadow: 0 2px 16px rgba(79, 131, 255, 0.07), var(--card-shadow);
     }
     .wtmfy-card.visible { display: block; }
     .wtmfy-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
     .wtmfy-title {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-3);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
     }
     .wtmfy-mandate-badge {
       font-family: var(--font-mono);
@@ -1790,24 +1792,31 @@
       text-transform: uppercase;
       padding: 3px 8px;
       border-radius: 20px;
-      border: 1px solid var(--border);
-      color: var(--text-3);
+      border: 1px solid rgba(79, 131, 255, 0.22);
+      color: var(--blue);
+      background: var(--blue-dim);
     }
     .wtmfy-body {
-      font-size: 14px;
+      font-family: var(--font-sans);
+      font-size: 15px;
       color: var(--text);
-      line-height: 1.7;
+      line-height: 1.78;
+      margin-bottom: 18px;
+    }
+    .wtmfy-divider {
+      height: 1px;
+      background: var(--border);
       margin-bottom: 14px;
     }
-    .wtmfy-actions { display: flex; flex-direction: column; gap: 6px; }
+    .wtmfy-actions { display: flex; flex-direction: column; gap: 8px; }
     .wtmfy-action-row {
       display: flex;
       gap: 10px;
       align-items: baseline;
       font-size: 13px;
     }
-    .wtmfy-action-icon { color: var(--blue); font-size: 12px; min-width: 16px; }
-    .wtmfy-action-text { color: var(--text-2); line-height: 1.4; }
+    .wtmfy-action-icon { color: var(--blue); font-size: 13px; min-width: 16px; flex-shrink: 0; }
+    .wtmfy-action-text { color: var(--text-2); line-height: 1.5; }
 
     /* ══ ONBOARDING CARD ══ */
     .onboarding-card {
@@ -2192,10 +2201,11 @@
       <!-- FEATURE 11: What This Means For You -->
       <div class="wtmfy-card" id="wtmfyCard">
         <div class="wtmfy-header">
-          <span class="wtmfy-title">What This Means For You</span>
+          <span class="wtmfy-title" id="wtmfyTitle">What This Means For You</span>
           <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
         </div>
         <div class="wtmfy-body" id="wtmfyBody">—</div>
+        <div class="wtmfy-divider" id="wtmfyDivider" style="display:none"></div>
         <div class="wtmfy-actions" id="wtmfyActions"></div>
       </div>
 
@@ -2483,57 +2493,120 @@
       const items = document.getElementById('playbookItems');
       const conviction = (strategy?.conviction || '').toUpperCase();
       const mandate    = (_profile?.mandate_type || '').toLowerCase();
+      const _mkItem    = (p, accent) => accent
+        ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
+        : `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`;
+
+      const mandatePlays = _getMandatePlays(mandate, conviction);
+      const mandateHTML  = mandatePlays.map(p => _mkItem(p, true)).join('');
 
       if (conviction === 'LOW') {
-        const lowPlays = [
+        const base = mandate === 'debt' ? [
+          'Hold existing bonds — do not add duration until conviction firms above LOW',
+          'Credit: AAA/sovereign only — avoid high-yield and lower-rated corporates',
+          'Maintain short-to-medium duration; do not chase yield in this environment',
+          'Watch for 2 consecutive MEDIUM+ conviction runs before any rebalancing'
+        ] : mandate === 'multi_asset' ? [
+          'Raise cash buffer to 15–20%; reduce all risk-asset sleeves proportionally',
+          'Gold: Maintain or add to 5–8% — safe-haven allocation warranted at LOW conviction',
+          'INR: Maintain full hedge on all foreign currency exposure',
+          'Equity sleeve: Reduce to minimum mandate weight — no new positions'
+        ] : [
           'Hold existing positions — do not add aggressively until conviction builds',
           'Maintain higher cash buffer (15–20%)',
           'Avoid initiating new high-beta or mid/small-cap positions',
           'Watch for 2 consecutive MEDIUM+ conviction runs before deploying',
           'Reduce leverage-sensitive exposure'
         ];
-        const mandateNote = _getMandatePlaybookNote(mandate, conviction);
-        items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
-          + lowPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+        items.innerHTML = mandateHTML + base.map(p => _mkItem(p, false)).join('');
         return;
       }
 
       if (conviction === 'MEDIUM') {
-        const mediumPlays = [
+        const base = mandate === 'debt' ? [
+          'Duration: Neutral — hold existing allocation; add selectively on spread compression',
+          'Credit: Favour short-to-medium duration corporate credit (AAA/AA rated)',
+          'Avoid long G-Sec until conviction firms to HIGH — rate risk remains elevated',
+          'Selective additions in floating rate or 3–5Y corporate bonds only'
+        ] : mandate === 'multi_asset' ? [
+          'Equity sleeve: Maintain allocation; selective additions in large-cap quality only',
+          'Fixed income: Neutral duration; balanced G-Sec and corporate credit mix',
+          'Gold: Hold structural 5% allocation — no change warranted at MEDIUM conviction',
+          'INR: Partial hedge — maintain existing exposure, do not add or reduce'
+        ] : [
           'Selectively add to regime-appropriate sectors — avoid broad deployment',
           'Increase allocation modestly (5–10% toward risk assets)',
           'Favour large-cap over mid/small-cap until conviction firms to HIGH',
           'Keep cash buffer at 10–12% — do not reduce below this level yet',
           'Review position sizing before adding any new exposures'
         ];
-        const mandateNote = _getMandatePlaybookNote(mandate, conviction);
-        items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
-          + mediumPlays.map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+        items.innerHTML = mandateHTML + base.map(p => _mkItem(p, false)).join('');
         return;
       }
 
-      // HIGH conviction (and any unrecognised values) — use AI-generated regime playbook
+      // HIGH conviction — regime AI playbook + mandate overlay
       const plays = strategy?.playbook || [];
       if (!plays.length) {
-        items.innerHTML = decision?.summary
-          ? `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${decision.summary}</span></div>`
-          : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`;
+        items.innerHTML = mandateHTML + (decision?.summary
+          ? _mkItem(decision.summary, false)
+          : `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No playbook generated</div><div class="empty-state-desc">Run the engine to generate today's playbook.</div></div>`);
         return;
       }
-      const mandateNote = _getMandatePlaybookNote(mandate, conviction);
-      items.innerHTML = (mandateNote ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-text" style="color:var(--blue);">${mandateNote}</span></div>` : '')
-        + plays.slice(0, 5).map(p => `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`).join('');
+      items.innerHTML = mandateHTML + plays.slice(0, 5).map(p => _mkItem(p, false)).join('');
     }
 
-    function _getMandatePlaybookNote(mandate, conviction) {
-      if (!mandate) return '';
-      const notes = {
-        debt:        'Debt mandate: Focus on duration positioning and credit quality. Equity items below are for context only.',
-        equity:      conviction === 'HIGH' ? 'Equity mandate: Full regime playbook applies — prioritise conviction deployment.' : 'Equity mandate: Selective deployment recommended given current conviction level.',
-        balanced:    'Balanced mandate: Apply equity plays to your equity sleeve; review debt items separately.',
-        multi_asset: 'Multi-asset mandate: Regime playbook covers all asset classes — apply proportionally to each sleeve.',
-      };
-      return notes[mandate] || '';
+    function _getMandatePlays(mandate, conviction) {
+      if (mandate === 'debt') {
+        if (conviction === 'HIGH') return [
+          'Duration: Extend to 7–10Y segment — supportive regime enables spread compression',
+          'Credit: Rotate from G-Sec into AAA corporate bonds for yield pickup',
+          'Favour short-duration corporate credit over equity-linked instruments'
+        ];
+        if (conviction === 'MEDIUM') return [
+          'Duration: Neutral to mild extension — hold existing, add on spread opportunities',
+          'Credit: Short-to-medium duration corporates preferred at current conviction level'
+        ];
+        return [
+          'Debt mandate: Shorten to 1–3 years — capital preservation over yield in LOW conviction',
+          'AAA/sovereign paper only — avoid credit risk until macro clarity returns'
+        ];
+      }
+      if (mandate === 'balanced') {
+        if (conviction === 'HIGH') return [
+          'Equity sleeve: Tilt toward cyclicals and rate-sensitives per regime — deployment warranted',
+          'Debt sleeve: Short-to-medium corporate credit for yield pickup alongside equities'
+        ];
+        if (conviction === 'MEDIUM') return [
+          'Equity sleeve: Maintain at mandate midpoint; no aggressive additions at MEDIUM conviction',
+          'Debt sleeve: Neutral duration; quality credit over yield-chasing'
+        ];
+        return [
+          'Equity sleeve: Reduce to below mandate midpoint — build cash buffer first',
+          'Debt sleeve: Shorten duration; avoid credit risk in LOW conviction environment'
+        ];
+      }
+      if (mandate === 'multi_asset') {
+        if (conviction === 'HIGH') return [
+          'Equity: Deploy into cyclicals — Nifty Bank, auto, and rate-sensitives have regime tailwinds',
+          'Debt: Short-duration corporate credit — spread compression play in current regime',
+          'Gold: Maintain 5% structural; trim only if regime sustains HIGH for 3+ consecutive weeks',
+          'INR: Strengthening bias — reduce USD hedge on import-cost exposure',
+          'International: Reduce EM hedges; India outperformance likely in confirmed bull regime'
+        ];
+        if (conviction === 'MEDIUM') return [
+          'Equity: Selective large-cap additions; no broad deployment yet',
+          'Debt: Balanced G-Sec and corporate credit; neutral duration',
+          'Gold: Hold structural 5% — no change at MEDIUM conviction',
+          'INR: Partial hedge only — maintain existing coverage'
+        ];
+        return [
+          'Equity: Reduce to underweight; raise cash buffer across all sleeves',
+          'Debt: Short duration, G-Sec preferred over corporate credit',
+          'Gold: Add 3–5% as safe-haven hedge — warranted in LOW conviction',
+          'INR: Maximum hedge; reduce all unhedged foreign exposure'
+        ];
+      }
+      return []; // equity mandate: existing regime/AI playbook is the default
     }
 
     function renderScenarios(scenarios) {
@@ -2788,6 +2861,19 @@
       }
     };
 
+    const _CONSERVATIVE_IMPLICATIONS = {
+      equity:   'Maintain existing allocation — do not chase cyclical momentum',
+      debt:     'Hold short duration, prioritise capital preservation over yield',
+      currency: 'Maintain full USD hedge — do not reduce import cover',
+      risk:     'Exit trigger is any single adverse signal — do not wait for confirmation'
+    };
+    const _AGGRESSIVE_IMPLICATIONS = {
+      equity:   'Add aggressively to cyclicals and high-beta — this is the optimal deployment window',
+      debt:     'Reduce duration defensiveness — move toward credit and spread compression plays',
+      currency: 'Reduce USD hedge — INR strength bias supports unhedged exposure',
+      risk:     'Regime exit requires 2+ consecutive confirming adverse signals before defensive repositioning'
+    };
+
     function renderRegimeBridge(regimeKey) {
       const bridgeEl = document.getElementById('regimeBridge');
       if (!bridgeEl) return;
@@ -2800,19 +2886,19 @@
       }
       if (!mapping) { bridgeEl.style.display = 'none'; return; }
       bridgeEl.style.display = 'block';
-      const riskTol   = (_profile?.risk_tolerance || '').toLowerCase();
-      const riskNote  = riskTol === 'conservative'
-        ? '<div class="regime-bridge-row" style="border-left:2px solid var(--amber,#f59e0b);padding-left:8px;margin-bottom:4px;"><span class="regime-bridge-text" style="color:var(--amber,#f59e0b);font-size:11px;">Conservative profile: Prioritise the Risk row. Equity deployment only on HIGH conviction.</span></div>'
-        : riskTol === 'aggressive'
-          ? '<div class="regime-bridge-row" style="border-left:2px solid var(--green);padding-left:8px;margin-bottom:4px;"><span class="regime-bridge-text" style="color:var(--green);font-size:11px;">Aggressive profile: Full playbook applies. Currency and risk overlays are your alpha levers.</span></div>'
-          : '';
+      const riskTol = (_profile?.risk_tolerance || '').toLowerCase();
+      const isDefen = _DEF_REGIMES.has(key);
+      const impl = riskTol === 'conservative'
+        ? _CONSERVATIVE_IMPLICATIONS
+        : (riskTol === 'aggressive' && !isDefen)
+          ? _AGGRESSIVE_IMPLICATIONS
+          : mapping;
       bridgeEl.innerHTML = `
       <div class="regime-bridge-title">Actionable Implications</div>
-      ${riskNote}
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Equity</span><span class="regime-bridge-text">${mapping.equity}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Debt</span><span class="regime-bridge-text">${mapping.debt}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Currency</span><span class="regime-bridge-text">${mapping.currency}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Risk</span><span class="regime-bridge-text">${mapping.risk}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Equity</span><span class="regime-bridge-text">${impl.equity}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Debt</span><span class="regime-bridge-text">${impl.debt}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Currency</span><span class="regime-bridge-text">${impl.currency}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Risk</span><span class="regime-bridge-text">${impl.risk}</span></div>
     `;
     }
 
@@ -2928,36 +3014,60 @@
       const firmName   = _profile?.firm_name || '';
       const conf       = Math.round((regime?.confidence || 0) * 100);
 
+      // Title — firm name if available
+      const titleEl = document.getElementById('wtmfyTitle');
+      if (titleEl) titleEl.textContent = 'What This Means For ' + (firmName || 'You');
+
       // Badge
       document.getElementById('wtmfyBadge').textContent =
         [mandate || 'general', riskTol || ''].filter(Boolean).join(' · ').toUpperCase() || 'ALL MANDATES';
 
-      // Body — plain English synthesis
-      const regimeLabel = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const signal      = _deriveActSignal(regimeKey, conviction);
-      const isDefen     = _DEF_REGIMES.has(regimeKey);
-      const isPro       = _PRO_REGIMES.has(regimeKey);
+      // Contextual profile derivations
+      const regimeLabel  = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const signal       = _deriveActSignal(regimeKey, conviction);
+      const isDefen      = _DEF_REGIMES.has(regimeKey);
+      const watchpoint   = _getNextCalendarWatchpoint();
+      const horizonRaw   = (_profile?.investment_horizon || '').toLowerCase();
+      const horizonLabel = horizonRaw.includes('long') ? 'long-term'
+                         : horizonRaw.includes('medium') || horizonRaw.includes('mid') ? 'medium-term'
+                         : horizonRaw.includes('short') ? 'short-term' : '';
+      const aumRaw       = (_profile?.aum_size || '').toLowerCase();
+      const isLargeAum   = aumRaw.includes('above') || aumRaw.includes('large') || aumRaw.includes('2000');
 
+      // Body — plain English synthesis with profile context
       let body = '';
       if (signal === 'ACT') {
-        body = `The macro environment is in a confirmed ${regimeLabel} phase with ${conf}% confidence. ` +
-               `This is a high-conviction window for ${mandate === 'debt' ? 'extending duration and adding credit' : 'deploying into risk assets'}. ` +
-               `${firmName ? firmName + "'s " : 'Your '}positioning should lean into this regime while it holds.`;
+        const deployTarget = mandate === 'debt'
+          ? 'extending duration and adding credit risk'
+          : mandate === 'balanced' || mandate === 'multi_asset'
+            ? 'tilting the equity sleeve and reviewing fixed-income duration'
+            : 'deploying into risk assets';
+        body = `The macro environment is in a confirmed ${regimeLabel} phase at ${conf}% confidence. `
+             + `${firmName ? firmName + ' is' : 'You are'} at an optimal entry point for ${deployTarget}. `
+             + (horizonLabel ? `A ${horizonLabel} mandate aligns well with this deployment window. ` : '')
+             + `Next watchpoint: ${watchpoint}.`;
       } else if (signal === 'WAIT') {
-        body = `India's macro regime reads ${regimeLabel} at ${conf}% confidence — ` +
-               `directional but not yet at the threshold for aggressive deployment. ` +
-               `${riskTol === 'conservative' ? 'Given your conservative profile, hold steady and wait for HIGH conviction before acting.' : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms.'}`;
+        body = `India's macro reads ${regimeLabel} at ${conf}% confidence — directional but below the high-conviction threshold. `
+             + (riskTol === 'conservative'
+                  ? 'Conservative profiles should hold existing positions and await HIGH conviction before acting. '
+                  : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms. ')
+             + `Next watchpoint: ${watchpoint}.`;
       } else {
-        body = `Current macro signals are ${isDefen ? 'defensive' : 'ambiguous'} — the ${regimeLabel} regime warrants caution. ` +
-               `${riskTol === 'aggressive' ? 'Even for an aggressive profile, this environment calls for capital preservation over deployment.' : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk.'}`;
+        body = `Current signals flag a ${isDefen ? 'defensive' : 'transitional'} ${regimeLabel} environment. `
+             + (riskTol === 'aggressive'
+                  ? 'Even an aggressive profile should prioritise capital preservation until the regime clears. '
+                  : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk. ')
+             + (isLargeAum ? 'Review redemption buffer adequacy given portfolio size. ' : '')
+             + `Next watchpoint: ${watchpoint}.`;
       }
       document.getElementById('wtmfyBody').textContent = body;
 
-      // Personalised action items
+      // Personalised action items + divider visibility
       const actions = _buildWtmfyActions(regimeKey, conviction, mandate, riskTol);
       document.getElementById('wtmfyActions').innerHTML = actions
         .map(a => `<div class="wtmfy-action-row"><span class="wtmfy-action-icon">›</span><span class="wtmfy-action-text">${a}</span></div>`)
         .join('');
+      document.getElementById('wtmfyDivider').style.display = actions.length ? 'block' : 'none';
 
       card.classList.add('visible');
     }
