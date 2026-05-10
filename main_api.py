@@ -325,6 +325,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "regime":        regime.get("regime", ""),
                 "confidence":    regime.get("confidence", 0),
                 "conviction":    strat.get("conviction", ""),
+                "equity_bias":   regime.get("components", {}).get("equity_bias", "NEUTRAL"),
                 "repo_rate":     repo,
                 "deficit":       deficit,
                 "capex":         capex,
@@ -403,8 +404,8 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 30, profile: dict = Depends(require_access)):
-    _FULL_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
-    _SAFE_COLS = "id,run_at,regime,confidence,conviction,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action"
+    _FULL_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action,scenarios,triggers,asset_out,strat"
+    _SAFE_COLS = "id,run_at,regime,confidence,conviction,equity_bias,summary,allocation,stress_test,fii_net_crore,dii_net_crore,crude_price,implied_action"
     try:
         result = _supabase.table("runs").select(_FULL_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
         return {"history": result.data or []}

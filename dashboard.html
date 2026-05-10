@@ -2671,7 +2671,7 @@
         const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
         const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
-        const bias = r.allocation?.equity != null ? Math.round(r.allocation.equity) + '% Eq' : '—';
+        const bias = r.equity_bias || '—';
         const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
         const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';
