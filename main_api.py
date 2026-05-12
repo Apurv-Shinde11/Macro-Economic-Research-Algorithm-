@@ -486,7 +486,7 @@ async def update_notif_prefs(body: NotificationPrefsUpdate, profile: dict = Depe
 @app.get("/api/admin/stats")
 async def get_admin_stats(profile: dict = Depends(require_admin)):
     users         = _supabase.table("profiles").select("id, email, full_name, firm_name, tier, trial_ends_at").execute()
-    email_logs    = _supabase.table("email_logs").select("*").order("created_at", desc=True).limit(50).execute()
+    email_logs    = _supabase.table("email_logs").select("*").order("sent_at", desc=True).limit(50).execute()
     notif_logs    = _supabase.table("notification_logs").select("*").order("sent_at", desc=True).limit(50).execute()
     regime_alerts = _supabase.table("regime_alerts").select("*").order("created_at", desc=True).limit(20).execute()
 
