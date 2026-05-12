@@ -489,7 +489,55 @@ async def get_admin_stats(profile: dict = Depends(require_admin)):
     email_logs    = _supabase.table("email_logs").select("*").order("created_at", desc=True).limit(50).execute()
     notif_logs    = _supabase.table("notification_logs").select("*").order("sent_at", desc=True).limit(50).execute()
     regime_alerts = _supabase.table("regime_alerts").select("*").order("created_at", desc=True).limit(20).execute()
-    return {"users": users.data or [], "email_logs": email_logs.data or [], "notification_logs": notif_logs.data or [], "regime_alerts": regime_alerts.data or [], "summary": {"total_users": len(users.data or []), "paid_users": sum(1 for u in (users.data or []) if u.get("tier") == "paid"), "trial_users": sum(1 for u in (users.data or []) if u.get("tier") == "trial"), "active_jobs": len([j for j in _jobs.values() if j["status"] == "running"])}}
+
+    today_runs = _supabase.table("runs").select("id", count="exact") \
+        .gte("run_at", datetime.now(timezone.utc).date().isoformat()).execute()
+    total_runs = _supabase.table("runs").select("id", count="exact").execute()
+
+    run_stats_raw = _supabase.table("runs").select("user_id, run_at") \
+        .order("run_at", desc=True).execute()
+    run_stats: dict = {}
+    for row in (run_stats_raw.data or []):
+        uid = row["user_id"]
+        if uid not in run_stats:
+            run_stats[uid] = {"last_run": row["run_at"], "run_count": 0}
+        run_stats[uid]["run_count"] += 1
+
+    regime_raw = _supabase.table("runs").select("regime, confidence, run_at").execute()
+    regime_map: dict = {}
+    for row in (regime_raw.data or []):
+        r = row.get("regime") or "UNKNOWN"
+        if r not in regime_map:
+            regime_map[r] = {"regime": r, "count": 0, "conf_sum": 0.0, "last_run": None}
+        regime_map[r]["count"]    += 1
+        regime_map[r]["conf_sum"] += row.get("confidence") or 0
+        ts = row.get("run_at")
+        if ts and (not regime_map[r]["last_run"] or ts > regime_map[r]["last_run"]):
+            regime_map[r]["last_run"] = ts
+    regime_stats = sorted(
+        [{"regime": v["regime"], "count": v["count"],
+          "avg_conf": round(v["conf_sum"] / v["count"], 2) if v["count"] else 0,
+          "last_run": v["last_run"]}
+         for v in regime_map.values()],
+        key=lambda x: x["count"], reverse=True
+    )
+
+    return {
+        "users":              users.data or [],
+        "email_logs":         email_logs.data or [],
+        "notification_logs":  notif_logs.data or [],
+        "regime_alerts":      regime_alerts.data or [],
+        "run_stats":          run_stats,
+        "regime_stats":       regime_stats,
+        "summary": {
+            "total_users":  len(users.data or []),
+            "paid_users":   sum(1 for u in (users.data or []) if u.get("tier") == "paid"),
+            "trial_users":  sum(1 for u in (users.data or []) if u.get("tier") == "trial"),
+            "active_jobs":  len([j for j in _jobs.values() if j["status"] == "running"]),
+            "today_runs":   today_runs.count or 0,
+            "total_runs":   total_runs.count or 0,
+        },
+    }
 
 class AdminUserUpdate(BaseModel):
     tier:          Optional[str]  = None

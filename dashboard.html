@@ -1619,7 +1619,7 @@
 
     .admin-metrics {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
       gap: 10px;
       margin-bottom: 24px;
     }
@@ -1660,7 +1660,7 @@
 
     .admin-user-row {
       display: grid;
-      grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr auto;
+      grid-template-columns: 2fr 1.2fr 0.7fr 0.7fr 0.6fr 0.6fr auto;
       gap: 8px;
       align-items: center;
       padding: 10px 14px;
@@ -1763,6 +1763,59 @@
     .admin-nav-btn:hover {
       color: var(--text);
       border-color: var(--text-3);
+    }
+
+    .admin-user-row.no-runs {
+      border-left: 2px solid var(--amber);
+    }
+
+    .admin-regime-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .admin-regime-table th {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      text-transform: uppercase;
+      text-align: left;
+      padding: 4px 8px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-regime-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: middle;
+    }
+
+    .admin-regime-table td:first-child {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text);
+    }
+
+    .admin-refresh-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-2);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      margin-right: 8px;
+    }
+
+    .admin-refresh-btn:hover {
+      color: var(--text);
+      border-color: var(--border-2);
     }
 
     /* ══ DECISION PROMPT CARD (F7) ══ */
@@ -2169,7 +2222,10 @@
       <div class="admin-panel">
         <div class="admin-panel-header">
           <span class="admin-panel-title">Admin Panel</span>
-          <button class="admin-close-btn" onclick="closeAdminPanel()">✕ Close</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="admin-refresh-btn" onclick="loadAdminStats()">↻ Refresh</button>
+            <button class="admin-close-btn" onclick="closeAdminPanel()">✕ Close</button>
+          </div>
         </div>
         <div class="admin-metrics" id="adminMetrics">
           <div class="admin-metric">
@@ -2192,11 +2248,23 @@
             <div class="admin-metric-val" id="amJobs">—</div>
             <div class="admin-metric-label">Active Jobs</div>
           </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amRunsToday">—</div>
+            <div class="admin-metric-label">Runs Today</div>
+          </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amRunsTotal">—</div>
+            <div class="admin-metric-label">Total Runs</div>
+          </div>
         </div>
         <div class="admin-section-title">Users</div>
         <div id="adminUserList"></div>
+        <div class="admin-section-title">Recent Alerts</div>
+        <div id="adminNotifLogs"></div>
         <div class="admin-section-title">Recent Email Logs</div>
         <div id="adminEmailLogs"></div>
+        <div class="admin-section-title">Regime Activity</div>
+        <div id="adminRegimeStats"></div>
       </div>
     </div>
 
@@ -3287,44 +3355,82 @@
     function closeAdminPanel() {
       document.getElementById('adminOverlay').classList.remove('open');
     }
+
+    function _relTime(isoStr) {
+      if (!isoStr) return 'Never';
+      const h = Math.floor((Date.now() - new Date(isoStr).getTime()) / 3600000);
+      if (h < 1) return 'Just now';
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      if (d < 30) return d + 'd ago';
+      return Math.floor(d / 30) + 'mo ago';
+    }
+
     async function loadAdminStats() {
       try {
         const d = await api('/api/admin/stats');
         const s = d.summary || {};
-        document.getElementById('amTotal').textContent = s.total_users ?? d.users?.length ?? '—';
-        document.getElementById('amPaid').textContent = s.paid_users ?? '—';
-        document.getElementById('amTrial').textContent = s.trial_users ?? '—';
-        document.getElementById('amPending').textContent = (d.users || []).filter(u => u.tier === 'pending').length;
-        document.getElementById('amJobs').textContent = s.active_jobs ?? '—';
-        renderAdminUsers(d.users || []);
+        document.getElementById('amTotal').textContent     = s.total_users ?? d.users?.length ?? '—';
+        document.getElementById('amPaid').textContent      = s.paid_users ?? '—';
+        document.getElementById('amTrial').textContent     = s.trial_users ?? '—';
+        document.getElementById('amPending').textContent   = (d.users || []).filter(u => u.tier === 'pending').length;
+        document.getElementById('amJobs').textContent      = s.active_jobs ?? '—';
+        document.getElementById('amRunsToday').textContent = s.today_runs ?? '—';
+        document.getElementById('amRunsTotal').textContent = s.total_runs ?? '—';
+        renderAdminUsers(d.users || [], d.run_stats || {});
+        renderAdminNotifLogs(d.notification_logs || []);
         renderAdminEmailLogs(d.email_logs || []);
+        renderAdminRegimeStats(d.regime_stats || []);
       } catch (e) { console.error('Admin stats failed:', e); }
     }
-    function renderAdminUsers(users) {
+
+    function renderAdminUsers(users, runStats) {
       const el = document.getElementById('adminUserList');
       if (!users.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No users found.</div>'; return; }
       el.innerHTML = users.map(u => {
-        const tier = u.tier || 'pending';
-        const trialEnd = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
+        const tier       = u.tier || 'pending';
+        const trialEnd   = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
         const trialLabel = trialEnd ? ` · ends ${trialEnd}` : '';
-        return `<div class="admin-user-row">
+        const rs         = runStats[u.id] || {};
+        const lastRun    = _relTime(rs.last_run || null);
+        const runCount   = rs.run_count ?? 0;
+        const noRunsCls  = runCount === 0 ? ' no-runs' : '';
+        return `<div class="admin-user-row${noRunsCls}">
           <div><div class="admin-user-email">${u.email || '—'}</div><div class="admin-user-firm">${u.firm_name || u.full_name || '—'}${trialLabel}</div></div>
           <div class="admin-user-firm">${u.full_name || '—'}</div>
           <span class="admin-tier-badge ${tier}">${tier.toUpperCase()}</span>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);">${(u.trial_ends_at || '').slice(0, 10) || '—'}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);">${trialEnd || '—'}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-2);">${lastRun}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);text-align:center;">${runCount}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${tier === 'pending' || tier === 'expired' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','trial',14)">Trial 14d</button>` : ''}
-            ${tier !== 'paid' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','paid',0)">Paid</button>` : ''}
-            ${tier !== 'expired' && tier !== 'pending' ? `<button class="admin-action-btn" style="color:var(--red);" onclick="adminSetTier('${u.id}','expired',0)">Suspend</button>` : ''}
+            ${tier === 'pending' || tier === 'expired' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','trial',14,'${u.email}')">Trial 14d</button>` : ''}
+            ${tier !== 'paid' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','paid',0,'${u.email}')">Paid</button>` : ''}
+            ${tier !== 'expired' && tier !== 'pending' ? `<button class="admin-action-btn" style="color:var(--red);" onclick="adminSetTier('${u.id}','expired',0,'${u.email}')">Suspend</button>` : ''}
           </div>
         </div>`;
       }).join('');
     }
+
+    function renderAdminNotifLogs(logs) {
+      const el = document.getElementById('adminNotifLogs');
+      if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No alerts sent yet.</div>'; return; }
+      el.innerHTML = logs.slice(0, 20).map(l => {
+        const ts        = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+        const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
+        return `<div class="admin-log-row">
+          <span>${ts}</span>
+          <span style="color:var(--text);">${(l.user_email || l.user_id || '—').slice(0, 32)}</span>
+          <span>${(l.alert_type || '—').replace(/_/g, ' ').slice(0, 20)}</span>
+          <span style="color:${statusClr};">${l.status || '—'}</span>
+        </div>`;
+      }).join('');
+    }
+
     function renderAdminEmailLogs(logs) {
       const el = document.getElementById('adminEmailLogs');
       if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No logs yet.</div>'; return; }
       el.innerHTML = logs.slice(0, 20).map(l => {
-        const ts = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+        const ts        = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
         const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
         return `<div class="admin-log-row">
           <span>${ts}</span>
@@ -3334,7 +3440,24 @@
         </div>`;
       }).join('');
     }
-    async function adminSetTier(userId, tier, trialDays) {
+
+    function renderAdminRegimeStats(stats) {
+      const el = document.getElementById('adminRegimeStats');
+      if (!stats.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No runs yet.</div>'; return; }
+      el.innerHTML = `<table class="admin-regime-table">
+        <thead><tr><th>Regime</th><th>Calls</th><th>Avg Conf</th><th>Last Called</th></tr></thead>
+        <tbody>${stats.map(r => `<tr>
+          <td>${(r.regime || '—').replace(/_/g, ' ')}</td>
+          <td style="font-family:var(--font-mono);">${r.count}</td>
+          <td style="font-family:var(--font-mono);">${Math.round((r.avg_conf || 0) * 100)}%</td>
+          <td style="font-family:var(--font-mono);font-size:10px;">${_relTime(r.last_run)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    async function adminSetTier(userId, tier, trialDays, email) {
+      const label = tier === 'trial' ? `Trial 14d` : tier.charAt(0).toUpperCase() + tier.slice(1);
+      if (!confirm(`Set ${email || userId} → ${label}?`)) return;
       try {
         await api(`/api/admin/users/${userId}`, {
           method: 'PATCH',
