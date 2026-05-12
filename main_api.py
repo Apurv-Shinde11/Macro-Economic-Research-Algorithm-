@@ -302,9 +302,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
         regime = ensure_dict(eng["regime"].detect_regime(intel, liq))
         regime = rep.repair(regime, REGIME_SCHEMA)
-        if regime.get("regime") in POSITIVE_REGIMES and regime.get("confidence", 0) > 0.65:
+        if regime.get("regime") in POSITIVE_REGIMES and regime.get("confidence", 0) >= 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_ON"
-        elif regime.get("regime") in DEFENSIVE_REGIMES and regime.get("confidence", 0) > 0.65:
+        elif regime.get("regime") in DEFENSIVE_REGIMES and regime.get("confidence", 0) >= 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_OFF"
         cause     = ensure_dict(eng["cause"].analyze(intel, regime))
         scenarios = ensure_dict(eng["scenario"].generate_scenarios(regime, cause, nse_snapshot))
