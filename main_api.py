@@ -189,7 +189,7 @@ async def get_profile(user=Depends(get_current_user)) -> dict:
 
 async def require_access(profile: dict = Depends(get_profile)) -> dict:
     tier = profile.get("tier", "")
-    if tier == "paid":
+    if tier in ("paid", "admin"):
         return profile
     if tier == "trial":
         trial_end = profile.get("trial_ends_at", "")
