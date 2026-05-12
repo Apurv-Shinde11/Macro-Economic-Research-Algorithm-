@@ -257,7 +257,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         # dii_net_crore defaults to None, never 0 — 0 is indistinguishable from missing data
         try:
             _fii = eng["ingestor"].fetch_fii_dii()
-            if _fii.get("fii_net_crore") is not None:
+            if _fii.get("fii_net_crore") is not None and _fii.get("fii_net_crore") != 0:
                 nse_snapshot.update({
                     "fii_net_crore":     _fii["fii_net_crore"],
                     "dii_net_crore":     _fii.get("dii_net_crore"),   # None if absent — never 0
