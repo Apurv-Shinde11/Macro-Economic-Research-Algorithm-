@@ -2497,7 +2497,7 @@
       try {
         const { data: histData, error } = await sb
           .from('runs')
-          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_score,dii_net_score,summary')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
           .limit(20);
@@ -2556,7 +2556,7 @@
             document.getElementById('runStatus').classList.remove('visible');
             const { data: freshData } = await sb
               .from('runs')
-              .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_score,dii_net_score,summary')
+              .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary')
               .eq('user_id', _session.user.id)
               .order('run_at', { ascending: false })
               .limit(20);
@@ -2627,7 +2627,7 @@
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && nse) {
         renderFlows(nse);
-      } else if (fromHistory && ((data.fii_net_score != null && data.fii_net_score !== 0) || (data.dii_net_score != null && data.dii_net_score !== 0))) {
+      } else if (fromHistory && ((data.fii_net_crore != null && data.fii_net_score !== 0) || (data.dii_net_score != null && data.dii_net_score !== 0))) {
         renderFlows({
           fii_net_crore: data.fii_net_score,
           dii_net_crore: data.dii_net_score,
