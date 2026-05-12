@@ -1556,7 +1556,6 @@
       gap: 4px;
       margin-top: 8px;
       overflow: visible;
-      border: 1px solid red; /* diagnostic — remove after confirming sparkline renders */
     }
 
     /* ══ ADMIN OVERLAY ══ */
@@ -1572,7 +1571,11 @@
       padding: 24px 16px 40px;
       overflow-y: auto;
     }
-    .admin-overlay.open { display: flex; }
+
+    .admin-overlay.open {
+      display: flex;
+    }
+
     .admin-panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1581,12 +1584,14 @@
       max-width: 900px;
       padding: 28px 28px 36px;
     }
+
     .admin-panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 24px;
     }
+
     .admin-panel-title {
       font-family: var(--font-display);
       font-size: 18px;
@@ -1594,6 +1599,7 @@
       color: var(--text);
       letter-spacing: -0.02em;
     }
+
     .admin-close-btn {
       background: var(--surface-2);
       border: 1px solid var(--border);
@@ -1606,13 +1612,18 @@
       letter-spacing: 0.04em;
       transition: background 0.15s;
     }
-    .admin-close-btn:hover { background: var(--surface-3); }
+
+    .admin-close-btn:hover {
+      background: var(--surface-3);
+    }
+
     .admin-metrics {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 24px;
     }
+
     .admin-metric {
       background: var(--surface-2);
       border: 1px solid var(--border);
@@ -1620,6 +1631,7 @@
       padding: 14px 16px;
       text-align: center;
     }
+
     .admin-metric-val {
       font-family: var(--font-display);
       font-size: 22px;
@@ -1627,6 +1639,7 @@
       color: var(--text);
       line-height: 1;
     }
+
     .admin-metric-label {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1635,6 +1648,7 @@
       text-transform: uppercase;
       margin-top: 6px;
     }
+
     .admin-section-title {
       font-family: var(--font-mono);
       font-size: 10px;
@@ -1643,6 +1657,7 @@
       color: var(--text-3);
       margin: 20px 0 10px;
     }
+
     .admin-user-row {
       display: grid;
       grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr auto;
@@ -1655,8 +1670,18 @@
       margin-bottom: 6px;
       font-size: 12px;
     }
-    .admin-user-email { color: var(--text); font-family: var(--font-mono); font-size: 11px; }
-    .admin-user-firm  { color: var(--text-2); font-size: 11px; }
+
+    .admin-user-email {
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .admin-user-firm {
+      color: var(--text-2);
+      font-size: 11px;
+    }
+
     .admin-tier-badge {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1666,11 +1691,27 @@
       border-radius: 20px;
       border: 1px solid currentColor;
     }
-    .admin-tier-badge.paid    { color: var(--green); }
-    .admin-tier-badge.trial   { color: var(--blue); }
-    .admin-tier-badge.pending { color: var(--amber, #f59e0b); }
-    .admin-tier-badge.expired { color: var(--red); }
-    .admin-tier-badge.admin   { color: var(--purple, #8b5cf6); }
+
+    .admin-tier-badge.paid {
+      color: var(--green);
+    }
+
+    .admin-tier-badge.trial {
+      color: var(--blue);
+    }
+
+    .admin-tier-badge.pending {
+      color: var(--amber, #f59e0b);
+    }
+
+    .admin-tier-badge.expired {
+      color: var(--red);
+    }
+
+    .admin-tier-badge.admin {
+      color: var(--purple, #8b5cf6);
+    }
+
     .admin-action-btn {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1683,7 +1724,12 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .admin-action-btn:hover { background: var(--surface-4, var(--surface-3)); color: var(--text); }
+
+    .admin-action-btn:hover {
+      background: var(--surface-4, var(--surface-3));
+      color: var(--text);
+    }
+
     .admin-log-row {
       display: grid;
       grid-template-columns: 1.4fr 2fr 1fr 0.8fr;
@@ -1697,6 +1743,7 @@
       font-family: var(--font-mono);
       color: var(--text-2);
     }
+
     .admin-nav-btn {
       display: none;
       background: none;
@@ -1712,7 +1759,11 @@
       width: 100%;
       transition: color 0.2s, border-color 0.2s;
     }
-    .admin-nav-btn:hover { color: var(--text); border-color: var(--text-3); }
+
+    .admin-nav-btn:hover {
+      color: var(--text);
+      border-color: var(--text-3);
+    }
 
     /* ══ DECISION PROMPT CARD (F7) ══ */
     .decision-prompt {
@@ -1724,7 +1775,11 @@
       margin-bottom: 16px;
       display: none;
     }
-    .decision-prompt.visible { display: block; }
+
+    .decision-prompt.visible {
+      display: block;
+    }
+
     .decision-prompt-title {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1733,8 +1788,19 @@
       color: var(--blue);
       margin-bottom: 12px;
     }
-    .decision-prompt-rows { display: flex; flex-direction: column; gap: 8px; }
-    .decision-prompt-row { display: flex; gap: 10px; align-items: baseline; }
+
+    .decision-prompt-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .decision-prompt-row {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+    }
+
     .dp-label {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1743,7 +1809,12 @@
       color: var(--text-3);
       min-width: 80px;
     }
-    .dp-value { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    .dp-value {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+    }
 
     /* ══ ACT/WAIT/HOLD SIGNAL (F8) ══ */
     .act-signal-pill {
@@ -1757,9 +1828,18 @@
       border: 1.5px solid currentColor;
       font-weight: 700;
     }
-    .act-signal-pill.ACT  { color: var(--green); }
-    .act-signal-pill.WAIT { color: var(--amber, #f59e0b); }
-    .act-signal-pill.HOLD { color: var(--text-3); }
+
+    .act-signal-pill.ACT {
+      color: var(--green);
+    }
+
+    .act-signal-pill.WAIT {
+      color: var(--amber, #f59e0b);
+    }
+
+    .act-signal-pill.HOLD {
+      color: var(--text-3);
+    }
 
     /* ══ WHAT THIS MEANS FOR YOU (F11) ══ */
     .wtmfy-card {
@@ -1771,13 +1851,18 @@
       display: none;
       box-shadow: 0 2px 16px rgba(79, 131, 255, 0.07), var(--card-shadow);
     }
-    .wtmfy-card.visible { display: block; }
+
+    .wtmfy-card.visible {
+      display: block;
+    }
+
     .wtmfy-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 16px;
     }
+
     .wtmfy-title {
       font-family: var(--font-sans);
       font-size: 15px;
@@ -1785,6 +1870,7 @@
       color: var(--text);
       letter-spacing: -0.01em;
     }
+
     .wtmfy-mandate-badge {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1796,6 +1882,7 @@
       color: var(--blue);
       background: var(--blue-dim);
     }
+
     .wtmfy-body {
       font-family: var(--font-sans);
       font-size: 15px;
@@ -1803,20 +1890,37 @@
       line-height: 1.78;
       margin-bottom: 18px;
     }
+
     .wtmfy-divider {
       height: 1px;
       background: var(--border);
       margin-bottom: 14px;
     }
-    .wtmfy-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    .wtmfy-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .wtmfy-action-row {
       display: flex;
       gap: 10px;
       align-items: baseline;
       font-size: 13px;
     }
-    .wtmfy-action-icon { color: var(--blue); font-size: 13px; min-width: 16px; flex-shrink: 0; }
-    .wtmfy-action-text { color: var(--text-2); line-height: 1.5; }
+
+    .wtmfy-action-icon {
+      color: var(--blue);
+      font-size: 13px;
+      min-width: 16px;
+      flex-shrink: 0;
+    }
+
+    .wtmfy-action-text {
+      color: var(--text-2);
+      line-height: 1.5;
+    }
 
     /* ══ ONBOARDING CARD ══ */
     .onboarding-card {
@@ -1828,12 +1932,17 @@
       margin-bottom: 20px;
       text-align: center;
     }
-    .onboarding-card.visible { display: block; }
+
+    .onboarding-card.visible {
+      display: block;
+    }
+
     .onboarding-icon {
       font-size: 40px;
       line-height: 1;
       margin-bottom: 16px;
     }
+
     .onboarding-title {
       font-family: var(--font-display);
       font-size: 22px;
@@ -1842,6 +1951,7 @@
       letter-spacing: -0.02em;
       margin-bottom: 10px;
     }
+
     .onboarding-body {
       font-size: 13px;
       color: var(--text-2);
@@ -1849,6 +1959,7 @@
       max-width: 480px;
       margin: 0 auto 24px;
     }
+
     .onboarding-steps {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1857,12 +1968,14 @@
       margin: 0 auto 28px;
       text-align: left;
     }
+
     .onboarding-step {
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 14px 16px;
     }
+
     .onboarding-step-num {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -1871,6 +1984,7 @@
       text-transform: uppercase;
       margin-bottom: 6px;
     }
+
     .onboarding-step-text {
       font-size: 12px;
       color: var(--text-2);
@@ -2058,11 +2172,26 @@
           <button class="admin-close-btn" onclick="closeAdminPanel()">✕ Close</button>
         </div>
         <div class="admin-metrics" id="adminMetrics">
-          <div class="admin-metric"><div class="admin-metric-val" id="amTotal">—</div><div class="admin-metric-label">Total Users</div></div>
-          <div class="admin-metric"><div class="admin-metric-val" id="amPaid">—</div><div class="admin-metric-label">Paid</div></div>
-          <div class="admin-metric"><div class="admin-metric-val" id="amTrial">—</div><div class="admin-metric-label">Trial</div></div>
-          <div class="admin-metric"><div class="admin-metric-val" id="amPending">—</div><div class="admin-metric-label">Pending</div></div>
-          <div class="admin-metric"><div class="admin-metric-val" id="amJobs">—</div><div class="admin-metric-label">Active Jobs</div></div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amTotal">—</div>
+            <div class="admin-metric-label">Total Users</div>
+          </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amPaid">—</div>
+            <div class="admin-metric-label">Paid</div>
+          </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amTrial">—</div>
+            <div class="admin-metric-label">Trial</div>
+          </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amPending">—</div>
+            <div class="admin-metric-label">Pending</div>
+          </div>
+          <div class="admin-metric">
+            <div class="admin-metric-val" id="amJobs">—</div>
+            <div class="admin-metric-label">Active Jobs</div>
+          </div>
         </div>
         <div class="admin-section-title">Users</div>
         <div id="adminUserList"></div>
@@ -2083,9 +2212,12 @@
       <div class="decision-prompt" id="decisionPrompt">
         <div class="decision-prompt-title">Today's Decision Signal</div>
         <div class="decision-prompt-rows">
-          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value" id="dpAction">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Rationale</span><span class="dp-value" id="dpRationale">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Watchpoint</span><span class="dp-value" id="dpWatchpoint">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
+              id="dpAction">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Rationale</span><span class="dp-value"
+              id="dpRationale">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Watchpoint</span><span class="dp-value"
+              id="dpWatchpoint">—</span></div>
         </div>
       </div>
 
@@ -2094,20 +2226,25 @@
         <div class="onboarding-icon">📡</div>
         <div class="onboarding-title">Welcome to SENTINEL</div>
         <div class="onboarding-body">
-          Your macro intelligence terminal is ready. Run the engine to generate your first regime assessment — it analyses RBI policy, FII flows, liquidity conditions, and macro data to classify India's current investment environment.
+          Your macro intelligence terminal is ready. Run the engine to generate your first regime assessment — it
+          analyses RBI policy, FII flows, liquidity conditions, and macro data to classify India's current investment
+          environment.
         </div>
         <div class="onboarding-steps">
           <div class="onboarding-step">
             <div class="onboarding-step-num">Step 01</div>
-            <div class="onboarding-step-text">Click <strong>Run Intelligence Engine</strong> below to start the pipeline (~30 seconds)</div>
+            <div class="onboarding-step-text">Click <strong>Run Intelligence Engine</strong> below to start the pipeline
+              (~30 seconds)</div>
           </div>
           <div class="onboarding-step">
             <div class="onboarding-step-num">Step 02</div>
-            <div class="onboarding-step-text">Review the <strong>Regime Card</strong> — conviction level, playbook, and asset class implications</div>
+            <div class="onboarding-step-text">Review the <strong>Regime Card</strong> — conviction level, playbook, and
+              asset class implications</div>
           </div>
           <div class="onboarding-step">
             <div class="onboarding-step-num">Step 03</div>
-            <div class="onboarding-step-text">Configure <strong>alerts</strong> in the sidebar — email and WhatsApp when the regime shifts</div>
+            <div class="onboarding-step-text">Configure <strong>alerts</strong> in the sidebar — email and WhatsApp when
+              the regime shifts</div>
           </div>
         </div>
         <button class="run-btn" id="onboardRunBtn" onclick="document.getElementById('runBtn').click()">
@@ -2148,7 +2285,8 @@
                   stroke-dashoffset="0" />
               </svg>
               <div class="confidence-ring-text">
-                <span class="confidence-pct" id="confPct">—</span><span id="confArrow" style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
+                <span class="confidence-pct" id="confPct">—</span><span id="confArrow"
+                  style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
                 <span class="confidence-lbl">CONF</span>
               </div>
             </div>
@@ -2357,21 +2495,27 @@
 
     async function loadDashboard() {
       try {
-        const res = await api('/api/history?limit=1');
+        const { data: histData, error } = await sb
+          .from('runs')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_score,dii_net_score,summary')
+          .eq('user_id', _session.user.id)
+          .order('run_at', { ascending: false })
+          .limit(20);
+        if (error) throw error;
+        const history = histData || [];
         const onboarding = document.getElementById('onboardingCard');
-        const hero       = document.getElementById('regimeHero');
-        if (res.history?.length > 0) {
-          renderRunResult(res.history[0], true);
+        const hero = document.getElementById('regimeHero');
+        if (history.length > 0) {
+          renderRunResult(history[0], true);
           onboarding.classList.remove('visible');
         } else {
           onboarding.classList.add('visible');
           hero.style.opacity = '0.35';
         }
-        const hist = await api('/api/history?limit=20');
-        renderHistoryTable(hist.history || []);
-        const sparkVals = (hist.history || []).slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
+        renderHistoryTable(history);
+        const sparkVals = history.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
         renderConfSparkline(sparkVals);
-        renderConfArrow(hist.history || []);
+        renderConfArrow(history);
       } catch (e) { console.error('Dashboard load failed:', e); }
     }
 
@@ -2410,9 +2554,16 @@
             document.getElementById('regimeHero').style.opacity = '';
             showToast('✓ Intelligence updated', 'success');
             document.getElementById('runStatus').classList.remove('visible');
-            const hist = await api('/api/history?limit=20'); renderHistoryTable(hist.history || []);
-            renderConfSparkline((hist.history || []).slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
-            renderConfArrow(hist.history || []);
+            const { data: freshData } = await sb
+              .from('runs')
+              .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_score,dii_net_score,summary')
+              .eq('user_id', _session.user.id)
+              .order('run_at', { ascending: false })
+              .limit(20);
+            const freshArr = freshData || [];
+            renderHistoryTable(freshArr);
+            renderConfSparkline(freshArr.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
+            renderConfArrow(freshArr);
           } else if (res.status === 'failed') {
             clearInterval(_pollTimer); showToast('Pipeline error: ' + (res.error || 'unknown'), 'error');
             resetRunBtn(); document.getElementById('runStatus').classList.remove('visible');
@@ -2468,22 +2619,20 @@
         renderWtmfy(regime, data.strategy, data.decision);            // F11
       } else if (fromHistory && data.summary) {
         document.getElementById('playbookItems').innerHTML = `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`;
-        // F11: render from history record using derived values
-        renderWtmfy(
-          { regime: data.regime, confidence: data.confidence, narrative: data.summary, drivers: [] },
-          { conviction: data.conviction },
-          { summary: data.summary }
-        );
+        const _hReg = { regime: data.regime, confidence: data.confidence, narrative: data.summary, drivers: [] };
+        const _hStrat = { conviction: data.conviction };
+        renderDecisionPrompt(_hReg, _hStrat, { summary: data.summary });
+        renderWtmfy(_hReg, _hStrat, { summary: data.summary });
       }
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && nse) {
         renderFlows(nse);
       } else if (fromHistory && ((data.fii_net_score != null && data.fii_net_score !== 0) || (data.dii_net_score != null && data.dii_net_score !== 0))) {
         renderFlows({
-          fii_net_crore:  data.fii_net_score,
-          dii_net_crore:  data.dii_net_score,
+          fii_net_crore: data.fii_net_score,
+          dii_net_crore: data.dii_net_score,
           fii_dii_source: 'cached',
-          fii_dii_stale:  true,
+          fii_dii_stale: true,
           fii_trade_date: data.run_at,
         });
       } else if (fromHistory) {
@@ -2494,8 +2643,8 @@
     function renderPlaybook(strategy, decision) {
       const items = document.getElementById('playbookItems');
       const conviction = (strategy?.conviction || '').toUpperCase();
-      const mandate    = (_profile?.mandate_type || '').toLowerCase();
-      const _mkItem    = (p, accent) => accent
+      const mandate = (_profile?.mandate_type || '').toLowerCase();
+      const _mkItem = (p, accent) => accent
         ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
         : `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`;
 
@@ -2624,8 +2773,8 @@
       const fiiRaw = nse.fii_dii || {};
       const fiiNet = fiiRaw.fii?.net ?? nse.fii_net_crore ?? 0;
       const diiNet = fiiRaw.dii?.net ?? nse.dii_net_crore ?? 0;
-      const source   = nse.fii_dii_source || (fiiNet !== 0 ? 'nse_live' : 'unavailable');
-      const stale    = nse.fii_dii_stale || false;
+      const source = nse.fii_dii_source || (fiiNet !== 0 ? 'nse_live' : 'unavailable');
+      const stale = nse.fii_dii_stale || false;
       const cachedAt = nse.fii_dii_cached_at || nse.fii_trade_date || fiiRaw.date || null;
       const dateLabel = _fmtFlowDate(cachedAt);
 
@@ -2855,16 +3004,16 @@
     };
 
     const _CONSERVATIVE_IMPLICATIONS = {
-      equity:   'Maintain existing allocation — do not chase cyclical momentum',
-      debt:     'Hold short duration, prioritise capital preservation over yield',
+      equity: 'Maintain existing allocation — do not chase cyclical momentum',
+      debt: 'Hold short duration, prioritise capital preservation over yield',
       currency: 'Maintain full USD hedge — do not reduce import cover',
-      risk:     'Exit trigger is any single adverse signal — do not wait for confirmation'
+      risk: 'Exit trigger is any single adverse signal — do not wait for confirmation'
     };
     const _AGGRESSIVE_IMPLICATIONS = {
-      equity:   'Add aggressively to cyclicals and high-beta — this is the optimal deployment window',
-      debt:     'Reduce duration defensiveness — move toward credit and spread compression plays',
+      equity: 'Add aggressively to cyclicals and high-beta — this is the optimal deployment window',
+      debt: 'Reduce duration defensiveness — move toward credit and spread compression plays',
       currency: 'Reduce USD hedge — INR strength bias supports unhedged exposure',
-      risk:     'Regime exit requires 2+ consecutive confirming adverse signals before defensive repositioning'
+      risk: 'Regime exit requires 2+ consecutive confirming adverse signals before defensive repositioning'
     };
 
     function renderRegimeBridge(regimeKey) {
@@ -2905,9 +3054,9 @@
       const W = 72, H = 22;
       // Use hardcoded hex so SVG stroke attribute never relies on CSS vars
       const isLight = document.documentElement.classList.contains('light');
-      const last  = values[values.length - 1];
+      const last = values[values.length - 1];
       const first = values[0];
-      const diff  = last - first;
+      const diff = last - first;
       const trend = diff > 2 ? 'up' : diff < -2 ? 'down' : 'flat';
       const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
       // flat color was #2e3d58 (dark mode) — same as --text-3, invisible; use blue instead
@@ -2916,10 +3065,10 @@
         : trend === 'down'
           ? (isLight ? '#b45309' : '#fbbf24')
           : (isLight ? '#9aaabb' : '#4f83ff');
-      const min   = Math.min(...values);
-      const max   = Math.max(...values);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
       const range = max - min || 1;
-      const pts   = values.map((v, i) => {
+      const pts = values.map((v, i) => {
         const x = Math.round((i / (values.length - 1)) * W * 10) / 10;
         const y = Math.round((H - 4 - ((v - min) / range) * (H - 8) + 2) * 10) / 10;
         return `${x},${y}`;
@@ -2956,22 +3105,22 @@
 
     /* ── SECTION C HELPERS ── */
 
-    const _PRO_REGIMES = new Set(['LIQUIDITY_DRIVEN_EXPANSION','EARLY_CYCLE_RECOVERY','STABLE_GROWTH']);
-    const _DEF_REGIMES = new Set(['MONETARY_TIGHTENING','EXTERNAL_SHOCK','STAGFLATION_RISK','STAGFLATIONARY_RISK','INFLATION_PRESSURE_WITH_EXTERNAL_RISK','GROWTH_SLOWDOWN_SUPPORT']);
+    const _PRO_REGIMES = new Set(['LIQUIDITY_DRIVEN_EXPANSION', 'EARLY_CYCLE_RECOVERY', 'STABLE_GROWTH']);
+    const _DEF_REGIMES = new Set(['MONETARY_TIGHTENING', 'EXTERNAL_SHOCK', 'STAGFLATION_RISK', 'STAGFLATIONARY_RISK', 'INFLATION_PRESSURE_WITH_EXTERNAL_RISK', 'GROWTH_SLOWDOWN_SUPPORT']);
 
     function _deriveImpliedAction(regimeKey, conviction) {
       const conv = (conviction || '').toUpperCase();
-      const key  = (regimeKey  || '').toUpperCase();
-      if (conv === 'LOW')                              return 'Hold current positions';
-      if (_DEF_REGIMES.has(key))                      return 'Reduce risk exposure';
-      if (conv === 'HIGH' && _PRO_REGIMES.has(key))   return 'Deploy — high conviction window';
+      const key = (regimeKey || '').toUpperCase();
+      if (conv === 'LOW') return 'Hold current positions';
+      if (_DEF_REGIMES.has(key)) return 'Reduce risk exposure';
+      if (conv === 'HIGH' && _PRO_REGIMES.has(key)) return 'Deploy — high conviction window';
       if (conv === 'MEDIUM' && _PRO_REGIMES.has(key)) return 'Selectively add to risk assets';
       return 'Monitor and hold';
     }
 
     function _deriveActSignal(regimeKey, conviction) {
       const conv = (conviction || '').toUpperCase();
-      const key  = (regimeKey  || '').toUpperCase();
+      const key = (regimeKey || '').toUpperCase();
       if (conv === 'LOW' || _DEF_REGIMES.has(key)) return 'HOLD';
       if (conv === 'HIGH' && _PRO_REGIMES.has(key)) return 'ACT';
       return 'WAIT';
@@ -2979,11 +3128,11 @@
 
     // FEATURE 8: update ACT/WAIT/HOLD pill
     function renderActSignal(regimeKey, conviction) {
-      const pill   = document.getElementById('actSignalPill');
+      const pill = document.getElementById('actSignalPill');
       if (!pill) return;
       const signal = _deriveActSignal(regimeKey, conviction);
       pill.textContent = signal;
-      pill.className   = `act-signal-pill ${signal}`;
+      pill.className = `act-signal-pill ${signal}`;
     }
 
     function _getNextCalendarWatchpoint() {
@@ -2991,9 +3140,9 @@
         .filter(ev => typeof ev.days_until === 'number' && ev.days_until >= 0 && ev.days_until <= 30)
         .sort((a, b) => a.days_until - b.days_until);
       if (!near.length) return 'Monitor FII flows for regime confirmation';
-      const ev   = near[0];
+      const ev = near[0];
       const days = ev.days_until;
-      const lbl  = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} days away`;
+      const lbl = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} days away`;
       return `${ev.name} — ${lbl}`;
     }
 
@@ -3001,16 +3150,16 @@
     function renderDecisionPrompt(regime, strategy, decision) {
       const card = document.getElementById('decisionPrompt');
       if (!card) return;
-      const regimeKey  = (regime?.regime || '').toUpperCase();
+      const regimeKey = (regime?.regime || '').toUpperCase();
       const conviction = (strategy?.conviction || '').toUpperCase();
-      const action     = _deriveImpliedAction(regimeKey, conviction);
-      const drivers    = regime?.drivers || [];
-      const rationale  = drivers.length
+      const action = _deriveImpliedAction(regimeKey, conviction);
+      const drivers = regime?.drivers || [];
+      const rationale = drivers.length
         ? drivers.slice(0, 2).join(' · ')
         : (regime?.narrative || '').slice(0, 120) + (regime?.narrative?.length > 120 ? '…' : '');
       const watchpoint = _getNextCalendarWatchpoint();
-      document.getElementById('dpAction').textContent     = action;
-      document.getElementById('dpRationale').textContent  = rationale || '—';
+      document.getElementById('dpAction').textContent = action;
+      document.getElementById('dpRationale').textContent = rationale || '—';
       document.getElementById('dpWatchpoint').textContent = watchpoint;
       card.classList.add('visible');
     }
@@ -3019,12 +3168,12 @@
     function renderWtmfy(regime, strategy, decision) {
       const card = document.getElementById('wtmfyCard');
       if (!card) return;
-      const regimeKey  = (regime?.regime  || '').toUpperCase();
+      const regimeKey = (regime?.regime || '').toUpperCase();
       const conviction = (strategy?.conviction || '').toUpperCase();
-      const mandate    = (_profile?.mandate_type   || '').toLowerCase();
-      const riskTol    = (_profile?.risk_tolerance  || '').toLowerCase();
-      const firmName   = _profile?.firm_name || '';
-      const conf       = Math.round((regime?.confidence || 0) * 100);
+      const mandate = (_profile?.mandate_type || '').toLowerCase();
+      const riskTol = (_profile?.risk_tolerance || '').toLowerCase();
+      const firmName = _profile?.firm_name || '';
+      const conf = Math.round((regime?.confidence || 0) * 100);
 
       // Title — firm name if available
       const titleEl = document.getElementById('wtmfyTitle');
@@ -3035,16 +3184,16 @@
         [mandate || 'general', riskTol || ''].filter(Boolean).join(' · ').toUpperCase() || 'ALL MANDATES';
 
       // Contextual profile derivations
-      const regimeLabel  = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const signal       = _deriveActSignal(regimeKey, conviction);
-      const isDefen      = _DEF_REGIMES.has(regimeKey);
-      const watchpoint   = _getNextCalendarWatchpoint();
-      const horizonRaw   = (_profile?.investment_horizon || '').toLowerCase();
+      const regimeLabel = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const signal = _deriveActSignal(regimeKey, conviction);
+      const isDefen = _DEF_REGIMES.has(regimeKey);
+      const watchpoint = _getNextCalendarWatchpoint();
+      const horizonRaw = (_profile?.investment_horizon || '').toLowerCase();
       const horizonLabel = horizonRaw.includes('long') ? 'long-term'
-                         : horizonRaw.includes('medium') || horizonRaw.includes('mid') ? 'medium-term'
-                         : horizonRaw.includes('short') ? 'short-term' : '';
-      const aumRaw       = (_profile?.aum_size || '').toLowerCase();
-      const isLargeAum   = aumRaw.includes('above') || aumRaw.includes('large') || aumRaw.includes('2000');
+        : horizonRaw.includes('medium') || horizonRaw.includes('mid') ? 'medium-term'
+          : horizonRaw.includes('short') ? 'short-term' : '';
+      const aumRaw = (_profile?.aum_size || '').toLowerCase();
+      const isLargeAum = aumRaw.includes('above') || aumRaw.includes('large') || aumRaw.includes('2000');
 
       // Body — plain English synthesis with profile context
       let body = '';
@@ -3055,22 +3204,22 @@
             ? 'tilting the equity sleeve and reviewing fixed-income duration'
             : 'deploying into risk assets';
         body = `The macro environment is in a confirmed ${regimeLabel} phase at ${conf}% confidence. `
-             + `${firmName ? firmName + ' is' : 'You are'} at an optimal entry point for ${deployTarget}. `
-             + (horizonLabel ? `A ${horizonLabel} mandate aligns well with this deployment window. ` : '')
-             + `Next watchpoint: ${watchpoint}.`;
+          + `${firmName ? firmName + ' is' : 'You are'} at an optimal entry point for ${deployTarget}. `
+          + (horizonLabel ? `A ${horizonLabel} mandate aligns well with this deployment window. ` : '')
+          + `Next watchpoint: ${watchpoint}.`;
       } else if (signal === 'WAIT') {
         body = `India's macro reads ${regimeLabel} at ${conf}% confidence — directional but below the high-conviction threshold. `
-             + (riskTol === 'conservative'
-                  ? 'Conservative profiles should hold existing positions and await HIGH conviction before acting. '
-                  : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms. ')
-             + `Next watchpoint: ${watchpoint}.`;
+          + (riskTol === 'conservative'
+            ? 'Conservative profiles should hold existing positions and await HIGH conviction before acting. '
+            : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms. ')
+          + `Next watchpoint: ${watchpoint}.`;
       } else {
         body = `Current signals flag a ${isDefen ? 'defensive' : 'transitional'} ${regimeLabel} environment. `
-             + (riskTol === 'aggressive'
-                  ? 'Even an aggressive profile should prioritise capital preservation until the regime clears. '
-                  : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk. ')
-             + (isLargeAum ? 'Review redemption buffer adequacy given portfolio size. ' : '')
-             + `Next watchpoint: ${watchpoint}.`;
+          + (riskTol === 'aggressive'
+            ? 'Even an aggressive profile should prioritise capital preservation until the regime clears. '
+            : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk. ')
+          + (isLargeAum ? 'Review redemption buffer adequacy given portfolio size. ' : '')
+          + `Next watchpoint: ${watchpoint}.`;
       }
       document.getElementById('wtmfyBody').textContent = body;
 
@@ -3085,26 +3234,26 @@
     }
 
     function _buildWtmfyActions(regimeKey, conviction, mandate, riskTol) {
-      const signal  = _deriveActSignal(regimeKey, conviction);
-      const isPro   = _PRO_REGIMES.has(regimeKey);
+      const signal = _deriveActSignal(regimeKey, conviction);
+      const isPro = _PRO_REGIMES.has(regimeKey);
       const isDefen = _DEF_REGIMES.has(regimeKey);
       const actions = [];
 
       if (mandate === 'debt') {
-        if (isPro)   actions.push('Duration: Consider extending to 7–10 year segment as rates stabilise.');
+        if (isPro) actions.push('Duration: Consider extending to 7–10 year segment as rates stabilise.');
         if (isDefen) actions.push('Duration: Shorten to 1–3 years; credit spreads may widen.');
         actions.push('Credit: Favour AAA/AA rated paper; avoid high-yield in uncertain regimes.');
       } else if (mandate === 'equity') {
-        if (signal === 'ACT')  actions.push('Deploy systematically — STP into large-cap quality and rate-sensitive leaders.');
+        if (signal === 'ACT') actions.push('Deploy systematically — STP into large-cap quality and rate-sensitive leaders.');
         if (signal === 'WAIT') actions.push('Hold equity exposure; avoid fresh mid/small-cap bets until conviction hardens.');
         if (signal === 'HOLD') actions.push('Trim high-beta. Rotate into defensives: FMCG, IT exporters, Pharma.');
       } else if (mandate === 'balanced' || mandate === 'multi_asset') {
-        if (signal === 'ACT')  actions.push('Tilt equity sleeve to 60–65%. Review fixed-income duration in context of rate environment.');
+        if (signal === 'ACT') actions.push('Tilt equity sleeve to 60–65%. Review fixed-income duration in context of rate environment.');
         if (signal === 'WAIT') actions.push('Maintain neutral allocation; favour quality within each sleeve.');
         if (signal === 'HOLD') actions.push('Increase cash/short-duration FI. Reduce equity to below benchmark weight.');
         actions.push('Gold: ' + (isDefen ? 'Add 5–8% as hedge — defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'));
       } else {
-        if (signal === 'ACT')  actions.push('Broad-based deployment warranted — prioritise quality and liquidity.');
+        if (signal === 'ACT') actions.push('Broad-based deployment warranted — prioritise quality and liquidity.');
         if (signal === 'WAIT') actions.push('Selective additions only — wait for conviction to build before full deployment.');
         if (signal === 'HOLD') actions.push('Preserve capital — defensive posture until regime clarity returns.');
       }
@@ -3131,11 +3280,11 @@
       try {
         const d = await api('/api/admin/stats');
         const s = d.summary || {};
-        document.getElementById('amTotal').textContent   = s.total_users ?? d.users?.length ?? '—';
-        document.getElementById('amPaid').textContent    = s.paid_users   ?? '—';
-        document.getElementById('amTrial').textContent   = s.trial_users  ?? '—';
+        document.getElementById('amTotal').textContent = s.total_users ?? d.users?.length ?? '—';
+        document.getElementById('amPaid').textContent = s.paid_users ?? '—';
+        document.getElementById('amTrial').textContent = s.trial_users ?? '—';
         document.getElementById('amPending').textContent = (d.users || []).filter(u => u.tier === 'pending').length;
-        document.getElementById('amJobs').textContent    = s.active_jobs  ?? '—';
+        document.getElementById('amJobs').textContent = s.active_jobs ?? '—';
         renderAdminUsers(d.users || []);
         renderAdminEmailLogs(d.email_logs || []);
       } catch (e) { console.error('Admin stats failed:', e); }
@@ -3144,18 +3293,18 @@
       const el = document.getElementById('adminUserList');
       if (!users.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No users found.</div>'; return; }
       el.innerHTML = users.map(u => {
-        const tier   = u.tier || 'pending';
+        const tier = u.tier || 'pending';
         const trialEnd = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
         const trialLabel = trialEnd ? ` · ends ${trialEnd}` : '';
         return `<div class="admin-user-row">
           <div><div class="admin-user-email">${u.email || '—'}</div><div class="admin-user-firm">${u.firm_name || u.full_name || '—'}${trialLabel}</div></div>
           <div class="admin-user-firm">${u.full_name || '—'}</div>
           <span class="admin-tier-badge ${tier}">${tier.toUpperCase()}</span>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);">${(u.trial_ends_at||'').slice(0,10)||'—'}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);">${(u.trial_ends_at || '').slice(0, 10) || '—'}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${tier==='pending'||tier==='expired' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','trial',14)">Trial 14d</button>` : ''}
-            ${tier!=='paid'                      ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','paid',0)">Paid</button>` : ''}
-            ${tier!=='expired'&&tier!=='pending'  ? `<button class="admin-action-btn" style="color:var(--red);" onclick="adminSetTier('${u.id}','expired',0)">Suspend</button>` : ''}
+            ${tier === 'pending' || tier === 'expired' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','trial',14)">Trial 14d</button>` : ''}
+            ${tier !== 'paid' ? `<button class="admin-action-btn" onclick="adminSetTier('${u.id}','paid',0)">Paid</button>` : ''}
+            ${tier !== 'expired' && tier !== 'pending' ? `<button class="admin-action-btn" style="color:var(--red);" onclick="adminSetTier('${u.id}','expired',0)">Suspend</button>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -3164,13 +3313,13 @@
       const el = document.getElementById('adminEmailLogs');
       if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No logs yet.</div>'; return; }
       el.innerHTML = logs.slice(0, 20).map(l => {
-        const ts     = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '—';
+        const ts = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
         const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
         return `<div class="admin-log-row">
           <span>${ts}</span>
-          <span style="color:var(--text);">${(l.recipient||'').slice(0,32)}</span>
-          <span>${(l.regime||'—').replace(/_/g,' ').slice(0,20)}</span>
-          <span style="color:${statusClr};">${l.status||'—'}</span>
+          <span style="color:var(--text);">${(l.recipient || '').slice(0, 32)}</span>
+          <span>${(l.regime || '—').replace(/_/g, ' ').slice(0, 20)}</span>
+          <span style="color:${statusClr};">${l.status || '—'}</span>
         </div>`;
       }).join('');
     }
