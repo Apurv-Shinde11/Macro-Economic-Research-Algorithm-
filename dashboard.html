@@ -3370,11 +3370,11 @@
       try {
         const d = await api('/api/admin/stats');
         const s = d.summary || {};
-        document.getElementById('amTotal').textContent     = s.total_users ?? d.users?.length ?? '—';
-        document.getElementById('amPaid').textContent      = s.paid_users ?? '—';
-        document.getElementById('amTrial').textContent     = s.trial_users ?? '—';
-        document.getElementById('amPending').textContent   = (d.users || []).filter(u => u.tier === 'pending').length;
-        document.getElementById('amJobs').textContent      = s.active_jobs ?? '—';
+        document.getElementById('amTotal').textContent = s.total_users ?? d.users?.length ?? '—';
+        document.getElementById('amPaid').textContent = s.paid_users ?? '—';
+        document.getElementById('amTrial').textContent = s.trial_users ?? '—';
+        document.getElementById('amPending').textContent = (d.users || []).filter(u => u.tier === 'pending').length;
+        document.getElementById('amJobs').textContent = s.active_jobs ?? '—';
         document.getElementById('amRunsToday').textContent = s.today_runs ?? '—';
         document.getElementById('amRunsTotal').textContent = s.total_runs ?? '—';
         renderAdminUsers(d.users || [], d.run_stats || {});
@@ -3388,13 +3388,13 @@
       const el = document.getElementById('adminUserList');
       if (!users.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No users found.</div>'; return; }
       el.innerHTML = users.map(u => {
-        const tier       = u.tier || 'pending';
-        const trialEnd   = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
+        const tier = u.tier || 'pending';
+        const trialEnd = u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : '';
         const trialLabel = trialEnd ? ` · ends ${trialEnd}` : '';
-        const rs         = runStats[u.id] || {};
-        const lastRun    = _relTime(rs.last_run || null);
-        const runCount   = rs.run_count ?? 0;
-        const noRunsCls  = runCount === 0 ? ' no-runs' : '';
+        const rs = runStats[u.id] || {};
+        const lastRun = _relTime(rs.last_run || null);
+        const runCount = rs.run_count ?? 0;
+        const noRunsCls = runCount === 0 ? ' no-runs' : '';
         return `<div class="admin-user-row${noRunsCls}">
           <div><div class="admin-user-email">${u.email || '—'}</div><div class="admin-user-firm">${u.firm_name || u.full_name || '—'}${trialLabel}</div></div>
           <div class="admin-user-firm">${u.full_name || '—'}</div>
@@ -3415,7 +3415,7 @@
       const el = document.getElementById('adminNotifLogs');
       if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No alerts sent yet.</div>'; return; }
       el.innerHTML = logs.slice(0, 20).map(l => {
-        const ts        = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+        const ts = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
         const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
         return `<div class="admin-log-row">
           <span>${ts}</span>
@@ -3430,7 +3430,7 @@
       const el = document.getElementById('adminEmailLogs');
       if (!logs.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No logs yet.</div>'; return; }
       el.innerHTML = logs.slice(0, 20).map(l => {
-        const ts        = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+        const ts = l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
         const statusClr = l.status === 'sent' ? 'var(--green)' : 'var(--red)';
         return `<div class="admin-log-row">
           <span>${ts}</span>
