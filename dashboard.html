@@ -2826,7 +2826,6 @@
         const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';
         const outcomeCls = (outcome !== 'Pending') ? 'color:var(--green);' : 'color:var(--text-3);';
-        console.log('allocation raw:', r.allocation, 'parsed bias:', _alloc.equity_bias);
         return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;color:var(--text-2);">${impliedAction}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
       }).join('');
     }
