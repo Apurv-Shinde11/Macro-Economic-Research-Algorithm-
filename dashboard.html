@@ -2804,13 +2804,22 @@
       document.getElementById('fiiSignal').textContent = fiiSigText + staleSuffix;
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
-      document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || (diiNet > 0 ? 'BUY' : diiNet < 0 ? 'SELL' : '—');
+      const diiSigText = (fiiRaw.dii_signal && fiiRaw.dii_signal !== 'UNKNOWN')
+        ? fiiRaw.dii_signal
+        : (diiNet > 0 ? 'NET BUY' : diiNet < 0 ? 'NET SELL' : '—');
+      document.getElementById('diiSignal').textContent = diiSigText + staleSuffix;
+      document.getElementById('diiSignal').className = 'flow-signal ' + (diiNet > 0 ? 'risk-on' : diiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('flowDate').textContent = dateLabel ? 'Data: ' + dateLabel + staleSuffix : '';
-      document.getElementById('flowNarrative').textContent = flowSig === 'RISK_ON'
-        ? `Combined flows risk-on. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr.`
-        : flowSig === 'RISK_OFF'
-          ? `Risk-off flows. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr. Monitor for regime transition if sustained 3+ sessions.`
-          : `Mixed flows. FII: ₹${Math.round(fiiNet).toLocaleString('en-IN')} Cr, DII: ₹${Math.round(diiNet).toLocaleString('en-IN')} Cr. No directional signal.`;
+      const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
+      const diiAbs = Math.abs(Math.round(diiNet)).toLocaleString('en-IN');
+      const fiiDir = fiiNet < 0 ? 'sold' : 'bought';
+      const diiDir = diiNet > 0 ? 'bought' : 'sold';
+      document.getElementById('flowNarrative').textContent =
+        `FII net ${fiiDir} ₹${fiiAbs} Cr. DII net ${diiDir} ₹${diiAbs} Cr. ` +
+        (fiiNet < 0 && diiNet > 0 ? 'DII absorbing FII outflows — domestic support holding.' :
+          fiiNet > 0 && diiNet > 0 ? 'Both institutional categories net buyers — strong risk-on signal.' :
+            fiiNet < 0 && diiNet < 0 ? 'Both institutional categories net sellers — risk-off pressure.' :
+              'Mixed institutional flows — monitor for directional confirmation.');
     }
 
     function renderHistoryTable(history) {
