@@ -2794,13 +2794,15 @@
 
       const flowSig = fiiRaw.combined_signal || 'NEUTRAL';
       const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
-      const staleSuffix = stale ? ' (cached)' : '';
+      const staleSuffix = (stale && source !== 'bse') ? ' (cached)' : '';
 
       const fiiEl = document.getElementById('fiiNet');
       fiiEl.textContent = fmt(fiiNet); fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
       const diiEl = document.getElementById('diiNet');
       diiEl.textContent = fmt(diiNet); diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
-      document.getElementById('fiiSignal').textContent = (fiiRaw.fii_signal || (fiiNet > 0 ? 'BUY' : fiiNet < 0 ? 'SELL' : '—')) + staleSuffix;
+      const fiiSigText = (fiiRaw.fii_signal && fiiRaw.fii_signal !== 'UNKNOWN') ? fiiRaw.fii_signal : (fiiNet > 0 ? 'NET BUY' : fiiNet < 0 ? 'NET SELL' : '—');
+      document.getElementById('fiiSignal').textContent = fiiSigText + staleSuffix;
+      document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('diiSignal').textContent = fiiRaw.dii_signal || (diiNet > 0 ? 'BUY' : diiNet < 0 ? 'SELL' : '—');
       document.getElementById('flowDate').textContent = dateLabel ? 'Data: ' + dateLabel + staleSuffix : '';
