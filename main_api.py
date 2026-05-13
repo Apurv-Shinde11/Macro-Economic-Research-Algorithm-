@@ -420,7 +420,7 @@ async def get_user_profile(profile: dict = Depends(get_profile)):
 _ticker_cache: dict = {"data": {}, "fetched_at": 0}
 
 @app.get("/api/ticker")
-async def get_ticker(_=Depends(get_current_user)):
+async def get_ticker():
     global _ticker_cache
     if time.time() - _ticker_cache["fetched_at"] < 300 and _ticker_cache["data"]:
         return {"ticker": _ticker_cache["data"], "cached": True}
@@ -444,6 +444,231 @@ async def get_ticker(_=Depends(get_current_user)):
         return {"ticker": result, "cached": False}
     except Exception as e:
         return {"ticker": {}, "error": str(e)}
+    
+# ── Hardcoded policy rates — update when central banks meet ──────────────────
+# Last verified: May 2026 (sources: Fed, ECB, BoJ, PBoC, BoE, RBI official pages)
+_POLICY_RATES = {
+    "US": 4.50,   # US Federal Funds Rate
+    "CN": 3.10,   # PBoC Loan Prime Rate 1Y
+    "DE": 2.40,   # ECB Deposit Facility Rate
+    "JP": 0.50,   # Bank of Japan Policy Rate
+    "GB": 4.25,   # Bank of England Bank Rate
+    "IN": 5.25,   # RBI Repo Rate
+}
+
+# ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
+# Last verified: May 2026 (source: S&P Global Manufacturing PMI releases)
+_PMI_VALUES = {
+    "US": 50.2,   # S&P Global US Manufacturing PMI
+    "CN": 49.8,   # Caixin China Manufacturing PMI
+    "DE": 48.4,   # S&P Global Germany Manufacturing PMI
+    "JP": 48.7,   # au Jibun Bank Japan Manufacturing PMI
+    "GB": 45.4,   # S&P Global UK Manufacturing PMI
+    "IN": 58.8,   # S&P Global India Manufacturing PMI
+}
+
+_ECONOMIES = [
+    {"code": "US", "name": "United States",  "flag": "🇺🇸",
+     "currency_label": "USD", "wb_code": "US",
+     "ticker_currency": None,
+     "ticker_yield": "^TNX"},
+    {"code": "CN", "name": "China",          "flag": "🇨🇳",
+     "currency_label": "CNY", "wb_code": "CN",
+     "ticker_currency": "USDCNY=X",
+     "ticker_yield": None},
+    {"code": "DE", "name": "Germany",        "flag": "🇩🇪",
+     "currency_label": "EUR", "wb_code": "DE",
+     "ticker_currency": "EURUSD=X",
+     "ticker_yield": "^IRDE10"},
+    {"code": "JP", "name": "Japan",          "flag": "🇯🇵",
+     "currency_label": "JPY", "wb_code": "JP",
+     "ticker_currency": "USDJPY=X",
+     "ticker_yield": "^IRJP10"},
+    {"code": "GB", "name": "United Kingdom", "flag": "🇬🇧",
+     "currency_label": "GBP", "wb_code": "GB",
+     "ticker_currency": "GBPUSD=X",
+     "ticker_yield": "^IRGB10Y"},
+    {"code": "IN", "name": "India",          "flag": "🇮🇳",
+     "currency_label": "INR", "wb_code": "IN",
+     "ticker_currency": "USDINR=X",
+     "ticker_yield": None},
+]
+
+_YIELD_FALLBACKS = {
+    "CN": 2.10,
+    "IN": 6.85,
+}
+
+_global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
+
+
+def _wb_fetch(wb_code: str, indicator: str) -> float | None:
+    try:
+        import requests as _req
+        url = (
+            f"https://api.worldbank.org/v2/country/{wb_code}"
+            f"/indicator/{indicator}?format=json&mrv=1"
+        )
+        r = _req.get(url, timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        records = data[1] if isinstance(data, list) and len(data) > 1 else []
+        for rec in records:
+            val = rec.get("value")
+            if val is not None:
+                return round(float(val), 2)
+        return None
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] WB fetch failed {wb_code}/{indicator}: {_e}", flush=True)
+        return None
+
+
+def _derive_macro_signal(gdp: float | None, inflation: float | None) -> str:
+    if gdp is None and inflation is None:
+        return "MONITORING"
+    g = gdp or 0
+    i = inflation or 0
+    if g < 0:
+        return "CONTRACTION"
+    if i > 6:
+        return "INFLATION_PRESSURE"
+    if g < 1:
+        return "SLOWDOWN"
+    if g > 3 and i < 4:
+        return "EXPANDING"
+    return "STABLE_GROWTH"
+
+
+def _fetch_live_economy_data():
+    import yfinance as _yf
+    currency_map = {}
+    yield_map = {}
+    for eco in _ECONOMIES:
+        sym = eco.get("ticker_currency")
+        if sym:
+            try:
+                h = _yf.Ticker(sym).history(period="2d", interval="1d")
+                if len(h) >= 1:
+                    currency_map[eco["code"]] = round(float(h["Close"].iloc[-1]), 4)
+            except Exception as _e:
+                print(f"[GLOBAL_MACRO] Currency fetch failed {sym}: {_e}", flush=True)
+        sym = eco.get("ticker_yield")
+        if sym:
+            try:
+                h = _yf.Ticker(sym).history(period="2d", interval="1d")
+                if len(h) >= 1:
+                    yield_map[eco["code"]] = round(float(h["Close"].iloc[-1]), 2)
+            except Exception as _e:
+                print(f"[GLOBAL_MACRO] Yield fetch failed {sym}: {_e}", flush=True)
+    india_yc = _yc_cache.get("data") or {}
+    india_yields = india_yc.get("india_yields", {})
+    if india_yields.get("10Y"):
+        yield_map["IN"] = round(float(india_yields["10Y"]), 2)
+    return currency_map, yield_map
+
+
+def _build_economy_record(eco, gdp, inflation, unemployment, currency_map, yield_map):
+    code = eco["code"]
+    raw_fx = currency_map.get(code)
+    currency_vs_usd = 1.0 if code == "US" else (round(raw_fx, 4) if raw_fx else None)
+    yield_10y = yield_map.get(code) or _YIELD_FALLBACKS.get(code)
+    return {
+        "code":            code,
+        "name":            eco["name"],
+        "flag":            eco["flag"],
+        "currency_label":  eco["currency_label"],
+        "gdp_growth":      gdp,
+        "inflation":       inflation,
+        "policy_rate":     _POLICY_RATES.get(code),
+        "pmi":             _PMI_VALUES.get(code),
+        "unemployment":    unemployment,
+        "currency_vs_usd": currency_vs_usd,
+        "yield_10y":       yield_10y,
+        "macro_signal":    _derive_macro_signal(gdp, inflation),
+        "last_updated":    datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/global-macro")
+async def get_global_macro():
+    global _global_macro_cache_mem
+    cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
+    if _global_macro_cache_mem.get("data") and cache_age < 21600:
+        return {**_global_macro_cache_mem["data"], "cached": True}
+    try:
+        cutoff = (
+            datetime.now(timezone.utc)
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat()
+        )
+        cached = (
+            _supabase.table("global_macro_cache")
+            .select("*").gte("last_updated", cutoff).execute()
+        )
+        if cached.data and len(cached.data) >= 6:
+            result = {
+                "economies":       cached.data,
+                "page_updated_at": max(e["last_updated"] for e in cached.data),
+                "cached":          True,
+            }
+            _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+            return result
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
+
+    print("[GLOBAL_MACRO] Fetching fresh data...", flush=True)
+    try:
+        currency_map, yield_map = _fetch_live_economy_data()
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] Live data fetch failed: {_e}", flush=True)
+        currency_map, yield_map = {}, {}
+
+    economies = []
+    for eco in _ECONOMIES:
+        wb = eco["wb_code"]
+        gdp          = _wb_fetch(wb, "NY.GDP.MKTP.KD.ZG")
+        inflation    = _wb_fetch(wb, "FP.CPI.TOTL.ZG")
+        unemployment = _wb_fetch(wb, "SL.UEM.TOTL.ZS")
+        record = _build_economy_record(
+            eco, gdp, inflation, unemployment, currency_map, yield_map
+        )
+        economies.append(record)
+        try:
+            _supabase.table("global_macro_cache").upsert(
+                {
+                    "economy":         eco["code"],
+                    "gdp_growth":      gdp,
+                    "inflation":       inflation,
+                    "policy_rate":     _POLICY_RATES.get(eco["code"]),
+                    "pmi":             _PMI_VALUES.get(eco["code"]),
+                    "unemployment":    unemployment,
+                    "currency_vs_usd": record.get("currency_vs_usd"),
+                    "yield_10y":       record.get("yield_10y"),
+                    "last_updated":    datetime.now(timezone.utc).isoformat(),
+                    "data_sources": {
+                        "gdp":          "World Bank NY.GDP.MKTP.KD.ZG",
+                        "inflation":    "World Bank FP.CPI.TOTL.ZG",
+                        "unemployment": "World Bank SL.UEM.TOTL.ZS",
+                        "policy_rate":  "Central bank official — hardcoded May 2026",
+                        "pmi":          "S&P Global — hardcoded May 2026",
+                        "currency":     "yfinance live",
+                        "yield":        "yfinance live / hardcoded fallback",
+                    },
+                },
+                on_conflict="economy",
+            ).execute()
+        except Exception as _e:
+            print(f"[GLOBAL_MACRO] Supabase upsert failed {eco['code']}: {_e}", flush=True)
+        print(f"[GLOBAL_MACRO] {eco['code']} — signal: {record['macro_signal']}", flush=True)
+
+    result = {
+        "economies":       economies,
+        "page_updated_at": datetime.now(timezone.utc).isoformat(),
+        "cached":          False,
+    }
+    _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+    return result
 
 @app.get("/api/calendar")
 async def get_calendar(days_ahead: int = 120, _=Depends(get_current_user)):
