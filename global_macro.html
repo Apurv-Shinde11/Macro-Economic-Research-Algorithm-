@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EconIq — Global Macro Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══ DARK THEME (default) ══ */
+    :root {
+      --bg:         #04060f;
+      --bg-2:       #080d1c;
+      --bg-3:       #0d1428;
+      --bg-4:       #111d38;
+      --bg-glass:   rgba(8,13,28,0.70);
+      --border:     rgba(99,132,255,0.10);
+      --border-2:   rgba(99,132,255,0.20);
+      --text:       #e8eeff;
+      --text-2:     #7a8baa;
+      --text-3:     #2e3d58;
+      --blue:       #4f83ff;
+      --blue-light: #7aa3ff;
+      --blue-dim:   rgba(79,131,255,0.10);
+      --indigo:     #6366f1;
+      --violet:     #8b5cf6;
+      --cyan:       #22d3ee;
+      --green:      #10d48a;
+      --green-dim:  rgba(16,212,138,0.10);
+      --amber:      #fbbf24;
+      --amber-dim:  rgba(251,191,36,0.10);
+      --red:        #f87171;
+      --red-dim:    rgba(248,113,113,0.10);
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-sans:  'DM Sans', sans-serif;
+      --font-mono:  'JetBrains Mono', monospace;
+      --nav-h:      64px;
+      --radius:     8px;
+      --radius-lg:  14px;
+      --card-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06);
+    }
+
+    /* ══ LIGHT THEME ══ */
+    html.light {
+      --bg:         #f4f6fc;
+      --bg-2:       #ffffff;
+      --bg-3:       #eaf0fb;
+      --bg-4:       #dde8f8;
+      --bg-glass:   rgba(255,255,255,0.80);
+      --border:     rgba(79,131,255,0.12);
+      --border-2:   rgba(79,131,255,0.22);
+      --text:       #0d1120;
+      --text-2:     #4a5872;
+      --text-3:     #9aaabb;
+      --blue:       #2563eb;
+      --blue-light: #3b82f6;
+      --blue-dim:   rgba(37,99,235,0.08);
+      --indigo:     #4f46e5;
+      --violet:     #7c3aed;
+      --cyan:       #0891b2;
+      --green:      #059669;
+      --green-dim:  rgba(5,150,105,0.09);
+      --amber:      #b45309;
+      --amber-dim:  rgba(180,83,9,0.08);
+      --red:        #dc2626;
+      --red-dim:    rgba(220,38,38,0.08);
+      --card-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(79,131,255,0.08);
+    }
+
+    /* ══ TRANSITIONS ══ */
+    body, nav, .detail-card, .detail-panel, .summary-card {
+      transition: background 0.32s ease, color 0.32s ease, border-color 0.32s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ══ GRID TEXTURE ══ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79,131,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,131,255,0.028) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    html.light body::before {
+      background-image:
+        linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px);
+    }
+
+    /* ══ AURORA ══ */
+    .aurora {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(110px);
+      opacity: 0.10;
+      animation: auroraFloat 22s ease-in-out infinite;
+    }
+    .aurora-blob:nth-child(1) {
+      width: 800px; height: 600px;
+      background: radial-gradient(circle, #4f83ff 0%, #6366f1 50%, transparent 70%);
+      top: -250px; left: -200px; animation-duration: 24s;
+    }
+    .aurora-blob:nth-child(2) {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #8b5cf6 0%, #4f83ff 50%, transparent 70%);
+      top: 40%; right: -100px; animation-duration: 19s; animation-delay: -8s;
+    }
+    .aurora-blob:nth-child(3) {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #10d48a 0%, #22d3ee 50%, transparent 70%);
+      bottom: -100px; left: 35%; animation-duration: 28s; animation-delay: -16s;
+    }
+    html.light .aurora-blob { opacity: 0.06; }
+    @keyframes auroraFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(60px,-40px) scale(1.06); }
+      66%      { transform: translate(-40px,55px) scale(0.96); }
+    }
+
+    /* ══ NAV ══ */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(4,6,15,0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    html.light .nav {
+      background: rgba(244,246,252,0.80);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--text) 30%, var(--blue-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .theme-toggle {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border-2);
+      background: rgba(79,131,255,0.07);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background 0.2s, border-color 0.2s, transform 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .theme-toggle:hover { border-color: var(--blue); transform: rotate(15deg); }
+    .theme-toggle .icon-sun,
+    .theme-toggle .icon-moon {
+      position: absolute;
+      transition: opacity 0.3s ease, transform 0.4s ease;
+    }
+    .theme-toggle .icon-sun  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+    .theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+    .btn-sentinel {
+      font-family: var(--font-sans);
+      font-size: 13px; font-weight: 600;
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      color: #fff;
+      text-decoration: none;
+      border: none; cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+    .btn-sentinel:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ══ PAGE MAIN ══ */
+    .page-main {
+      position: relative;
+      z-index: 1;
+      padding-top: calc(var(--nav-h) + 32px);
+      padding-bottom: 60px;
+    }
+
+    /* ══ PAGE HEADER ══ */
+    .page-header {
+      text-align: center;
+      padding: 24px 28px 32px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .page-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--text-2);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* ══ MAP SECTION ══ */
+    .map-section {
+      padding: 0 20px;
+      max-width: 1100px;
+      margin: 0 auto 32px;
+    }
+    .map-wrap {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      position: relative;
+    }
+    #world-map {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .map-loading {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-3);
+    }
+    /* Marker hover */
+    .eco-marker { cursor: pointer; }
+    .eco-marker:hover .marker-dot { filter: brightness(1.3); }
+
+    /* ══ DETAIL PANEL ══ */
+    .detail-panel {
+      max-width: 1100px;
+      margin: 0 auto 40px;
+      padding: 0 20px;
+    }
+    .detail-empty {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .detail-inner {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      animation: panelIn 0.25s ease;
+    }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Strip */
+    .detail-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .detail-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .detail-flag { font-size: 28px; line-height: 1; }
+    .detail-name {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .home-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(245,158,11,0.15);
+      color: #F59E0B;
+      border: 1px solid rgba(245,158,11,0.3);
+      vertical-align: middle;
+    }
+    .detail-updated {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+    .signal-badge {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+
+    /* Cards grid */
+    .detail-primary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-secondary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-card {
+      padding: 18px 22px;
+      border-right: 1px solid var(--border);
+    }
+    .detail-card:last-child { border-right: none; }
+    .card-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .card-value.mono-sm { font-size: 16px; }
+    .card-sub {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+    .live-badge {
+      background: var(--red-dim);
+      color: var(--red);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      animation: livePulse 2s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    /* Summary card */
+    .detail-summary {
+      padding: 20px 24px;
+    }
+    .summary-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+    .summary-text {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    /* ══ CTA SECTION ══ */
+    .cta-section {
+      max-width: 700px;
+      margin: 0 auto 40px;
+      padding: 0 20px;
+      text-align: center;
+    }
+    .cta-inner {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      box-shadow: var(--card-shadow);
+    }
+    .cta-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .cta-sub {
+      font-size: 14px;
+      color: var(--text-2);
+      margin-bottom: 24px;
+    }
+    .cta-btn {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 32px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      color: #fff;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .cta-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ══ FOOTER ══ */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-logo {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+    }
+    .footer-sources {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 768px) {
+      .nav { padding: 0 16px; }
+      .page-main { padding-top: calc(var(--nav-h) + 16px); }
+      .map-section, .detail-panel, .cta-section { padding: 0 12px; }
+      .detail-primary { grid-template-columns: repeat(2, 1fr); }
+      .detail-primary .detail-card:nth-child(2) { border-right: none; }
+      .detail-primary .detail-card:nth-child(3),
+      .detail-primary .detail-card:nth-child(4) { border-top: 1px solid var(--border); }
+      .detail-secondary { grid-template-columns: repeat(3, 1fr); }
+      .card-value { font-size: 18px; }
+      .card-value.mono-sm { font-size: 13px; }
+      .detail-strip { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 520px) {
+      .detail-secondary { grid-template-columns: repeat(1, 1fr); }
+      .detail-secondary .detail-card { border-right: none; border-top: 1px solid var(--border); }
+      .detail-secondary .detail-card:first-child { border-top: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="aurora">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+  </div>
+
+  <!-- ══ NAV ══ -->
+  <nav class="nav">
+    <a class="nav-logo" href="landing_page.html">EconIq</a>
+    <div class="nav-right">
+      <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+      </button>
+      <a class="btn-sentinel" href="login.html">Access Sentinel →</a>
+    </div>
+  </nav>
+
+  <main class="page-main">
+
+    <!-- ══ HEADER ══ -->
+    <div class="page-header">
+      <div class="page-eyebrow">Live Intelligence</div>
+      <h1 class="page-title">Global Macro Intelligence</h1>
+      <p class="page-subtitle">Click any economy on the map to explore GDP, inflation, policy rates, and macro regime signals.</p>
+    </div>
+
+    <!-- ══ MAP ══ -->
+    <section class="map-section">
+      <div class="map-wrap">
+        <div class="map-loading" id="map-loading">Loading macro data…</div>
+        <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ocean -->
+          <rect width="1000" height="500" fill="var(--bg)"/>
+
+          <!-- ── Continents ── -->
+
+          <!-- North America -->
+          <path d="M 62,88 L 178,58 L 292,68 L 330,106 L 322,150 L 295,182 L 260,208 L 224,228 L 198,252 L 178,284 L 156,288 L 134,268 L 108,242 L 84,212 L 64,174 L 60,140 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Greenland -->
+          <path d="M 284,38 L 342,30 L 373,47 L 370,79 L 350,103 L 320,113 L 291,100 L 274,73 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- South America -->
+          <path d="M 178,284 L 242,268 L 297,276 L 316,313 L 320,360 L 303,406 L 274,447 L 248,470 L 218,464 L 197,437 L 186,393 L 178,348 L 174,307 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Europe (contains GB 468,148 and DE 490,160) -->
+          <path d="M 430,121 L 470,109 L 510,113 L 546,127 L 562,151 L 558,177 L 538,196 L 510,213 L 484,219 L 458,213 L 434,199 L 427,175 L 429,149 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Scandinavia -->
+          <path d="M 470,109 L 491,86 L 513,91 L 517,109 L 502,115 L 481,112 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Africa -->
+          <path d="M 436,220 L 480,209 L 524,213 L 558,230 L 575,266 L 577,314 L 564,364 L 546,407 L 521,435 L 495,445 L 470,435 L 452,401 L 440,356 L 435,309 L 433,266 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Russia / North Asia (top band) -->
+          <path d="M 458,89 L 547,69 L 648,63 L 751,66 L 845,77 L 897,98 L 916,124 L 891,145 L 839,144 L 776,131 L 709,119 L 645,113 L 579,119 L 541,131 L 511,143 L 489,149 L 465,141 L 458,116 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Asia main (IN 625,240 and CN 685,205) -->
+          <path d="M 511,143 L 541,131 L 579,119 L 645,113 L 709,119 L 757,130 L 768,153 L 757,178 L 749,203 L 742,232 L 714,257 L 686,271 L 653,279 L 618,273 L 581,261 L 556,246 L 534,228 L 513,207 L 503,185 L 502,162 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Indian subcontinent peninsula extension -->
+          <path d="M 618,273 L 637,280 L 642,298 L 635,314 L 622,316 L 612,298 L 609,280 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Southeast Asia peninsula -->
+          <path d="M 686,271 L 712,258 L 734,264 L 745,283 L 740,308 L 720,318 L 698,310 L 682,292 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Japan (JP marker 770,190) -->
+          <path d="M 762,178 L 779,174 L 788,184 L 784,200 L 770,205 L 760,197 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- Australia -->
+          <path d="M 718,338 L 795,328 L 846,341 L 864,370 L 857,410 L 831,436 L 791,441 L 752,429 L 724,406 L 714,373 Z"
+                fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.8"/>
+
+          <!-- New Zealand (two islands) -->
+          <path d="M 875,398 L 887,388 L 895,399 L 892,418 L 880,422 Z" fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.7"/>
+          <path d="M 877,425 L 890,420 L 897,432 L 890,447 L 877,444 Z" fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.7"/>
+
+          <!-- Antarctica strip -->
+          <rect x="0" y="478" width="1000" height="22" fill="var(--bg-3)" stroke="var(--border)" stroke-width="0.5"/>
+
+          <!-- ── Markers group (filled by JS) ── -->
+          <g id="markers-group"></g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ══ DETAIL PANEL ══ -->
+    <section class="detail-panel">
+      <div id="detail-content">
+        <div class="detail-empty">
+          <span style="font-size:18px;">←</span>
+          <span>Select an economy on the map to view macro details</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ CTA ══ -->
+    <section class="cta-section">
+      <div class="cta-inner">
+        <div class="cta-title">Run India Regime Analysis</div>
+        <p class="cta-sub">Access the full SENTINEL engine — real-time regime detection, allocation signals, and FII/DII flow analytics.</p>
+        <a class="cta-btn" href="login.html">Access Sentinel →</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span class="footer-logo">EconIq</span>
+    <span class="footer-sources">Data: World Bank · yFinance · S&amp;P Global PMI · Central bank official sources</span>
+  </footer>
+
+  <script>
+    const RAIL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+
+    const ECONOMIES_META = {
+      US: { cx: 180, cy: 195, cb: 'Federal Reserve' },
+      CN: { cx: 685, cy: 205, cb: 'PBoC (People\'s Bank of China)' },
+      DE: { cx: 490, cy: 160, cb: 'ECB (European Central Bank)' },
+      JP: { cx: 770, cy: 190, cb: 'Bank of Japan' },
+      GB: { cx: 468, cy: 148, cb: 'Bank of England' },
+      IN: { cx: 625, cy: 240, cb: 'RBI (Reserve Bank of India)', home: true },
+    };
+
+    const SIG_COLOR = {
+      EXPANDING:          'var(--green)',
+      STABLE_GROWTH:      'var(--blue)',
+      INFLATION_PRESSURE: 'var(--amber)',
+      SLOWDOWN:           'var(--amber)',
+      CONTRACTION:        'var(--red)',
+      MONITORING:         'var(--text-3)',
+    };
+    const SIG_BG = {
+      EXPANDING:          'var(--green-dim)',
+      STABLE_GROWTH:      'var(--blue-dim)',
+      INFLATION_PRESSURE: 'var(--amber-dim)',
+      SLOWDOWN:           'var(--amber-dim)',
+      CONTRACTION:        'var(--red-dim)',
+      MONITORING:         'rgba(46,61,88,0.3)',
+    };
+    const SIG_LABEL = {
+      EXPANDING:          'Expanding',
+      STABLE_GROWTH:      'Stable Growth',
+      INFLATION_PRESSURE: 'Inflation Pressure',
+      SLOWDOWN:           'Slowdown',
+      CONTRACTION:        'Contraction',
+      MONITORING:         'Monitoring',
+    };
+
+    // SVG doesn't resolve CSS custom properties in presentation attributes,
+    // so we need resolved hex/rgba values for stroke/fill in SVG elements.
+    // We use inline style instead, which DOES resolve CSS vars.
+    const SIG_COLOR_RAW = {
+      EXPANDING:          '#10d48a',
+      STABLE_GROWTH:      '#4f83ff',
+      INFLATION_PRESSURE: '#fbbf24',
+      SLOWDOWN:           '#fbbf24',
+      CONTRACTION:        '#f87171',
+      MONITORING:         '#2e3d58',
+    };
+    const SIG_COLOR_RAW_LIGHT = {
+      EXPANDING:          '#059669',
+      STABLE_GROWTH:      '#2563eb',
+      INFLATION_PRESSURE: '#b45309',
+      SLOWDOWN:           '#b45309',
+      CONTRACTION:        '#dc2626',
+      MONITORING:         '#9aaabb',
+    };
+
+    function getSignalColor(signal) {
+      const isLight = document.documentElement.classList.contains('light');
+      return isLight ? (SIG_COLOR_RAW_LIGHT[signal] || '#9aaabb') : (SIG_COLOR_RAW[signal] || '#2e3d58');
+    }
+
+    let economiesData = {};
+
+    /* ── Theme ── */
+    function initTheme() {
+      if (localStorage.getItem('econiq-theme') === 'light') {
+        document.documentElement.classList.add('light');
+      }
+    }
+    function toggleTheme() {
+      const isLight = document.documentElement.classList.toggle('light');
+      localStorage.setItem('econiq-theme', isLight ? 'light' : 'dark');
+      // Re-render markers with updated colors
+      const economies = Object.values(economiesData);
+      if (economies.length) renderMarkers(economies);
+    }
+
+    /* ── Helpers ── */
+    function fmt(val, dec, suffix) {
+      if (val == null || val === undefined) return '—';
+      return val.toFixed(dec) + (suffix || '');
+    }
+
+    function relTime(isoStr) {
+      if (!isoStr) return 'Unknown';
+      const h = Math.floor((Date.now() - new Date(isoStr).getTime()) / 3600000);
+      if (h < 1) return 'Just now';
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      if (d < 30) return d + 'd ago';
+      return Math.floor(d / 30) + 'mo ago';
+    }
+
+    function fmtCurrency(eco) {
+      const val = eco.currency_vs_usd;
+      if (eco.code === 'US') return '1.0000 USD';
+      if (val == null) return '—';
+      if (eco.code === 'DE') return val.toFixed(4) + ' EUR/USD';
+      if (eco.code === 'GB') return val.toFixed(4) + ' GBP/USD';
+      if (eco.code === 'CN') return val.toFixed(4) + ' USD/CNY';
+      if (eco.code === 'JP') return val.toFixed(2) + ' USD/JPY';
+      if (eco.code === 'IN') return val.toFixed(2) + ' USD/INR';
+      return val.toFixed(4) + ' ' + eco.currency_label;
+    }
+
+    function gdpColor(v) {
+      if (v == null) return 'var(--text-2)';
+      if (v >= 3)  return 'var(--green)';
+      if (v >= 1)  return 'var(--blue)';
+      if (v >= 0)  return 'var(--amber)';
+      return 'var(--red)';
+    }
+    function infColor(v) {
+      if (v == null) return 'var(--text-2)';
+      if (v <= 2.5) return 'var(--green)';
+      if (v <= 4)   return 'var(--blue)';
+      if (v <= 6)   return 'var(--amber)';
+      return 'var(--red)';
+    }
+    function pmiColor(v) {
+      if (v == null) return 'var(--text-2)';
+      if (v >= 52) return 'var(--green)';
+      if (v >= 50) return 'var(--blue)';
+      if (v >= 48) return 'var(--amber)';
+      return 'var(--red)';
+    }
+
+    function buildSummary(eco) {
+      const meta = ECONOMIES_META[eco.code];
+      const cb   = meta ? meta.cb : 'The central bank';
+      const nm   = eco.name;
+      const gdp  = eco.gdp_growth  != null ? eco.gdp_growth.toFixed(1)  + '%' : 'unknown';
+      const inf  = eco.inflation   != null ? eco.inflation.toFixed(1)   + '%' : 'unknown';
+      const rate = eco.policy_rate != null ? eco.policy_rate.toFixed(2) + '%' : 'unknown';
+      switch (eco.macro_signal) {
+        case 'EXPANDING':
+          return `${nm} is in a solid expansion phase. ${cb} maintains an accommodative-to-neutral stance as GDP growth of ${gdp} outpaces price pressures, with inflation contained at ${inf}.`;
+        case 'STABLE_GROWTH':
+          return `${nm} is growing steadily. ${cb} holds policy rates at ${rate} with inflation at ${inf} — a balanced macro setup that supports risk assets and investment flows.`;
+        case 'INFLATION_PRESSURE':
+          return `Inflation remains elevated in ${nm} at ${inf}, keeping ${cb} in a hawkish posture. GDP growth of ${gdp} provides a cushion but the rising cost of capital weighs on valuations.`;
+        case 'SLOWDOWN':
+          return `${nm} is showing signs of slowing with GDP growth at ${gdp}. ${cb} may face pressure to ease, but inflation at ${inf} constrains the pace and depth of any rate cuts.`;
+        case 'CONTRACTION':
+          return `${nm} is in contraction with GDP growth at ${gdp}. ${cb} is under pressure to ease policy aggressively as economic activity deteriorates and recessionary risks mount.`;
+        default:
+          return `Current macro data for ${nm} is limited. ${cb} continues to monitor economic conditions and stands ready to act as data becomes available.`;
+      }
+    }
+
+    /* ── SVG Markers ── */
+    const NS = 'http://www.w3.org/2000/svg';
+    function mkEl(tag, attrs) {
+      const el = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    }
+
+    function renderMarkers(economies) {
+      const g = document.getElementById('markers-group');
+      g.innerHTML = '';
+      economies.forEach(eco => {
+        const meta = ECONOMIES_META[eco.code];
+        if (!meta) return;
+        const { cx, cy, home } = meta;
+        const color = getSignalColor(eco.macro_signal);
+        const outerR  = home ? 26 : 18;
+        const innerR  = 7;
+        const durStart = outerR - 4;
+        const durEnd   = outerR + 7;
+
+        const grp = mkEl('g', { class: 'eco-marker', 'data-code': eco.code });
+        grp.style.cursor = 'pointer';
+
+        // Pulse ring
+        const ring = mkEl('circle', { cx, cy, r: outerR, fill: 'none', 'stroke-width': '1.5', opacity: '0.55' });
+        ring.style.stroke = color;
+        const aR = mkEl('animate', { attributeName: 'r', values: `${durStart};${durEnd};${durStart}`, dur: '2.8s', repeatCount: 'indefinite' });
+        const aO = mkEl('animate', { attributeName: 'opacity', values: '0.55;0;0.55', dur: '2.8s', repeatCount: 'indefinite' });
+        ring.appendChild(aR);
+        ring.appendChild(aO);
+
+        // Inner dot
+        const dot = mkEl('circle', { cx, cy, r: innerR, opacity: '0.9', class: 'marker-dot' });
+        dot.style.fill = home ? '#F59E0B' : color;
+
+        // Hit target
+        const hit = mkEl('circle', { cx, cy, r: '24', fill: 'transparent' });
+
+        // Flag label
+        const label = mkEl('text', { x: cx, y: cy - (outerR + 8), 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '14' });
+        label.textContent = eco.flag + (home ? ' 🏠' : '');
+
+        grp.appendChild(ring);
+        grp.appendChild(dot);
+        grp.appendChild(label);
+        grp.appendChild(hit);
+
+        grp.addEventListener('click', () => selectEconomy(eco.code));
+        g.appendChild(grp);
+      });
+    }
+
+    /* ── Select Economy ── */
+    let selectedCode = null;
+
+    function selectEconomy(code) {
+      selectedCode = code;
+      localStorage.setItem('econiq_selected_economy', code);
+      // Highlight selected
+      document.querySelectorAll('.eco-marker').forEach(grp => {
+        const isSelected = grp.getAttribute('data-code') === code;
+        grp.style.opacity = isSelected ? '1' : '0.75';
+      });
+      const eco = economiesData[code];
+      if (eco) renderDetail(eco);
+    }
+
+    function renderDetail(eco) {
+      const meta    = ECONOMIES_META[eco.code];
+      const sigCol  = SIG_COLOR[eco.macro_signal]  || 'var(--text-3)';
+      const sigBg   = SIG_BG[eco.macro_signal]     || 'rgba(0,0,0,0.1)';
+      const sigLbl  = SIG_LABEL[eco.macro_signal]  || (eco.macro_signal || 'Unknown').replace(/_/g,' ');
+      const isHome  = meta && meta.home;
+
+      document.getElementById('detail-content').innerHTML = `
+        <div class="detail-inner">
+          <div class="detail-strip">
+            <div class="detail-left">
+              <span class="detail-flag">${eco.flag || ''}</span>
+              <div>
+                <div class="detail-name">
+                  ${eco.name}
+                  ${isHome ? '<span class="home-badge">HOME</span>' : ''}
+                </div>
+                <div class="detail-updated">Updated ${relTime(eco.last_updated)}</div>
+              </div>
+            </div>
+            <span class="signal-badge" style="background:${sigBg};color:${sigCol};border-color:${sigCol};">${sigLbl}</span>
+          </div>
+
+          <div class="detail-primary">
+            <div class="detail-card">
+              <div class="card-label">GDP Growth</div>
+              <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth,1,'%')}</div>
+              <div class="card-sub">Annual (latest)</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">Inflation</div>
+              <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation,1,'%')}</div>
+              <div class="card-sub">CPI YoY</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">Policy Rate</div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.policy_rate,2,'%')}</div>
+              <div class="card-sub">${(meta && meta.cb) || 'Central Bank'}</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">PMI</div>
+              <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi,1)}</div>
+              <div class="card-sub">Manufacturing</div>
+            </div>
+          </div>
+
+          <div class="detail-secondary">
+            <div class="detail-card">
+              <div class="card-label">Unemployment</div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment,1,'%')}</div>
+              <div class="card-sub">Latest</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">Currency</div>
+              <div class="card-value mono-sm" style="color:var(--text)">${fmtCurrency(eco)}</div>
+              <div class="card-sub">vs USD</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">Yield 10Y <span class="live-badge">LIVE</span></div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.yield_10y,2,'%')}</div>
+              <div class="card-sub">Government Bond</div>
+            </div>
+          </div>
+
+          <div class="detail-summary">
+            <div class="summary-label">Macro Context</div>
+            <p class="summary-text">${buildSummary(eco)}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ── Fetch ── */
+    async function loadMacroData() {
+      const loadEl = document.getElementById('map-loading');
+      try {
+        const res  = await fetch(`${RAIL}/api/global-macro`);
+        const data = await res.json();
+        const economies = data.economies || [];
+        economies.forEach(eco => { economiesData[eco.code] = eco; });
+        renderMarkers(economies);
+        if (loadEl) loadEl.style.display = 'none';
+        // Restore or default to India
+        const last = localStorage.getItem('econiq_selected_economy');
+        const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
+        if (code) selectEconomy(code);
+      } catch (err) {
+        console.error('Global macro fetch failed:', err);
+        if (loadEl) loadEl.textContent = 'Failed to load data. Please refresh.';
+      }
+    }
+
+    // 30-minute refresh
+    function scheduleRefresh() {
+      setTimeout(() => { loadMacroData().then(scheduleRefresh); }, 30 * 60 * 1000);
+    }
+
+    /* ── Init ── */
+    initTheme();
+    document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+    loadMacroData();
+    scheduleRefresh();
+  </script>
+</body>
+</html>
