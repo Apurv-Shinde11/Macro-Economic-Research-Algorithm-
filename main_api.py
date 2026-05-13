@@ -497,6 +497,9 @@ _ECONOMIES = [
 _YIELD_FALLBACKS = {
     "CN": 2.10,
     "IN": 6.85,
+    "DE": 2.45,   
+    "JP": 1.45,   
+    "GB": 4.42,
 }
 
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
