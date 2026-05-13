@@ -3449,8 +3449,8 @@
         <tbody>${stats.map(r => `<tr>
           <td>${(r.regime || '—').replace(/_/g, ' ')}</td>
           <td style="font-family:var(--font-mono);">${r.count}</td>
-          <td style="font-family:var(--font-mono);">${Math.round(r.avg_conf || 0)}%</td>
-          <td style="font-family:var(--font-mono);font-size:10px;">${r.last_run ? new Date(r.last_run).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
+          <td style="font-family:var(--font-mono);">${Math.round(r.avg_confidence || 0)}%</td>
+          <td style="font-family:var(--font-mono);font-size:10px;">${r.last_called ? new Date(r.last_called).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
         </tr>`).join('')}</tbody>
       </table>`;
     }
