@@ -485,59 +485,98 @@ async def update_notif_prefs(body: NotificationPrefsUpdate, profile: dict = Depe
 
 @app.get("/api/admin/stats")
 async def get_admin_stats(profile: dict = Depends(require_admin)):
-    users         = _supabase.table("profiles").select("id, email, full_name, firm_name, tier, trial_ends_at").execute()
-    email_logs    = _supabase.table("email_logs").select("*").order("sent_at", desc=True).limit(50).execute()
-    notif_logs    = _supabase.table("notification_logs").select("*").order("sent_at", desc=True).limit(50).execute()
-    regime_alerts = _supabase.table("regime_alerts").select("*").order("created_at", desc=True).limit(20).execute()
+    try:
+        users = _supabase.table("profiles").select(
+            "id, email, full_name, firm_name, tier, trial_ends_at, created_at, last_login"
+        ).execute()
 
-    today_runs = _supabase.table("runs").select("id", count="exact") \
-        .gte("run_at", datetime.now(timezone.utc).date().isoformat()).execute()
-    total_runs = _supabase.table("runs").select("id", count="exact").execute()
+        email_logs = _supabase.table("email_logs").select(
+            "id, sent_at, recipient, user_id, subject, regime, status, error"
+        ).order("sent_at", desc=True).limit(50).execute()
 
-    run_stats_raw = _supabase.table("runs").select("user_id, run_at") \
-        .order("run_at", desc=True).execute()
-    run_stats: dict = {}
-    for row in (run_stats_raw.data or []):
-        uid = row["user_id"]
-        if uid not in run_stats:
-            run_stats[uid] = {"last_run": row["run_at"], "run_count": 0}
-        run_stats[uid]["run_count"] += 1
+        notif_logs = _supabase.table("notification_logs").select(
+            "id, user_id, alert_type, channel, subject, sent_at, status"
+        ).order("sent_at", desc=True).limit(50).execute()
 
-    regime_raw = _supabase.table("runs").select("regime, confidence, run_at").execute()
-    regime_map: dict = {}
-    for row in (regime_raw.data or []):
-        r = row.get("regime") or "UNKNOWN"
-        if r not in regime_map:
-            regime_map[r] = {"regime": r, "count": 0, "conf_sum": 0.0, "last_run": None}
-        regime_map[r]["count"]    += 1
-        regime_map[r]["conf_sum"] += row.get("confidence") or 0
-        ts = row.get("run_at")
-        if ts and (not regime_map[r]["last_run"] or ts > regime_map[r]["last_run"]):
-            regime_map[r]["last_run"] = ts
-    regime_stats = sorted(
-        [{"regime": v["regime"], "count": v["count"],
-          "avg_conf": round(v["conf_sum"] / v["count"], 2) if v["count"] else 0,
-          "last_run": v["last_run"]}
-         for v in regime_map.values()],
-        key=lambda x: x["count"], reverse=True
-    )
+        regime_alerts = _supabase.table("regime_alerts").select(
+            "id, alerted_at, previous_regime, new_regime, confidence, users_notified"
+        ).order("alerted_at", desc=True).limit(20).execute()
 
-    return {
-        "users":              users.data or [],
-        "email_logs":         email_logs.data or [],
-        "notification_logs":  notif_logs.data or [],
-        "regime_alerts":      regime_alerts.data or [],
-        "run_stats":          run_stats,
-        "regime_stats":       regime_stats,
-        "summary": {
-            "total_users":  len(users.data or []),
-            "paid_users":   sum(1 for u in (users.data or []) if u.get("tier") == "paid"),
-            "trial_users":  sum(1 for u in (users.data or []) if u.get("tier") == "trial"),
-            "active_jobs":  len([j for j in _jobs.values() if j["status"] == "running"]),
-            "today_runs":   today_runs.count or 0,
-            "total_runs":   total_runs.count or 0,
-        },
-    }
+        # Run stats — today and all time
+        today_str = datetime.now(timezone.utc).date().isoformat()
+        today_runs = _supabase.table("runs").select(
+            "id", count="exact"
+        ).gte("run_at", today_str).execute()
+        total_runs = _supabase.table("runs").select(
+            "id", count="exact"
+        ).execute()
+
+        # Per-user run stats
+        all_runs = _supabase.table("runs").select(
+            "user_id, run_at"
+        ).order("run_at", desc=True).execute()
+
+        run_stats = {}
+        for r in (all_runs.data or []):
+            uid = r["user_id"]
+            if uid not in run_stats:
+                run_stats[uid] = {"last_run": r["run_at"], "run_count": 0}
+            run_stats[uid]["run_count"] += 1
+
+        # Regime frequency and avg confidence
+        regime_data = _supabase.table("runs").select(
+            "regime, confidence, run_at"
+        ).execute()
+
+        regime_map = {}
+        for r in (regime_data.data or []):
+            key = r["regime"] or "UNKNOWN"
+            if key not in regime_map:
+                regime_map[key] = {
+                    "regime": key,
+                    "count": 0,
+                    "conf_total": 0,
+                    "last_called": r["run_at"]
+                }
+            regime_map[key]["count"] += 1
+            regime_map[key]["conf_total"] += (r["confidence"] or 0)
+            if r["run_at"] > regime_map[key]["last_called"]:
+                regime_map[key]["last_called"] = r["run_at"]
+
+        regime_stats = [
+            {
+                "regime": v["regime"],
+                "count": v["count"],
+                "avg_confidence": round(
+                    (v["conf_total"] / v["count"]) * 100, 1
+                ) if v["count"] else 0,
+                "last_called": v["last_called"],
+            }
+            for v in sorted(
+                regime_map.values(), key=lambda x: x["count"], reverse=True
+            )
+        ]
+
+        return {
+            "users":          users.data or [],
+            "email_logs":     email_logs.data or [],
+            "notification_logs": notif_logs.data or [],
+            "regime_alerts":  regime_alerts.data or [],
+            "run_stats":      run_stats,
+            "regime_stats":   regime_stats,
+            "summary": {
+                "total_users":  len(users.data or []),
+                "paid_users":   sum(1 for u in (users.data or []) if u.get("tier") == "paid"),
+                "trial_users":  sum(1 for u in (users.data or []) if u.get("tier") == "trial"),
+                "pending_users": sum(1 for u in (users.data or []) if u.get("tier") == "pending"),
+                "active_jobs":  len([j for j in _jobs.values() if j["status"] == "running"]),
+                "today_runs":   today_runs.count or 0,
+                "total_runs":   total_runs.count or 0,
+            }
+        }
+    except Exception as e:
+        print(f"[ADMIN] get_admin_stats error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail=f"Admin stats failed: {e}")
 
 class AdminUserUpdate(BaseModel):
     tier:          Optional[str]  = None
