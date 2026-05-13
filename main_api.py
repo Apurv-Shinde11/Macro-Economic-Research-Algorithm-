@@ -610,13 +610,29 @@ async def get_global_macro():
             .select("*").gte("last_updated", cutoff).execute()
         )
         if cached.data and len(cached.data) >= 6:
+            # Enrich cached rows with computed fields not stored in Supabase
+            economy_meta = {e["code"]: e for e in _ECONOMIES}
+            enriched = []
+            for row in cached.data:
+                code = row.get("economy")
+                meta = economy_meta.get(code, {})
+                enriched.append({
+                    **row,
+                    "code":           code,
+                    "name":           meta.get("name", code),
+                    "flag":           meta.get("flag", ""),
+                    "currency_label": meta.get("currency_label", ""),
+                    "yield_10y":      row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
+                    "macro_signal":   _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
+                })
             result = {
-                "economies":       cached.data,
-                "page_updated_at": max(e["last_updated"] for e in cached.data),
+                "economies":       enriched,
+                "page_updated_at": max(e["last_updated"] for e in enriched),
                 "cached":          True,
             }
             _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
             return result
+        
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
 
