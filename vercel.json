@@ -13,6 +13,10 @@
         {
             "src": "dashboard.html",
             "use": "@vercel/static"
+        },
+        {
+            "src": "global_macro.html",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -27,6 +31,10 @@
         {
             "src": "/dashboard",
             "dest": "/dashboard.html"
+        },
+        {
+            "src": "/global-macro",
+            "dest": "/global_macro.html"
         },
         {
             "src": "/(.*\\.html)",
