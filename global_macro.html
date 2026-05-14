@@ -858,26 +858,6 @@
         defs.map(d => `<path d="${d}" class="country-path" style="stroke-width:0.8"/>`).join('');
     }
 
-    /* ── Place flag labels at manual override positions ── */
-    function renderFlagLabels() {
-      const lbls = document.getElementById('labels-group');
-      if (!lbls) return;
-      lbls.innerHTML = '';
-      for (const [code, [lx, ly]] of Object.entries(FLAG_POS)) {
-        const eco = economiesData[code];
-        if (!eco || !eco.flag || eco.flag.length <= 2) continue;
-        const txt = document.createElementNS(NS, 'text');
-        txt.setAttribute('x', lx);
-        txt.setAttribute('y', ly);
-        txt.setAttribute('text-anchor', 'middle');
-        txt.setAttribute('dominant-baseline', 'middle');
-        txt.setAttribute('font-size', '16');
-        txt.setAttribute('pointer-events', 'none');
-        txt.textContent = eco.flag;
-        lbls.appendChild(txt);
-      }
-    }
-
     /* ── Override India path with official claimed boundary (datameet composite) ── */
     async function applyIndiaBoundaryOverride() {
       const INDIA_URL = 'https://raw.githubusercontent.com/datameet/maps/master/Country/india-composite.geojson';
@@ -970,7 +950,6 @@
         const loaded = Object.values(economiesData);
         if (loaded.length) {
           highlightEconomyCountries(loaded);
-          renderFlagLabels();
           if (selectedCode) {
             document.querySelectorAll(`.country-path.highlighted[data-code="${selectedCode}"]`)
               .forEach(el => el.classList.add('selected'));
@@ -1102,7 +1081,6 @@
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
         highlightEconomyCountries(economies);
-        renderFlagLabels();
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
