@@ -2745,7 +2745,7 @@
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
-    let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [];
+    let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [], _lastHistory = [];
 
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
@@ -2781,6 +2781,7 @@
           .limit(20);
         if (error) throw error;
         const history = histData || [];
+        _lastHistory = history;
         const onboarding = document.getElementById('onboardingCard');
         const hero = document.getElementById('regimeHero');
         if (history.length > 0) {
@@ -2840,6 +2841,7 @@
               .order('run_at', { ascending: false })
               .limit(20);
             const freshArr = freshData || [];
+            _lastHistory = freshArr;
             renderHistoryTable(freshArr);
             renderConfSparkline(freshArr.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
             renderConfArrow(freshArr);
@@ -2895,13 +2897,13 @@
       if (!fromHistory && strategy) {
         renderPlaybook(data.strategy, data.decision);
         renderDecisionPrompt(regime, data.strategy, data.decision);   // F7
-        renderWtmfy(regime, data.strategy, data.decision);            // F11
+        renderWtmfy(regime, data.strategy, data.decision, [{confidence: regime?.confidence || 0}, ..._lastHistory]);  // F11
       } else if (fromHistory && data.summary) {
         document.getElementById('playbookItems').innerHTML = `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`;
         const _hReg = { regime: data.regime, confidence: data.confidence, narrative: data.summary, drivers: [] };
         const _hStrat = { conviction: data.conviction };
         renderDecisionPrompt(_hReg, _hStrat, { summary: data.summary });
-        renderWtmfy(_hReg, _hStrat, { summary: data.summary });
+        renderWtmfy(_hReg, _hStrat, { summary: data.summary }, _lastHistory);
       }
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && data.sector_heatmap) renderHeatmap(data.sector_heatmap);
@@ -3487,8 +3489,41 @@
       card.classList.add('visible');
     }
 
-    // FEATURE 11: What This Means For You
-    function renderWtmfy(regime, strategy, decision) {
+    /* ── UPGRADE helpers: confidence trend, heatmap context, FII net ── */
+    function _getConfidenceTrend(history) {
+      if (!history || history.length < 2) return 'STABLE';
+      const recent = history.slice(0, 3).map(r => (r.confidence || 0) * 100);
+      const first = recent[recent.length - 1];
+      const last  = recent[0];
+      const diff  = last - first;
+      if (diff >= 5)  return 'BUILDING';
+      if (diff <= -5) return 'DETERIORATING';
+      return 'STABLE';
+    }
+
+    function _getHeatmapContext() {
+      const cols = document.querySelectorAll('.heatmap-col');
+      let favour = [], avoid = [];
+      cols.forEach(col => {
+        const sectors = Array.from(col.querySelectorAll('.heatmap-sector span')).map(s => s.textContent.trim());
+        if (col.classList.contains('favour')) favour = sectors.slice(0, 2);
+        if (col.classList.contains('avoid'))  avoid  = sectors.slice(0, 1);
+      });
+      return { favour, avoid };
+    }
+
+    function _getCurrentFiiNet() {
+      const fiiEl = document.getElementById('fiiNet');
+      if (!fiiEl) return null;
+      const text = fiiEl.textContent || '';
+      const match = text.match(/[▲▼]\s*₹([\d,]+)\s*Cr/);
+      if (!match) return null;
+      const val = parseFloat(match[1].replace(/,/g, ''));
+      return text.includes('▼') ? -val : val;
+    }
+
+    // FEATURE 11: What This Means For You — 5-dimension personalised intelligence
+    function renderWtmfy(regime, strategy, decision, history) {
       const card = document.getElementById('wtmfyCard');
       if (!card) return;
       const regimeKey = (regime?.regime || '').toUpperCase();
@@ -3506,48 +3541,69 @@
       document.getElementById('wtmfyBadge').textContent =
         [mandate || 'general', riskTol || ''].filter(Boolean).join(' · ').toUpperCase() || 'ALL MANDATES';
 
-      // Contextual profile derivations
       const regimeLabel = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const signal = _deriveActSignal(regimeKey, conviction);
       const isDefen = _DEF_REGIMES.has(regimeKey);
-      const watchpoint = _getNextCalendarWatchpoint();
-      const horizonRaw = (_profile?.investment_horizon || '').toLowerCase();
-      const horizonLabel = horizonRaw.includes('long') ? 'long-term'
-        : horizonRaw.includes('medium') || horizonRaw.includes('mid') ? 'medium-term'
-          : horizonRaw.includes('short') ? 'short-term' : '';
-      const aumRaw = (_profile?.aum_size || '').toLowerCase();
-      const isLargeAum = aumRaw.includes('above') || aumRaw.includes('large') || aumRaw.includes('2000');
 
-      // Body — plain English synthesis with profile context
-      let body = '';
-      if (signal === 'ACT') {
-        const deployTarget = mandate === 'debt'
-          ? 'extending duration and adding credit risk'
-          : mandate === 'balanced' || mandate === 'multi_asset'
-            ? 'tilting the equity sleeve and reviewing fixed-income duration'
-            : 'deploying into risk assets';
-        body = `The macro environment is in a confirmed ${regimeLabel} phase at ${conf}% confidence. `
-          + `${firmName ? firmName + ' is' : 'You are'} at an optimal entry point for ${deployTarget}. `
-          + (horizonLabel ? `A ${horizonLabel} mandate aligns well with this deployment window. ` : '')
-          + `Next watchpoint: ${watchpoint}.`;
-      } else if (signal === 'WAIT') {
-        body = `India's macro reads ${regimeLabel} at ${conf}% confidence — directional but below the high-conviction threshold. `
-          + (riskTol === 'conservative'
-            ? 'Conservative profiles should hold existing positions and await HIGH conviction before acting. '
-            : 'Selectively add to core positions; avoid leveraged or high-beta bets until conviction firms. ')
-          + `Next watchpoint: ${watchpoint}.`;
+      // Dimension 1 — Regime + confidence trend
+      const confTrend = _getConfidenceTrend(history);
+
+      // Dimension 2 — Sector sensitivity from heatmap
+      const hmCtx = _getHeatmapContext();
+
+      // Dimension 3 — FII/DII flow
+      const fiiNet = _getCurrentFiiNet();
+
+      // ── Sentence 1: regime + confidence + trend ──
+      let s1 = '';
+      if (confTrend === 'BUILDING') {
+        s1 = `${regimeLabel} at ${conf}% confidence and building — conviction is strengthening across consecutive runs.`;
+      } else if (confTrend === 'DETERIORATING') {
+        s1 = `${regimeLabel} at ${conf}% confidence but deteriorating — signals are becoming mixed. Exercise caution before adding new positions.`;
       } else {
-        body = `Current signals flag a ${isDefen ? 'defensive' : 'transitional'} ${regimeLabel} environment. `
-          + (riskTol === 'aggressive'
-            ? 'Even an aggressive profile should prioritise capital preservation until the regime clears. '
-            : 'Hold existing positions, maintain cash buffer, and avoid initiating new risk. ')
-          + (isLargeAum ? 'Review redemption buffer adequacy given portfolio size. ' : '')
-          + `Next watchpoint: ${watchpoint}.`;
+        s1 = `${regimeLabel} at ${conf}% confidence — directional but conviction needs further confirmation.`;
       }
-      document.getElementById('wtmfyBody').textContent = body;
 
-      // Personalised action items + divider visibility
-      const actions = _buildWtmfyActions(regimeKey, conviction, mandate, riskTol);
+      // ── Sentence 2: sector sensitivity ──
+      let s2 = '';
+      if (hmCtx.favour.length > 0) {
+        const sectorRef = hmCtx.favour.length >= 2 ? `${hmCtx.favour[0]} and ${hmCtx.favour[1]}` : hmCtx.favour[0];
+        const sleeveLabel = mandate === 'debt' ? 'credit sleeve'
+          : mandate === 'balanced' || mandate === 'multi_asset' ? 'equity sleeve'
+          : 'portfolio';
+        s2 = `The regime favours ${sectorRef} — align your ${sleeveLabel} accordingly.`;
+      }
+
+      // ── Sentence 3: FII/DII flow context (mandate-aware) ──
+      let s3 = '';
+      if (fiiNet !== null) {
+        const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
+        if (mandate === 'debt') {
+          if (fiiNet < -500) s3 = `FII equity outflows may pressure INR — watch import cost on credit portfolios.`;
+        } else {
+          if (fiiNet < -1000)      s3 = `FII outflows of ₹${fiiAbs} Cr warrant caution on high-beta positions.`;
+          else if (fiiNet > 1000)  s3 = `FII inflows of ₹${fiiAbs} Cr support the risk-on positioning.`;
+        }
+      }
+
+      // ── Sentence 4: calendar watchpoint ──
+      let s4 = '';
+      const watchpoint = _getNextCalendarWatchpoint();
+      if (watchpoint && watchpoint !== 'Monitor FII flows for regime confirmation') {
+        const consequence = mandate === 'debt'
+          ? 'Duration decisions should account for this release.'
+          : mandate === 'balanced' || mandate === 'multi_asset'
+            ? 'Review cross-asset allocation ahead of this release.'
+            : 'Position sizing should reflect this event risk.';
+        s4 = `Next watchpoint: ${watchpoint}. ${consequence}`;
+      } else if (watchpoint) {
+        s4 = `Next watchpoint: ${watchpoint}.`;
+      }
+
+      document.getElementById('wtmfyBody').textContent = [s1, s2, s3, s4].filter(Boolean).join(' ');
+
+      // Action items + divider
+      const actions = _buildWtmfyActions(regimeKey, conviction, mandate, riskTol, hmCtx, fiiNet);
       document.getElementById('wtmfyActions').innerHTML = actions
         .map(a => `<div class="wtmfy-action-row"><span class="wtmfy-action-icon">›</span><span class="wtmfy-action-text">${a}</span></div>`)
         .join('');
@@ -3556,36 +3612,78 @@
       card.classList.add('visible');
     }
 
-    function _buildWtmfyActions(regimeKey, conviction, mandate, riskTol) {
+    function _buildWtmfyActions(regimeKey, conviction, mandate, riskTol, hmCtx, fiiNet) {
       const signal = _deriveActSignal(regimeKey, conviction);
       const isPro = _PRO_REGIMES.has(regimeKey);
       const isDefen = _DEF_REGIMES.has(regimeKey);
       const actions = [];
+      const favour1 = hmCtx?.favour?.[0] || null;
+      const favour2 = hmCtx?.favour?.[1] || null;
+      const avoid1  = hmCtx?.avoid?.[0]  || null;
+
+      let fiiLine = '';
+      if (fiiNet !== null) {
+        const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
+        if (fiiNet < -1000)     fiiLine = `FII context: ₹${fiiAbs} Cr outflows — reduce high-beta exposure.`;
+        else if (fiiNet > 1000) fiiLine = `FII context: ₹${fiiAbs} Cr inflows — risk-on participation warranted.`;
+      }
+
+      // LOW conviction gate — universal
+      if (conviction === 'LOW') {
+        actions.push('Hold existing positions — conviction is insufficient to justify new entries.');
+        actions.push('Raise cash buffer to 15–20% across sleeves.');
+        actions.push('Wait for 2 consecutive MEDIUM+ runs before any deployment.');
+        actions.push(`Next confirmation event: ${_getNextCalendarWatchpoint()}`);
+        return actions.slice(0, 4);
+      }
 
       if (mandate === 'debt') {
-        if (isPro) actions.push('Duration: Consider extending to 7–10 year segment as rates stabilise.');
-        if (isDefen) actions.push('Duration: Shorten to 1–3 years; credit spreads may widen.');
-        actions.push('Credit: Favour AAA/AA rated paper; avoid high-yield in uncertain regimes.');
-      } else if (mandate === 'equity') {
-        if (signal === 'ACT') actions.push('Deploy systematically — STP into large-cap quality and rate-sensitive leaders.');
-        if (signal === 'WAIT') actions.push('Hold equity exposure; avoid fresh mid/small-cap bets until conviction hardens.');
-        if (signal === 'HOLD') actions.push('Trim high-beta. Rotate into defensives: FMCG, IT exporters, Pharma.');
-      } else if (mandate === 'balanced' || mandate === 'multi_asset') {
-        if (signal === 'ACT') actions.push('Tilt equity sleeve to 60–65%. Review fixed-income duration in context of rate environment.');
-        if (signal === 'WAIT') actions.push('Maintain neutral allocation; favour quality within each sleeve.');
-        if (signal === 'HOLD') actions.push('Increase cash/short-duration FI. Reduce equity to below benchmark weight.');
-        actions.push('Gold: ' + (isDefen ? 'Add 5–8% as hedge — defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'));
+        const durationAction = isPro  ? 'Extend to 7–10 year segment — supportive of current regime'
+          : isDefen ? 'Shorten to 1–3 years — credit spreads may widen'
+          : 'Maintain neutral duration';
+        const creditAction = isPro  ? 'AAA corporate bonds for yield pickup over G-Sec'
+          : isDefen ? 'G-Sec and AAA paper only — avoid credit risk'
+          : 'Balanced G-Sec and corporate credit mix';
+        actions.push(`Duration: ${durationAction}.`);
+        actions.push(`Credit: ${creditAction}.`);
+        if (fiiNet !== null && fiiNet < -500) actions.push('FII equity outflows may pressure INR — watch import cost on credit portfolios.');
+        actions.push(`Conviction is ${conviction} — ${conviction === 'HIGH' ? 'deploy duration extension decisively.' : 'add only on confirmed spread opportunities.'}`);
+        return actions.slice(0, 4);
+      }
+
+      if (mandate === 'balanced' || mandate === 'multi_asset') {
+        const equityAction = signal === 'ACT'  ? 'Tilt equity sleeve to 60–65%'
+          : signal === 'WAIT' ? 'Maintain equity sleeve at neutral weight'
+          : 'Reduce equity to below benchmark weight';
+        const regimeLbl = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        actions.push(`Equity sleeve: ${equityAction} — ${conviction} conviction, ${isPro ? 'regime favourable' : 'defensive posture'}.`);
+        if (favour1) actions.push(`Sector tilt: Favour ${favour1}${favour2 ? ` and ${favour2}` : ''} within equity sleeve.`);
+        actions.push(`Gold: ${isDefen ? 'Add 5–8% — defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'}`);
+        if (fiiLine) actions.push(fiiLine);
+        return actions.slice(0, 4);
+      }
+
+      // Equity / general mandate
+      if (signal === 'ACT') {
+        const deployTarget = favour1 && favour2 ? `${favour1} and ${favour2}` : favour1 || 'regime-favoured sectors';
+        actions.push(`Deploy into ${deployTarget} — HIGH conviction window, act decisively.`);
+        if (avoid1) actions.push(`Reduce ${avoid1} exposure — rotate into regime-favoured sectors.`);
+        actions.push('Reduce cash drag — this is the deployment window the regime has been building toward.');
+        if (fiiLine) actions.push(fiiLine);
+      } else if (signal === 'WAIT') {
+        if (favour1) actions.push(`Selectively add to ${favour1} — regime supports this allocation.`);
+        if (avoid1)  actions.push(`Avoid ${avoid1} until regime conviction reaches HIGH.`);
+        actions.push('Keep 10–12% cash buffer — do not fully deploy at MEDIUM conviction.');
+        if (fiiLine) actions.push(fiiLine);
       } else {
-        if (signal === 'ACT') actions.push('Broad-based deployment warranted — prioritise quality and liquidity.');
-        if (signal === 'WAIT') actions.push('Selective additions only — wait for conviction to build before full deployment.');
-        if (signal === 'HOLD') actions.push('Preserve capital — defensive posture until regime clarity returns.');
+        actions.push('Trim high-beta positions. Rotate into defensives: FMCG, IT exporters, Pharma.');
+        actions.push('Raise cash buffer to 15–20% — preserve capital until regime clarity returns.');
+        if (fiiLine) actions.push(fiiLine);
+        if (riskTol === 'aggressive') actions.push('Even an aggressive profile should prioritise capital preservation until the regime clears.');
       }
 
       if (riskTol === 'conservative' && signal !== 'HOLD') {
         actions.push('Risk overlay: Conservative profile — limit single-security concentration; prefer diversified vehicles.');
-      }
-      if (riskTol === 'aggressive' && signal === 'ACT') {
-        actions.push('Alpha opportunity: Aggressive profile — mid-cap and sector tilts appropriate in high-conviction window.');
       }
 
       return actions.slice(0, 4);
