@@ -662,10 +662,10 @@
     const ISO_A2_MAP = { US:'US', CN:'CN', DE:'DE', JP:'JP', GB:'GB', IN:'IN' };
 
     function resolveEconomyCode(props) {
+      if (props.ISO_A2 && ISO_A2_MAP[props.ISO_A2]) return ISO_A2_MAP[props.ISO_A2];
       for (const n of [props.NAME, props.NAME_EN, props.ADMIN, props.NAME_LONG]) {
         if (n && COUNTRY_NAME_MAP[n]) return COUNTRY_NAME_MAP[n];
       }
-      if (props.ISO_A2 && ISO_A2_MAP[props.ISO_A2]) return ISO_A2_MAP[props.ISO_A2];
       return null;
     }
 
@@ -878,16 +878,29 @@
       }
     }
 
-    /* ── Load GeoJSON world map ── */
+    /* ── Load GeoJSON world map (50m → 110m → static blobs) ── */
     async function loadGeoMap() {
+      // 1. Try 50m (accurate India boundary: J&K, northeast corridor, islands)
+      let geojson = null;
       try {
         const res = await fetch(GEO_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const geojson = await res.json();
+        geojson = await res.json();
+      } catch {
+        // 2. Silently fall back to 110m
+        try {
+          const res = await fetch(GEO_URL_FB);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          geojson = await res.json();
+        } catch { /* 3. geojson stays null → static blobs below */ }
+      }
 
-        const grp        = document.getElementById('countries-group');
-        const frag       = document.createDocumentFragment();
-        const matchLog   = {};
+      try {
+        if (!geojson) { renderFallbackMap(); return; }
+
+        const grp      = document.getElementById('countries-group');
+        const frag     = document.createDocumentFragment();
+        const matchLog = {};
 
         for (const feature of geojson.features) {
           const props = feature.properties || {};
@@ -908,7 +921,7 @@
             el.addEventListener('click', () => selectEconomy(code));
             if (!matchLog[code]) {
               matchLog[code] = true;
-              console.log(`[GeoMap] Matched ${code} → NAME="${props.NAME}" ADMIN="${props.ADMIN}" ISO_A2="${props.ISO_A2}"`);
+              console.log(`[GeoMap] Matched ${code} → ISO_A2="${props.ISO_A2}" NAME="${props.NAME}" ADMIN="${props.ADMIN}"`);
             }
           }
           frag.appendChild(el);
@@ -917,12 +930,10 @@
         grp.innerHTML = '';
         grp.appendChild(frag);
 
-        // Log any unmatched economies
         for (const code of Object.keys(FLAG_POS)) {
           if (!matchLog[code]) console.warn(`[GeoMap] WARNING: No GeoJSON match for economy: ${code}`);
         }
 
-        // Apply colours + re-apply selected state if macro data already arrived
         const loaded = Object.values(economiesData);
         if (loaded.length) {
           highlightEconomyCountries(loaded);
@@ -934,7 +945,7 @@
         }
 
       } catch (err) {
-        console.warn('GeoJSON load failed, using fallback map:', err);
+        console.warn('GeoJSON render failed, using fallback map:', err);
         renderFallbackMap();
       } finally {
         const el = document.getElementById('map-loading');
