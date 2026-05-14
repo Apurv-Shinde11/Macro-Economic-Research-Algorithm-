@@ -2112,6 +2112,82 @@
       line-height: 1.65;
     }
 
+    /* ══ SECTOR HEATMAP ══ */
+    .heatmap-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 16px;
+    }
+
+    .heatmap-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .heatmap-col {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+    }
+
+    .heatmap-col.favour {
+      background: var(--green-dim);
+      border-color: rgba(16, 212, 138, 0.20);
+    }
+
+    .heatmap-col.neutral {
+      background: var(--bg-3);
+      border-color: var(--border);
+    }
+
+    .heatmap-col.avoid {
+      background: var(--red-dim);
+      border-color: rgba(248, 113, 113, 0.20);
+    }
+
+    .heatmap-col-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .favour .heatmap-col-title  { color: var(--green); }
+    .neutral .heatmap-col-title { color: var(--text-3); }
+    .avoid .heatmap-col-title   { color: var(--red); }
+
+    .heatmap-sector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .heatmap-sector:last-child {
+      border-bottom: none;
+    }
+
+    .heatmap-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .favour .heatmap-dot  { background: var(--green); }
+    .neutral .heatmap-dot { background: var(--text-3); }
+    .avoid .heatmap-dot   { background: var(--red); }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 900px) {
       .app-layout {
@@ -2127,6 +2203,10 @@
 
       .scenario-grid,
       .flows-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .heatmap-columns {
         grid-template-columns: 1fr;
       }
 
@@ -2547,6 +2627,18 @@
       <div class="divider"></div>
 
       <div class="section-header">
+        <span class="section-title">Sector Heatmap</span>
+        <span class="section-meta" id="heatmapMeta">Based on current regime</span>
+      </div>
+      <div class="heatmap-card" id="heatmapCard">
+        <div class="heatmap-columns" id="heatmapColumns">
+          <div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:16px 0;grid-column:1/-1;">Run the engine to generate sector positioning.</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-header">
         <span class="section-title">FII / DII Flow Intelligence</span>
         <span class="section-meta" id="flowDate">—</span>
       </div>
@@ -2683,7 +2775,7 @@
       try {
         const { data: histData, error } = await sb
           .from('runs')
-          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
           .limit(20);
@@ -2693,6 +2785,7 @@
         const hero = document.getElementById('regimeHero');
         if (history.length > 0) {
           renderRunResult(history[0], true);
+          if (history[0].sector_heatmap) renderHeatmap(history[0].sector_heatmap);
           onboarding.classList.remove('visible');
         } else {
           onboarding.classList.add('visible');
@@ -2811,6 +2904,7 @@
         renderWtmfy(_hReg, _hStrat, { summary: data.summary });
       }
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
+      if (!fromHistory && data.sector_heatmap) renderHeatmap(data.sector_heatmap);
       if (!fromHistory && nse) {
         renderFlows(nse);
       } else if (fromHistory && ((data.fii_net_crore != null && data.fii_net_crore !== 0) || (data.dii_net_crore != null && data.dii_net_crore !== 0))) {
@@ -3670,6 +3764,32 @@
 
       document.addEventListener('click', hideTip);
     })();
+
+    /* ── SECTOR HEATMAP ── */
+    function renderHeatmap(heatmap) {
+      const col = document.getElementById('heatmapColumns');
+      if (!col) return;
+      if (!heatmap ||
+          (!heatmap.FAVOUR?.length &&
+           !heatmap.NEUTRAL?.length &&
+           !heatmap.AVOID?.length)) {
+        col.innerHTML = `<div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:16px 0;grid-column:1/-1;">Run the engine to generate sector positioning.</div>`;
+        return;
+      }
+      const sections = [
+        { key: 'FAVOUR',  cls: 'favour',  label: 'Favour'  },
+        { key: 'NEUTRAL', cls: 'neutral', label: 'Neutral' },
+        { key: 'AVOID',   cls: 'avoid',   label: 'Avoid'   },
+      ];
+      col.innerHTML = sections.map(s =>
+        `<div class="heatmap-col ${s.cls}">` +
+        `<div class="heatmap-col-title">${s.label}</div>` +
+        (heatmap[s.key] || []).map(sector =>
+          `<div class="heatmap-sector"><div class="heatmap-dot"></div><span>${sector}</span></div>`
+        ).join('') +
+        `</div>`
+      ).join('');
+    }
 
     /* ── LAYER 3: How to use Sentinel guide modal ── */
     function openGuide() {

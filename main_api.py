@@ -227,6 +227,167 @@ DEFENSIVE_REGIMES = {
     "GROWTH_SLOWDOWN_SUPPORT",
 }
 
+SECTOR_HEATMAP = {
+    "LIQUIDITY_DRIVEN_EXPANSION": {
+        "FAVOUR": [
+            "Banking & Financials",
+            "Infrastructure & Capex",
+            "Consumer Discretionary",
+            "Real Estate",
+            "Auto & Auto Ancillaries",
+        ],
+        "NEUTRAL": [
+            "IT & Technology",
+            "Pharmaceuticals",
+            "Chemicals",
+            "Telecom",
+        ],
+        "AVOID": [
+            "FMCG & Staples",
+            "Utilities",
+            "Gold & Precious Metals",
+        ],
+    },
+    "STABLE_GROWTH": {
+        "FAVOUR": [
+            "IT & Technology",
+            "Consumer Discretionary",
+            "Banking & Financials",
+            "Pharmaceuticals",
+        ],
+        "NEUTRAL": [
+            "Infrastructure & Capex",
+            "Auto & Auto Ancillaries",
+            "Chemicals",
+            "Telecom",
+        ],
+        "AVOID": [
+            "Utilities",
+            "Gold & Precious Metals",
+        ],
+    },
+    "MONETARY_TIGHTENING": {
+        "FAVOUR": [
+            "IT & Technology",
+            "Pharmaceuticals",
+            "FMCG & Staples",
+            "Gold & Precious Metals",
+        ],
+        "NEUTRAL": [
+            "Chemicals",
+            "Telecom",
+            "Utilities",
+        ],
+        "AVOID": [
+            "Banking & Financials",
+            "Real Estate",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+            "Consumer Discretionary",
+        ],
+    },
+    "EXTERNAL_SHOCK": {
+        "FAVOUR": [
+            "IT & Technology",
+            "Pharmaceuticals",
+            "FMCG & Staples",
+            "Gold & Precious Metals",
+            "Utilities",
+        ],
+        "NEUTRAL": [
+            "Telecom",
+            "Chemicals",
+        ],
+        "AVOID": [
+            "Banking & Financials",
+            "Real Estate",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+            "Consumer Discretionary",
+            "Energy & Oil",
+        ],
+    },
+    "STAGFLATION_RISK": {
+        "FAVOUR": [
+            "Gold & Precious Metals",
+            "Pharmaceuticals",
+            "FMCG & Staples",
+            "Energy & Oil",
+        ],
+        "NEUTRAL": [
+            "Utilities",
+            "Telecom",
+            "IT & Technology",
+        ],
+        "AVOID": [
+            "Banking & Financials",
+            "Real Estate",
+            "Consumer Discretionary",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+        ],
+    },
+    "STAGFLATIONARY_RISK": {
+        "FAVOUR": [
+            "Gold & Precious Metals",
+            "Pharmaceuticals",
+            "FMCG & Staples",
+            "Energy & Oil",
+        ],
+        "NEUTRAL": [
+            "Utilities",
+            "Telecom",
+            "IT & Technology",
+        ],
+        "AVOID": [
+            "Banking & Financials",
+            "Real Estate",
+            "Consumer Discretionary",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+        ],
+    },
+    "EARLY_CYCLE_RECOVERY": {
+        "FAVOUR": [
+            "Banking & Financials",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+            "Consumer Discretionary",
+            "Real Estate",
+        ],
+        "NEUTRAL": [
+            "IT & Technology",
+            "Chemicals",
+            "Telecom",
+        ],
+        "AVOID": [
+            "Gold & Precious Metals",
+            "Utilities",
+            "FMCG & Staples",
+        ],
+    },
+    "GROWTH_SLOWDOWN_SUPPORT": {
+        "FAVOUR": [
+            "Pharmaceuticals",
+            "FMCG & Staples",
+            "IT & Technology",
+            "Utilities",
+            "Gold & Precious Metals",
+        ],
+        "NEUTRAL": [
+            "Telecom",
+            "Chemicals",
+            "Banking & Financials",
+        ],
+        "AVOID": [
+            "Real Estate",
+            "Consumer Discretionary",
+            "Auto & Auto Ancillaries",
+            "Infrastructure & Capex",
+        ],
+    },
+}
+
 
 def _derive_implied_action(regime_key: str, conviction: str) -> str:
     conv = (conviction or "").upper()
@@ -347,11 +508,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "triggers":       triggers,
                 "asset_out":      asset_out,
                 "strat":          strat,
+                "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}),
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else ""}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []})}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
@@ -410,7 +572,7 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
-    _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_score,dii_net_score,crude_price,scenarios,triggers,asset_out,strat"
+    _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_score,dii_net_score,crude_price,scenarios,triggers,asset_out,strat,sector_heatmap"
     result = _supabase.table("runs").select(_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
     return {"history": result.data or []}
 
