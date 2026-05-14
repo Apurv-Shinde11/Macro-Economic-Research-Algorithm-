@@ -865,7 +865,7 @@
       lbls.innerHTML = '';
       for (const [code, [lx, ly]] of Object.entries(FLAG_POS)) {
         const eco = economiesData[code];
-        if (!eco || !eco.flag) continue;
+        if (!eco || !eco.flag || eco.flag.length <= 2) continue;
         const txt = document.createElementNS(NS, 'text');
         txt.setAttribute('x', lx);
         txt.setAttribute('y', ly);
@@ -875,6 +875,36 @@
         txt.setAttribute('pointer-events', 'none');
         txt.textContent = eco.flag;
         lbls.appendChild(txt);
+      }
+    }
+
+    /* ── Override India path with official claimed boundary (datameet composite) ── */
+    async function applyIndiaBoundaryOverride() {
+      const INDIA_URL = 'https://raw.githubusercontent.com/datameet/maps/master/Country/india-composite.geojson';
+      try {
+        const res = await fetch(INDIA_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const geojson = await res.json();
+
+        // Build combined path from all features (handles FeatureCollection or single Feature)
+        const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+        let combinedD = '';
+        for (const feature of features) {
+          const d = featureToPath(feature);
+          if (d.trim()) combinedD += d;
+        }
+        if (!combinedD.trim()) return;
+
+        const indiaPaths = document.querySelectorAll('[data-code="IN"]');
+        if (!indiaPaths.length) return;
+
+        // Replace first path's d attribute; remove any duplicates
+        indiaPaths[0].setAttribute('d', combinedD);
+        for (let i = 1; i < indiaPaths.length; i++) indiaPaths[i].remove();
+
+        console.log('[GeoMap] India boundary overridden → datameet composite (J&K, Siliguri, islands)');
+      } catch (err) {
+        console.warn('[GeoMap] India boundary override failed, keeping Natural Earth path:', err);
       }
     }
 
@@ -929,6 +959,9 @@
 
         grp.innerHTML = '';
         grp.appendChild(frag);
+
+        // Override India's boundary with officially-claimed J&K boundary
+        await applyIndiaBoundaryOverride();
 
         for (const code of Object.keys(FLAG_POS)) {
           if (!matchLog[code]) console.warn(`[GeoMap] WARNING: No GeoJSON match for economy: ${code}`);
