@@ -2259,6 +2259,15 @@
             id="threshChallenger" data-key="confidence_breach_threshold">45%</span></div>
         <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">Tap
           any value to edit. Alerts fire via email when thresholds are crossed.</div>
+        <div class="form-row" style="margin-top:12px;">
+          <label class="form-label" style="display:flex;align-items:center;gap:0;">
+            WhatsApp Briefing
+            <span id="waBadge" style="display:none;margin-left:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;color:var(--green);background:var(--green-dim);padding:2px 7px;border-radius:20px;border:1px solid rgba(16,212,138,0.2);">✓ Active</span>
+          </label>
+          <input class="form-input" type="tel" id="waNumber" placeholder="+91XXXXXXXXXX" style="margin-top:4px;">
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Daily briefing at 7:00 AM IST</div>
+          <div id="waNotConfigured" style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:2px;display:none;">Not configured</div>
+        </div>
       </div>
 
       <div class="sidebar-section">
@@ -3096,6 +3105,19 @@
       setSegment('report_tone', profile.report_tone || 'institutional');
       document.getElementById('profileSaveHint').textContent = 'saved';
       document.getElementById('profileSaveHint').style.color = 'var(--green)';
+      const waEl = document.getElementById('waNumber');
+      if (waEl) {
+        waEl.value = profile.whatsapp_number || '';
+        const badge   = document.getElementById('waBadge');
+        const notConf = document.getElementById('waNotConfigured');
+        if (profile.whatsapp_number) {
+          if (badge)   badge.style.display   = 'inline';
+          if (notConf) notConf.style.display = 'none';
+        } else {
+          if (badge)   badge.style.display   = 'none';
+          if (notConf) notConf.style.display = 'block';
+        }
+      }
     }
 
     function setSegment(field, value) {
@@ -3110,13 +3132,32 @@
     async function savePreferences() {
       const btn = document.getElementById('savePrefsBtn');
       const getSegVal = field => document.querySelector(`.segment-btn[data-field="${field}"].active`)?.dataset.val;
-      const prefs = { aum_size: getSegVal('aum_size'), mandate_type: document.getElementById('mandateType')?.value, risk_tolerance: getSegVal('risk_tolerance'), investment_horizon: getSegVal('investment_horizon'), benchmark: document.getElementById('benchmark')?.value, pdf_delivery_time: document.getElementById('pdfTime')?.value, report_tone: getSegVal('report_tone') };
+      const waNum = (document.getElementById('waNumber')?.value || '').trim();
+      const prefs = { aum_size: getSegVal('aum_size'), mandate_type: document.getElementById('mandateType')?.value, risk_tolerance: getSegVal('risk_tolerance'), investment_horizon: getSegVal('investment_horizon'), benchmark: document.getElementById('benchmark')?.value, pdf_delivery_time: document.getElementById('pdfTime')?.value, report_tone: getSegVal('report_tone'), whatsapp_number: waNum || null };
       const notifPrefs = { vix_threshold: parseFloat(document.getElementById('threshVIX').textContent), inr_threshold: parseFloat(document.getElementById('threshINR').textContent), fii_consecutive_days: parseInt(document.getElementById('threshFII').textContent), confidence_breach_threshold: parseFloat(document.getElementById('threshChallenger').textContent) };
       try {
         btn.textContent = 'Saving...'; btn.disabled = true;
         const { error } = await sb.from('profiles').update(prefs).eq('id', _session.user.id);
         if (error) throw error;
         await api('/api/notifications/preferences', { method: 'PUT', body: JSON.stringify(notifPrefs) });
+        if (waNum && waNum !== (_profile?.whatsapp_number || '')) {
+          try {
+            await api('/api/profile/whatsapp', { method: 'PATCH', body: JSON.stringify({ whatsapp_number: waNum }) });
+            const badge   = document.getElementById('waBadge');
+            const notConf = document.getElementById('waNotConfigured');
+            if (badge)   badge.style.display   = 'inline';
+            if (notConf) notConf.style.display = 'none';
+            if (_profile) _profile.whatsapp_number = waNum;
+          } catch (waErr) {
+            showToast('WhatsApp number format invalid — must start with + and 10–15 digits', 'error');
+          }
+        } else if (!waNum && _profile?.whatsapp_number) {
+          if (_profile) _profile.whatsapp_number = null;
+          const badge   = document.getElementById('waBadge');
+          const notConf = document.getElementById('waNotConfigured');
+          if (badge)   badge.style.display   = 'none';
+          if (notConf) notConf.style.display = 'block';
+        }
         btn.textContent = '✓ Saved'; btn.classList.add('saved'); btn.disabled = false;
         document.getElementById('profileSaveHint').textContent = 'saved';
         document.getElementById('profileSaveHint').style.color = 'var(--green)';

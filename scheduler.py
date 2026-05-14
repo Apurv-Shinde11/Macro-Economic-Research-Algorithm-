@@ -133,7 +133,8 @@ def fetch_users_direct(supabase_url, service_key):
     base    = supabase_url.rstrip("/")
     url     = (
         f"{base}/rest/v1/profiles"
-        f"?select=id,email,full_name,firm_name,tier,trial_ends_at,whatsapp_number"
+        f"?select=id,email,full_name,firm_name,tier,trial_ends_at,"
+        f"whatsapp_number,mandate_type,risk_tolerance,aum_size,investment_horizon"
     )
     headers = {
         "apikey":        service_key,
@@ -206,22 +207,116 @@ def log_regime_alert(supabase_url, service_key,
 
 
 def log_whatsapp_direct(supabase_url, service_key,
-                        user_id, wa_number, message_type,
-                        regime, status, error=None):
+                        user_id, recipient, message_preview,
+                        regime, conviction, status, error=None):
     url = f"{supabase_url.rstrip('/')}/rest/v1/whatsapp_logs"
     payload = {
-        "user_id":      user_id,
-        "wa_number":    wa_number,
-        "message_type": message_type,
-        "regime":       regime,
-        "status":       status,
-        "error":        error[:300] if error else None,
+        "user_id":         user_id,
+        "recipient":       recipient,
+        "message_preview": (message_preview or "")[:100],
+        "regime":          regime,
+        "conviction":      conviction,
+        "status":          status,
+        "error":           error[:300] if error else None,
     }
     try:
         requests.post(url, headers=_sb_headers(service_key),
                       json=payload, timeout=10)
     except Exception as e:
         print(f"  [Log] Failed to write WhatsApp log: {e}")
+
+
+def _derive_rbi_signal_from_regime(regime_key):
+    _map = {
+        "MONETARY_TIGHTENING":                   "Hawkish — rising rates",
+        "LIQUIDITY_TIGHTENING":                  "Tightening — watch duration",
+        "LIQUIDITY_DRIVEN_EXPANSION":            "Accommodative",
+        "STABLE_GROWTH":                         "Neutral to accommodative",
+        "EARLY_CYCLE_RECOVERY":                  "Easing — rate cut cycle",
+        "GROWTH_SLOWDOWN_SUPPORT":               "Supportive — potential cuts",
+        "STAGFLATION_RISK":                      "Constrained — limited room to cut",
+        "STAGFLATIONARY_RISK":                   "Constrained — limited room to cut",
+        "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": "Hawkish pressure",
+    }
+    return _map.get(regime_key, "Monitor RBI guidance")
+
+
+def fetch_user_last_run(supabase_url, service_key, user_id):
+    """Fetch the most recent run for a user. Returns None if no runs exist."""
+    base = supabase_url.rstrip("/")
+    url  = (
+        f"{base}/rest/v1/runs"
+        f"?select=regime,confidence,conviction,implied_action,allocation,summary"
+        f"&user_id=eq.{user_id}"
+        f"&order=run_at.desc"
+        f"&limit=1"
+    )
+    headers = {
+        "apikey":        service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type":  "application/json",
+    }
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            return data[0] if data else None
+        print(f"  [WA] Run fetch HTTP {r.status_code}: {r.text[:200]}")
+        return None
+    except Exception as e:
+        print(f"  [WA] Run fetch failed for {user_id}: {e}")
+        return None
+
+
+def build_personalized_wa_briefing(user_profile, run_data,
+                                    upcoming_events, dashboard_url=""):
+    """Build a personalised WhatsApp morning briefing from a user's last run."""
+    import json as _json
+
+    firm_name = user_profile.get("firm_name") or "SENTINEL"
+    mandate   = (user_profile.get("mandate_type") or "equity").lower()
+    today_str = datetime.date.today().strftime("%d %b %Y")
+
+    regime_key  = (run_data.get("regime") or "UNKNOWN").upper()
+    regime_name = regime_key.replace("_", " ").title()
+    conf        = int((run_data.get("confidence") or 0) * 100)
+    conviction  = run_data.get("conviction") or "—"
+    implied     = run_data.get("implied_action") or "Review full briefing."
+
+    alloc = run_data.get("allocation") or {}
+    if isinstance(alloc, str):
+        try:
+            alloc = _json.loads(alloc)
+        except Exception:
+            alloc = {}
+    equity_bias = alloc.get("equity_bias", "NEUTRAL")
+
+    if upcoming_events:
+        ev         = upcoming_events[0]
+        lbl        = days_until_label(ev["days_until"])
+        watchpoint = f"{ev['name']} — {lbl}"
+    else:
+        watchpoint = "Monitor macro conditions"
+
+    if mandate == "debt":
+        mandate_line = f"Rate environment: {_derive_rbi_signal_from_regime(regime_key)}."
+    elif mandate in ("balanced", "multi_asset"):
+        mandate_line = f"Cross-asset: {implied.lower()}"
+    else:
+        mandate_line = f"Equity bias is {equity_bias}."
+
+    url_line = f"\nFull dashboard: {dashboard_url}" if dashboard_url else ""
+
+    return (
+        f"{firm_name} | Sentinel Briefing — {today_str}\n\n"
+        f"Regime: {regime_name}\n"
+        f"Confidence: {conf}% | Conviction: {conviction}\n\n"
+        f"Signal: {implied}\n\n"
+        f"Watchpoint: {watchpoint}\n\n"
+        f"{mandate_line}"
+        f"{url_line}\n"
+        f"_Not investment advice._"
+    )
 
 
 def build_whatsapp_briefing(pipeline, firm_name, upcoming_events, dashboard_url=""):
@@ -1237,7 +1332,7 @@ def main():
     # =========================================================
     wa_users = [
         u for u in active_users
-        if u.get("whatsapp_number")
+        if u.get("whatsapp_number") and u["whatsapp_number"].strip()
     ]
     print(f"\n  [Step 3b] WhatsApp briefings — "
           f"{len(wa_users)} user(s) with number on file")
@@ -1256,11 +1351,22 @@ def main():
             print(f"  → WhatsApp briefing: {wa_num} ({firm_name})...",
                   end=" ", flush=True)
 
-            wa_msg = build_whatsapp_briefing(
-                pipeline        = pipeline,
-                firm_name       = firm_name,
+            last_run = fetch_user_last_run(
+                supabase_url, supabase_service_key, user_id
+            )
+            if not last_run:
+                print("skip — no run history")
+                continue
+
+            wa_msg = build_personalized_wa_briefing(
+                user_profile    = u,
+                run_data        = last_run,
                 upcoming_events = upcoming_events,
                 dashboard_url   = dashboard_url,
+            )
+            run_conviction  = last_run.get("conviction") or "—"
+            run_regime_name = (
+                (last_run.get("regime") or "").replace("_", " ").title()
             )
 
             if dry_run:
@@ -1273,32 +1379,36 @@ def main():
                 wa_briefing_sent += 1
                 continue
 
-            wa_ok, wa_result = send_whatsapp(
-                message     = wa_msg,
-                account_sid = twilio_sid,
-                auth_token  = twilio_token,
-                from_number = wa_from,
-                to_number   = wa_num,
-            )
+            try:
+                wa_ok, wa_result = send_whatsapp(
+                    message     = wa_msg,
+                    account_sid = twilio_sid,
+                    auth_token  = twilio_token,
+                    from_number = wa_from,
+                    to_number   = wa_num,
+                )
+            except Exception as wa_exc:
+                wa_ok, wa_result = False, str(wa_exc)
+
             if wa_ok:
                 print(f"✅ sent (SID: {wa_result})")
                 wa_briefing_sent += 1
                 log_whatsapp_direct(
                     supabase_url, supabase_service_key,
-                    user_id, wa_num, "daily_briefing",
-                    regime_name, "sent"
+                    user_id, wa_num, wa_msg[:100],
+                    run_regime_name, run_conviction, "sent"
                 )
             else:
                 print(f"❌ failed: {wa_result}")
                 wa_briefing_failed += 1
                 log_whatsapp_direct(
                     supabase_url, supabase_service_key,
-                    user_id, wa_num, "daily_briefing",
-                    regime_name, "failed", wa_result
+                    user_id, wa_num, wa_msg[:100],
+                    run_regime_name, run_conviction, "failed", wa_result
                 )
 
-        print(f"  [Step 3b] Sent: {wa_briefing_sent}  "
-              f"Failed: {wa_briefing_failed}")
+        print(f"  [Step 3b] WhatsApp briefing sent: {wa_briefing_sent}  "
+              f"failed: {wa_briefing_failed}")
 
     # =========================================================
     # Step 4 — REGIME CHANGE ALERT SYSTEM

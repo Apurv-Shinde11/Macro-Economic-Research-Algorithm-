@@ -6,6 +6,7 @@ Reading at module level always gets empty strings.
 """
 
 import os
+import re
 import sys
 import uuid
 import time
@@ -416,6 +417,28 @@ async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
 @app.get("/api/profile")
 async def get_user_profile(profile: dict = Depends(get_profile)):
     return {"profile": profile}
+
+
+class WhatsappUpdate(BaseModel):
+    whatsapp_number: str
+
+
+@app.patch("/api/profile/whatsapp")
+async def update_whatsapp_number(
+    body: WhatsappUpdate,
+    profile: dict = Depends(require_access),
+):
+    number = body.whatsapp_number.strip()
+    if number and not re.match(r"^\+\d{10,15}$", number):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid number format. Must start with + followed by 10–15 digits.",
+        )
+    _supabase.table("profiles").update(
+        {"whatsapp_number": number or None}
+    ).eq("id", profile["id"]).execute()
+    return {"success": True, "whatsapp_number": number or None}
+
 
 _ticker_cache: dict = {"data": {}, "fetched_at": 0}
 
