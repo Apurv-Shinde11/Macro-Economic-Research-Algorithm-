@@ -297,14 +297,22 @@
     }
     .country-path:not(.highlighted):hover { fill: var(--bg-4); }
     .country-path.highlighted {
-      fill: var(--country-fill, var(--bg-3));
+      fill: var(--cf25, var(--bg-3));
       stroke: var(--country-stroke, var(--border));
-      stroke-width: 1.2;
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill 0.15s, filter 0.15s, stroke-width 0.15s;
     }
-    .country-path.highlighted:hover { filter: brightness(1.25); }
-    /* Marker hover */
-    .eco-marker { cursor: pointer; }
-    .eco-marker:hover .marker-dot { filter: brightness(1.3); }
+    .country-path.highlighted:hover {
+      fill: var(--cf40, var(--bg-4));
+      filter: drop-shadow(0 0 6px var(--country-stroke, transparent));
+    }
+    .country-path.highlighted.selected,
+    .country-path.highlighted.selected:hover {
+      fill: var(--cf50, var(--bg-4));
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 8px var(--country-stroke, transparent));
+    }
 
     /* ══ DETAIL PANEL ══ */
     .detail-panel {
@@ -585,8 +593,8 @@
           <rect width="1000" height="500" fill="var(--bg)"/>
           <!-- Country paths rendered from GeoJSON by JS -->
           <g id="countries-group"></g>
-          <!-- Markers rendered by JS -->
-          <g id="markers-group"></g>
+          <!-- Flag emoji labels (pointer-events:none, rendered on top) -->
+          <g id="labels-group"></g>
         </svg>
       </div>
     </section>
@@ -622,15 +630,25 @@
     const GEO_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
     const ECONOMIES_META = {
-      US: { cx: 180, cy: 195, cb: 'Federal Reserve' },
-      CN: { cx: 685, cy: 205, cb: 'PBoC (People\'s Bank of China)' },
-      DE: { cx: 490, cy: 160, cb: 'ECB (European Central Bank)' },
-      JP: { cx: 770, cy: 190, cb: 'Bank of Japan' },
-      GB: { cx: 468, cy: 148, cb: 'Bank of England' },
-      IN: { cx: 625, cy: 240, cb: 'RBI (Reserve Bank of India)', home: true },
+      US: { cb: 'Federal Reserve' },
+      CN: { cb: 'PBoC (People\'s Bank of China)' },
+      DE: { cb: 'ECB (European Central Bank)' },
+      JP: { cb: 'Bank of Japan' },
+      GB: { cb: 'Bank of England' },
+      IN: { cb: 'RBI (Reserve Bank of India)', home: true },
     };
 
-    // GeoJSON properties.NAME → economy code
+    // Manual flag label positions (centroid overrides for large/spread countries)
+    const FLAG_POS = {
+      US: [190, 205],
+      CN: [680, 215],
+      DE: [492, 165],
+      JP: [760, 198],
+      GB: [470, 155],
+      IN: [625, 248],
+    };
+
+    // GeoJSON name → economy code (multi-field fallback via resolveEconomyCode)
     const COUNTRY_NAME_MAP = {
       'United States of America': 'US',
       'United States':            'US',
@@ -640,6 +658,15 @@
       'United Kingdom':           'GB',
       'India':                    'IN',
     };
+    const ISO_A2_MAP = { US:'US', CN:'CN', DE:'DE', JP:'JP', GB:'GB', IN:'IN' };
+
+    function resolveEconomyCode(props) {
+      for (const n of [props.NAME, props.NAME_EN, props.ADMIN, props.NAME_LONG]) {
+        if (n && COUNTRY_NAME_MAP[n]) return COUNTRY_NAME_MAP[n];
+      }
+      if (props.ISO_A2 && ISO_A2_MAP[props.ISO_A2]) return ISO_A2_MAP[props.ISO_A2];
+      return null;
+    }
 
     const SIG_COLOR = {
       EXPANDING:          'var(--green)',
@@ -700,10 +727,7 @@
       const isLight = document.documentElement.classList.toggle('light');
       localStorage.setItem('econiq-theme', isLight ? 'light' : 'dark');
       const economies = Object.values(economiesData);
-      if (economies.length) {
-        highlightEconomyCountries(economies);
-        renderMarkers(economies);
-      }
+      if (economies.length) highlightEconomyCountries(economies);
     }
 
     /* ── Helpers ── */
@@ -833,6 +857,26 @@
         defs.map(d => `<path d="${d}" class="country-path" style="stroke-width:0.8"/>`).join('');
     }
 
+    /* ── Place flag labels at manual override positions ── */
+    function renderFlagLabels() {
+      const lbls = document.getElementById('labels-group');
+      if (!lbls) return;
+      lbls.innerHTML = '';
+      for (const [code, [lx, ly]] of Object.entries(FLAG_POS)) {
+        const eco = economiesData[code];
+        if (!eco || !eco.flag) continue;
+        const txt = document.createElementNS(NS, 'text');
+        txt.setAttribute('x', lx);
+        txt.setAttribute('y', ly);
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('dominant-baseline', 'middle');
+        txt.setAttribute('font-size', '16');
+        txt.setAttribute('pointer-events', 'none');
+        txt.textContent = eco.flag;
+        lbls.appendChild(txt);
+      }
+    }
+
     /* ── Load GeoJSON world map ── */
     async function loadGeoMap() {
       try {
@@ -840,33 +884,53 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const geojson = await res.json();
 
-        const grp  = document.getElementById('countries-group');
-        const frag = document.createDocumentFragment();
+        const grp        = document.getElementById('countries-group');
+        const frag       = document.createDocumentFragment();
+        const matchLog   = {};
 
         for (const feature of geojson.features) {
           const props = feature.properties || {};
-          const name  = props.NAME || props.ADMIN || '';
-          if (name === 'Antarctica') continue;
+          if ((props.NAME || props.ADMIN || '') === 'Antarctica') continue;
           const geom = feature.geometry;
           if (!geom || !geom.coordinates) continue;
 
           const d = featureToPath(feature);
           if (!d.trim()) continue;
 
-          const code = COUNTRY_NAME_MAP[name];
+          const code = resolveEconomyCode(props);
           const el   = document.createElementNS(NS, 'path');
           el.setAttribute('d', d);
           el.setAttribute('class', code ? 'country-path highlighted' : 'country-path');
-          if (code) el.setAttribute('data-code', code);
+
+          if (code) {
+            el.setAttribute('data-code', code);
+            el.addEventListener('click', () => selectEconomy(code));
+            if (!matchLog[code]) {
+              matchLog[code] = true;
+              console.log(`[GeoMap] Matched ${code} → NAME="${props.NAME}" ADMIN="${props.ADMIN}" ISO_A2="${props.ISO_A2}"`);
+            }
+          }
           frag.appendChild(el);
         }
 
         grp.innerHTML = '';
         grp.appendChild(frag);
 
-        // Apply signal colours if macro data already arrived
+        // Log any unmatched economies
+        for (const code of Object.keys(FLAG_POS)) {
+          if (!matchLog[code]) console.warn(`[GeoMap] WARNING: No GeoJSON match for economy: ${code}`);
+        }
+
+        // Apply colours + re-apply selected state if macro data already arrived
         const loaded = Object.values(economiesData);
-        if (loaded.length) highlightEconomyCountries(loaded);
+        if (loaded.length) {
+          highlightEconomyCountries(loaded);
+          renderFlagLabels();
+          if (selectedCode) {
+            document.querySelectorAll(`.country-path.highlighted[data-code="${selectedCode}"]`)
+              .forEach(el => el.classList.add('selected'));
+          }
+        }
 
       } catch (err) {
         console.warn('GeoJSON load failed, using fallback map:', err);
@@ -877,7 +941,7 @@
       }
     }
 
-    /* ── Colour the 6 economy country shapes by signal ── */
+    /* ── Apply signal colours (25/40/50% opacity levels) to the 6 economy paths ── */
     function highlightEconomyCountries(economies) {
       const isLight = document.documentElement.classList.contains('light');
       const ecoMap  = {};
@@ -887,62 +951,31 @@
         const code = el.getAttribute('data-code');
         const eco  = ecoMap[code];
         if (!eco) return;
-        const raw = isLight
-          ? (SIG_COLOR_RAW_LIGHT[eco.macro_signal] || '#9aaabb')
-          : (SIG_COLOR_RAW[eco.macro_signal]       || '#2e3d58');
-        el.style.setProperty('--country-fill',   hexToRgba(raw, 0.20));
+        // India always uses gold; all others use signal colour
+        const raw = code === 'IN'
+          ? '#F59E0B'
+          : (isLight
+              ? (SIG_COLOR_RAW_LIGHT[eco.macro_signal] || '#9aaabb')
+              : (SIG_COLOR_RAW[eco.macro_signal]       || '#2e3d58'));
+        el.style.setProperty('--cf25',           hexToRgba(raw, 0.25));
+        el.style.setProperty('--cf40',           hexToRgba(raw, 0.40));
+        el.style.setProperty('--cf50',           hexToRgba(raw, 0.50));
         el.style.setProperty('--country-stroke', raw);
       });
     }
 
-    /* ── Markers ── */
-    function renderMarkers(economies) {
-      const g = document.getElementById('markers-group');
-      g.innerHTML = '';
-      economies.forEach(eco => {
-        const meta = ECONOMIES_META[eco.code];
-        if (!meta) return;
-        const { cx, cy, home } = meta;
-        const color    = getSignalColor(eco.macro_signal);
-        const outerR   = home ? 26 : 18;
-        const innerR   = 7;
-        const durStart = outerR - 4;
-        const durEnd   = outerR + 7;
-
-        const grp = mkEl('g', { class: 'eco-marker', 'data-code': eco.code });
-        grp.style.cursor = 'pointer';
-
-        const ring = mkEl('circle', { cx, cy, r: outerR, fill: 'none', 'stroke-width': '1.5', opacity: '0.55' });
-        ring.style.stroke = color;
-        ring.appendChild(mkEl('animate', { attributeName: 'r',       values: `${durStart};${durEnd};${durStart}`, dur: '2.8s', repeatCount: 'indefinite' }));
-        ring.appendChild(mkEl('animate', { attributeName: 'opacity', values: '0.55;0;0.55',                       dur: '2.8s', repeatCount: 'indefinite' }));
-
-        const dot = mkEl('circle', { cx, cy, r: innerR, opacity: '0.9', class: 'marker-dot' });
-        dot.style.fill = home ? '#F59E0B' : color;
-
-        const hit = mkEl('circle', { cx, cy, r: '24', fill: 'transparent' });
-
-        const label = mkEl('text', { x: cx, y: cy - (outerR + 8), 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '14' });
-        label.textContent = eco.flag + (home ? ' 🏠' : '');
-
-        grp.appendChild(ring);
-        grp.appendChild(dot);
-        grp.appendChild(label);
-        grp.appendChild(hit);
-        grp.addEventListener('click', () => selectEconomy(eco.code));
-        g.appendChild(grp);
-      });
-    }
-
-    /* ── Select & render detail ── */
+    /* ── Select economy ── */
     let selectedCode = null;
 
     function selectEconomy(code) {
       selectedCode = code;
       localStorage.setItem('econiq_selected_economy', code);
-      document.querySelectorAll('.eco-marker').forEach(grp => {
-        grp.style.opacity = grp.getAttribute('data-code') === code ? '1' : '0.75';
+
+      // Toggle .selected on all economy country paths
+      document.querySelectorAll('.country-path.highlighted[data-code]').forEach(el => {
+        el.classList.toggle('selected', el.getAttribute('data-code') === code);
       });
+
       const eco = economiesData[code];
       if (eco) renderDetail(eco);
     }
@@ -1023,8 +1056,8 @@
         const data = await res.json();
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
-        renderMarkers(economies);
         highlightEconomyCountries(economies);
+        renderFlagLabels();
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
@@ -1040,7 +1073,6 @@
     /* ── Init ── */
     initTheme();
     document.getElementById('theme-btn').addEventListener('click', toggleTheme);
-    // Both fetches fire in parallel; GeoJSON hides the skeleton when done
     loadGeoMap();
     loadMacroData();
     scheduleRefresh();
