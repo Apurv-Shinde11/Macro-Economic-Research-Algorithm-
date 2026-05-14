@@ -2044,6 +2044,74 @@
       line-height: 1.5;
     }
 
+    /* ══ TOOLTIP ICONS (LAYER 2) ══ */
+    .tip-icon {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      color: var(--text-3);
+      cursor: help;
+      margin-left: 4px;
+      vertical-align: middle;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .tip-pop {
+      position: fixed;
+      max-width: 220px;
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-2);
+      box-shadow: var(--card-shadow);
+      z-index: 800;
+      display: none;
+      line-height: 1.55;
+      pointer-events: none;
+    }
+
+    .tip-pop.visible {
+      display: block;
+    }
+
+    /* ══ GUIDE MODAL (LAYER 3) ══ */
+    .guide-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .guide-section:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .guide-section-num {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    .guide-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .guide-section-body {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 900px) {
       .app-layout {
@@ -2268,12 +2336,52 @@
       </div>
     </div>
 
+    <!-- LAYER 3: How to use Sentinel guide modal -->
+    <div class="admin-overlay" id="guideOverlay" onclick="if(event.target===this)closeGuide()">
+      <div class="admin-panel" style="max-width:640px;">
+        <div class="admin-panel-header">
+          <span class="admin-panel-title">How to use Sentinel</span>
+          <button class="admin-close-btn" onclick="closeGuide()">✕ Close</button>
+        </div>
+        <div>
+          <div class="guide-section">
+            <div class="guide-section-num">01</div>
+            <div class="guide-section-title">Morning Ritual</div>
+            <div class="guide-section-body">Check Sentinel each morning before market open. Your regime and conviction level set the tone for the day — position sizing, sector tilts, and risk decisions should all be made in the context of the current macro signal. Don't trade against the regime.</div>
+          </div>
+          <div class="guide-section">
+            <div class="guide-section-num">02</div>
+            <div class="guide-section-title">Understanding Confidence</div>
+            <div class="guide-section-body">Confidence is not a prediction of returns — it measures how strongly today's macro data supports the dominant regime. Above 65% means signals are aligned and conviction is reliable. Below 45% means conditions are noisy; monitor but avoid aggressive new positions.</div>
+          </div>
+          <div class="guide-section">
+            <div class="guide-section-num">03</div>
+            <div class="guide-section-title">Acting on Conviction</div>
+            <div class="guide-section-body"><strong>HIGH conviction + ACT</strong> — deploy with full sizing into regime-appropriate assets. <strong>MEDIUM + WAIT</strong> — selective additions only; avoid high-beta bets. <strong>LOW conviction</strong> — hold existing positions, raise cash buffer, do not initiate new risk. Never fight the conviction level.</div>
+          </div>
+          <div class="guide-section">
+            <div class="guide-section-num">04</div>
+            <div class="guide-section-title">Reading the Archive</div>
+            <div class="guide-section-body">The Historical Archive logs every regime call with its Implied Action and Outcome. Compare action columns across rows — three consecutive LOW-conviction HOLD signals means macro conditions are genuinely unclear. Use it to calibrate your confidence in the current read.</div>
+          </div>
+          <div class="guide-section">
+            <div class="guide-section-num">05</div>
+            <div class="guide-section-title">When Conditions Change</div>
+            <div class="guide-section-body">A Challenger Regime alert means an alternative macro state is gaining weight in the data. If it crosses 45% confidence, a regime shift may be imminent. Run Sentinel again within 24 hours for a fresh read, and check your alert thresholds in the sidebar.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MAIN -->
     <main class="main-content" id="mainContent">
 
       <div class="section-header">
         <span class="section-title">Macro Regime</span>
-        <span class="section-meta" id="lastRunMeta">—</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button onclick="openGuide()" style="background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);cursor:pointer;letter-spacing:0.04em;padding:0;transition:color 0.2s;" onmouseover="this.style.color='var(--text-2)'" onmouseout="this.style.color='var(--text-3)'">How to use Sentinel ↗</button>
+          <span class="section-meta" id="lastRunMeta">—</span>
+        </div>
       </div>
 
       <!-- FEATURE 7: Decision Prompt Card -->
@@ -2289,34 +2397,35 @@
         </div>
       </div>
 
-      <!-- BUILD 6: First-run onboarding card -->
+      <!-- LAYER 1: First-run onboarding card -->
       <div class="onboarding-card" id="onboardingCard">
         <div class="onboarding-icon">📡</div>
-        <div class="onboarding-title">Welcome to SENTINEL</div>
+        <div class="onboarding-title">Welcome to Sentinel</div>
         <div class="onboarding-body">
-          Your macro intelligence terminal is ready. Run the engine to generate your first regime assessment — it
-          analyses RBI policy, FII flows, liquidity conditions, and macro data to classify India's current investment
-          environment.
+          Sentinel is a real-time macro intelligence engine. It reads RBI policy, FII flows, yield curves, and liquidity
+          conditions — then classifies India's current investment environment and tells you what to do with your
+          portfolio today.
         </div>
         <div class="onboarding-steps">
           <div class="onboarding-step">
-            <div class="onboarding-step-num">Step 01</div>
-            <div class="onboarding-step-text">Click <strong>Run Intelligence Engine</strong> below to start the pipeline
-              (~30 seconds)</div>
+            <div class="onboarding-step-num">What is Sentinel?</div>
+            <div class="onboarding-step-text">A macro reading engine that analyses real-time data and classifies the
+              investment climate — so you know whether to deploy, wait, or protect capital.</div>
           </div>
           <div class="onboarding-step">
-            <div class="onboarding-step-num">Step 02</div>
-            <div class="onboarding-step-text">Review the <strong>Regime Card</strong> — conviction level, playbook, and
-              asset class implications</div>
+            <div class="onboarding-step-num">What is a Regime?</div>
+            <div class="onboarding-step-text">Think of it like a season. A <strong>Liquidity Driven Expansion</strong>
+              is like summer — deploy capital. A <strong>Monetary Tightening</strong> is like monsoon — take cover.
+              Sentinel tells you which season you're in.</div>
           </div>
           <div class="onboarding-step">
-            <div class="onboarding-step-num">Step 03</div>
-            <div class="onboarding-step-text">Configure <strong>alerts</strong> in the sidebar — email and WhatsApp when
-              the regime shifts</div>
+            <div class="onboarding-step-num">What do I do first?</div>
+            <div class="onboarding-step-text">Hit <strong>Run Engine</strong> below. Sentinel will analyse current
+              conditions and give you today's decision signal — one action, one rationale, one watchpoint.</div>
           </div>
         </div>
         <button class="run-btn" id="onboardRunBtn" onclick="document.getElementById('runBtn').click()">
-          <span>▶</span> Run Your First Analysis
+          <span>▶</span> Run Intelligence Engine →
         </button>
       </div>
 
@@ -2355,27 +2464,27 @@
               <div class="confidence-ring-text">
                 <span class="confidence-pct" id="confPct">—</span><span id="confArrow"
                   style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
-                <span class="confidence-lbl">CONF</span>
+                <span class="confidence-lbl">CONF<span class="tip-icon" data-tip="conf">ⓘ</span></span>
               </div>
             </div>
             <div class="conf-sparkline-wrap" id="confSparklineWrap"></div>
           </div>
         </div>
         <div class="regime-pills">
-          <div class="regime-pill"><span class="regime-pill-label">Equity Bias</span><span class="regime-pill-value"
+          <div class="regime-pill"><span class="regime-pill-label">Equity Bias<span class="tip-icon" data-tip="equity-bias">ⓘ</span></span><span class="regime-pill-value"
               id="pillEquity">—</span></div>
-          <div class="regime-pill"><span class="regime-pill-label">Conviction</span><span class="regime-pill-value"
+          <div class="regime-pill"><span class="regime-pill-label">Conviction<span class="tip-icon" data-tip="conviction">ⓘ</span></span><span class="regime-pill-value"
               id="pillConviction">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
               id="pillRBI">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
               id="pillLiquidity">—</span></div>
           <div class="regime-pill" style="align-items:center;justify-content:center;">
-            <span class="act-signal-pill HOLD" id="actSignalPill">HOLD</span>
+            <span class="act-signal-pill HOLD" id="actSignalPill">HOLD</span><span class="tip-icon" data-tip="act-signal" style="margin-left:6px;">ⓘ</span>
           </div>
         </div>
         <div class="challenger-banner" id="challengerBanner" style="display:none">
-          <div>⚠️ Challenger regime: <strong id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
+          <div>⚠️ Challenger regime:<span class="tip-icon" data-tip="challenger">ⓘ</span> <strong id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
             45%</div>
           <div style="font-size:11px;">🔔 WhatsApp + email alert will fire automatically if this regime is confirmed
           </div>
@@ -2466,7 +2575,7 @@
           <div class="yield-sub" id="usShape">Loading...</div>
         </div>
         <div class="yield-card">
-          <div class="yield-label">Carry Signal</div>
+          <div class="yield-label">Carry Signal<span class="tip-icon" data-tip="carry">ⓘ</span></div>
           <div class="yield-value" id="carrySpread">—</div>
           <div class="yield-sub" id="carrySignal">India-US 10Y</div>
         </div>
@@ -2498,8 +2607,8 @@
               <th>Confidence</th>
               <th>Conviction</th>
               <th>Equity Bias</th>
-              <th>Implied Action</th>
-              <th>Outcome</th>
+              <th>Implied Action<span class="tip-icon" data-tip="implied">ⓘ</span></th>
+              <th>Outcome<span class="tip-icon" data-tip="outcome">ⓘ</span></th>
             </tr>
           </thead>
           <tbody id="historyBody">
@@ -3468,6 +3577,67 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
+
+    /* ── LAYER 2: Inline Contextual Tooltips ── */
+    const TIP_DATA = {
+      conf: 'Confidence measures how strongly macro data supports the current regime — not a prediction of future returns. 65% means signals are aligned, not that returns are 65% certain.',
+      conviction: 'Conviction reflects how actionable the signal is. HIGH = clear alignment, deploy with full sizing. MEDIUM = directional but wait for confirmation. LOW = too noisy, hold positions.',
+      challenger: 'A challenger regime is an alternative macro state the data partially supports. If it crosses 45% confidence, Sentinel alerts you — the dominant regime may be shifting.',
+      'equity-bias': 'RISK_ON means equities have macro tailwinds — cyclicals and growth assets are favoured. RISK_OFF signals a defensive posture: reduce net equity, favour defensives.',
+      carry: 'Carry Signal measures the yield gap between Indian and US 10-year bonds. A wide positive spread attracts FII inflows; narrowing or reversal tends to trigger FII outflows.',
+      'act-signal': 'One-word decision prompt derived from regime and conviction. ACT = deploy capital now. WAIT = directional but hold for confirmation. HOLD = avoid new positions.',
+      implied: 'The recommended portfolio action at the time of each analysis run. Compare across rows to see how the signal has shifted — three consecutive HOLD signals indicate genuine macro uncertainty.',
+      outcome: 'Retroactive 30-day outcome assigned after enough time has passed to assess market direction. Shows whether the implied action was correct given subsequent market moves.'
+    };
+
+    (function initTooltips() {
+      const pop = document.createElement('div');
+      pop.className = 'tip-pop';
+      pop.id = 'tipPop';
+      document.body.appendChild(pop);
+      let activeIcon = null;
+
+      function showTip(icon, key) {
+        const text = TIP_DATA[key];
+        if (!text) return;
+        pop.textContent = text;
+        pop.classList.add('visible');
+        const rect = icon.getBoundingClientRect();
+        const pw = 220;
+        const ph = pop.offsetHeight || 80;
+        let top = rect.top - ph - 8;
+        let left = rect.left + rect.width / 2 - pw / 2;
+        if (top < 8) top = rect.bottom + 8;
+        left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+        pop.style.top = top + 'px';
+        pop.style.left = left + 'px';
+        activeIcon = icon;
+      }
+
+      function hideTip() {
+        pop.classList.remove('visible');
+        activeIcon = null;
+      }
+
+      document.querySelectorAll('.tip-icon').forEach(icon => {
+        icon.addEventListener('click', e => {
+          e.stopPropagation();
+          if (activeIcon === icon && pop.classList.contains('visible')) { hideTip(); return; }
+          showTip(icon, icon.dataset.tip);
+        });
+      });
+
+      document.addEventListener('click', hideTip);
+    })();
+
+    /* ── LAYER 3: How to use Sentinel guide modal ── */
+    function openGuide() {
+      document.getElementById('guideOverlay').classList.add('open');
+    }
+
+    function closeGuide() {
+      document.getElementById('guideOverlay').classList.remove('open');
+    }
   </script>
 </body>
 
