@@ -3080,7 +3080,7 @@
       document.getElementById('confRing').setAttribute('stroke-dasharray', (circ * pct / 100).toFixed(1) + ' ' + circ.toFixed(1));
       document.getElementById('confPct').textContent = pct + '%';
       document.getElementById('regimeNarrative').textContent = (!fromHistory && regime?.narrative) ? regime.narrative : 'Run the engine to generate today\'s regime narrative.';
-      renderRegimeBridge(regimeName);
+      renderRegimeBridge(regimeName, conviction);
       if (!fromHistory) {
         const comp = regime?.components || {};
         document.getElementById('pillEquity').textContent = comp.equity_bias || '—';
@@ -3549,7 +3549,7 @@
       risk: 'Regime exit requires 2+ consecutive confirming adverse signals before defensive repositioning'
     };
 
-    function renderRegimeBridge(regimeKey) {
+    function renderRegimeBridge(regimeKey, conviction) {
       const bridgeEl = document.getElementById('regimeBridge');
       if (!bridgeEl) return;
       const key = (regimeKey || '').toUpperCase().replace(/ /g, '_');
