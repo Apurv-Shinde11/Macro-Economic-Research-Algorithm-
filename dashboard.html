@@ -2188,6 +2188,138 @@
     .neutral .heatmap-dot { background: var(--text-3); }
     .avoid .heatmap-dot   { background: var(--red); }
 
+    /* ══ HISTORICAL BACKTEST ══ */
+    .backtest-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 16px;
+    }
+
+    .backtest-summary {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .backtest-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .backtest-stat-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .backtest-stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+      text-transform: uppercase;
+    }
+
+    .backtest-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .backtest-index-card {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .backtest-index-card:hover {
+      border-color: var(--border-2);
+    }
+
+    .backtest-index-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.10em;
+      color: var(--text-3);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .backtest-return {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .backtest-return.positive { color: var(--green); }
+    .backtest-return.negative { color: var(--red); }
+
+    .backtest-return-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .backtest-range {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+
+    .backtest-hit-rate {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    .backtest-hit-rate.high   { background: var(--green-dim); color: var(--green); }
+    .backtest-hit-rate.medium { background: var(--amber-dim); color: var(--amber); }
+    .backtest-hit-rate.low    { background: var(--red-dim);   color: var(--red);   }
+
+    .backtest-insight {
+      padding: 12px 14px;
+      background: var(--blue-dim);
+      border: 1px solid rgba(79, 131, 255, 0.15);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.65;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .backtest-insight-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 900px) {
       .app-layout {
@@ -2209,6 +2341,9 @@
       .heatmap-columns {
         grid-template-columns: 1fr;
       }
+
+      .backtest-grid { grid-template-columns: repeat(2, 1fr); }
+      .backtest-summary { flex-wrap: wrap; }
 
       .yield-grid {
         grid-template-columns: 1fr 1fr;
@@ -2639,6 +2774,18 @@
       <div class="divider"></div>
 
       <div class="section-header">
+        <span class="section-title">Historical Regime Performance</span>
+        <span class="section-meta" id="backtestMeta">Based on 2010–2025 data</span>
+      </div>
+      <div class="backtest-card" id="backtestCard">
+        <div class="backtest-summary" id="backtestSummary"></div>
+        <div class="backtest-grid" id="backtestGrid"></div>
+        <div class="backtest-insight" id="backtestInsight"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-header">
         <span class="section-title">FII / DII Flow Intelligence</span>
         <span class="section-meta" id="flowDate">—</span>
       </div>
@@ -2787,6 +2934,7 @@
         if (history.length > 0) {
           renderRunResult(history[0], true);
           if (history[0].sector_heatmap) renderHeatmap(history[0].sector_heatmap);
+          if (history[0].regime) loadBacktest(history[0].regime);
           onboarding.classList.remove('visible');
         } else {
           onboarding.classList.add('visible');
@@ -2907,6 +3055,7 @@
       }
       if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
       if (!fromHistory && data.sector_heatmap) renderHeatmap(data.sector_heatmap);
+      if (!fromHistory) { const _rk = (regime?.regime || data.regime || '').toUpperCase(); if (_rk) loadBacktest(_rk); }
       if (!fromHistory && nse) {
         renderFlows(nse);
       } else if (fromHistory && ((data.fii_net_crore != null && data.fii_net_crore !== 0) || (data.dii_net_crore != null && data.dii_net_crore !== 0))) {
@@ -3862,6 +4011,81 @@
 
       document.addEventListener('click', hideTip);
     })();
+
+    /* ── HISTORICAL REGIME BACKTEST ── */
+    async function loadBacktest(regimeKey) {
+      const summaryEl = document.getElementById('backtestSummary');
+      const gridEl    = document.getElementById('backtestGrid');
+      const insightEl = document.getElementById('backtestInsight');
+      const metaEl    = document.getElementById('backtestMeta');
+      if (!summaryEl || !gridEl || !insightEl) return;
+
+      summaryEl.innerHTML = `<span style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;">Loading historical data…</span>`;
+      gridEl.innerHTML    = '';
+      insightEl.innerHTML = '';
+
+      let res;
+      try {
+        res = await apiFetch(`/api/backtest?regime=${encodeURIComponent(regimeKey)}`);
+      } catch(e) {
+        summaryEl.innerHTML = `<span style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;">Backtest data unavailable.</span>`;
+        return;
+      }
+
+      if (!res?.available || !res?.data) {
+        summaryEl.innerHTML = `<span style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;">No backtest data for this regime.</span>`;
+        return;
+      }
+
+      const d = res.data;
+      const indices = d.indices || {};
+      const regimeLabel = regimeKey.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (metaEl) metaEl.textContent = `${d.instances ?? '—'} historical instance${(d.instances ?? 0) !== 1 ? 's' : ''} · 2010–2025`;
+
+      // ── Summary strip ──
+      summaryEl.innerHTML = `
+        <div class="backtest-stat">
+          <span class="backtest-stat-val">${d.instances ?? '—'}</span>
+          <span class="backtest-stat-label">Instances</span>
+        </div>
+        <div class="backtest-stat">
+          <span class="backtest-stat-val">${d.avg_duration_months ?? '—'}<span style="font-size:12px;font-weight:400"> mo</span></span>
+          <span class="backtest-stat-label">Avg Duration</span>
+        </div>
+        <div class="backtest-stat" style="flex:1;max-width:none;text-align:left;align-items:flex-start;">
+          <span class="backtest-stat-label" style="font-size:11px;line-height:1.5;color:var(--text-2);">${d.summary || ''}</span>
+        </div>`;
+
+      // ── Index cards grid ──
+      const indexOrder = ['Nifty 50','Bank Nifty','Nifty Midcap 100','Nifty IT','Nifty Infra'];
+      gridEl.innerHTML = indexOrder.map(name => {
+        const idx = indices[name];
+        if (!idx) return '';
+        const avg = idx.avg_return_pct;
+        const avgCls = avg >= 0 ? 'positive' : 'negative';
+        const avgSign = avg >= 0 ? '+' : '';
+        const hitRate = d.instances > 0 ? Math.round((idx.positive_instances / d.instances) * 100) : 0;
+        const hitCls  = hitRate >= 75 ? 'high' : hitRate >= 50 ? 'medium' : 'low';
+        const best  = idx.best_return_pct  >= 0 ? `+${idx.best_return_pct}%`  : `${idx.best_return_pct}%`;
+        const worst = idx.worst_return_pct >= 0 ? `+${idx.worst_return_pct}%` : `${idx.worst_return_pct}%`;
+        return `
+          <div class="backtest-index-card">
+            <div class="backtest-index-name">${name}</div>
+            <div class="backtest-return ${avgCls}">${avgSign}${avg}%</div>
+            <div class="backtest-return-label">Avg Return</div>
+            <div class="backtest-range">${worst} / ${best}</div>
+            <div class="backtest-range-label">Worst / Best</div>
+            <div class="backtest-hit-rate ${hitCls}">${hitRate}% hit rate</div>
+          </div>`;
+      }).join('');
+
+      // ── Key insight panel ──
+      if (d.key_insight) {
+        insightEl.innerHTML = `
+          <span class="backtest-insight-icon">💡</span>
+          <span class="backtest-insight-text">${d.key_insight}</span>`;
+      }
+    }
 
     /* ── SECTOR HEATMAP ── */
     function renderHeatmap(heatmap) {
