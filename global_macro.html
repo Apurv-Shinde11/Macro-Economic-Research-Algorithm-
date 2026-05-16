@@ -678,9 +678,23 @@
       US: { cb: 'Federal Reserve' },
       CN: { cb: 'PBoC (People\'s Bank of China)' },
       DE: { cb: 'ECB (European Central Bank)' },
+      IN: { cb: 'RBI (Reserve Bank of India)', home: true },
       JP: { cb: 'Bank of Japan' },
       GB: { cb: 'Bank of England' },
-      IN: { cb: 'RBI (Reserve Bank of India)', home: true },
+      FR: { cb: 'ECB (European Central Bank)' },
+      IT: { cb: 'ECB (European Central Bank)' },
+      BR: { cb: 'Banco Central do Brasil' },
+      CA: { cb: 'Bank of Canada' },
+      RU: { cb: 'Central Bank of Russia' },
+      KR: { cb: 'Bank of Korea' },
+      AU: { cb: 'Reserve Bank of Australia' },
+      MX: { cb: 'Banco de México' },
+      ID: { cb: 'Bank Indonesia' },
+      NL: { cb: 'ECB (European Central Bank)' },
+      SA: { cb: 'Saudi Central Bank (SAMA)' },
+      TR: { cb: 'Central Bank of the Republic of Turkey' },
+      CH: { cb: 'Swiss National Bank (SNB)' },
+      TW: { cb: 'Central Bank of the ROC (Taiwan)' },
     };
 
     // Manual flag label positions (centroid overrides for large/spread countries)
@@ -688,9 +702,23 @@
       US: [190, 205],
       CN: [680, 215],
       DE: [492, 165],
+      IN: [625, 248],
       JP: [760, 198],
       GB: [470, 155],
-      IN: [625, 248],
+      FR: [478, 178],
+      IT: [498, 187],
+      BR: [295, 330],
+      CA: [178, 163],
+      RU: [600, 150],
+      KR: [745, 215],
+      AU: [737, 385],
+      MX: [157, 252],
+      ID: [724, 288],
+      NL: [479, 154],
+      SA: [578, 244],
+      TR: [543, 192],
+      CH: [489, 172],
+      TW: [749, 232],
     };
 
     // GeoJSON name → economy code (multi-field fallback via resolveEconomyCode)
@@ -699,14 +727,40 @@
       'United States':            'US',
       'China':                    'CN',
       'Germany':                  'DE',
+      'India':                    'IN',
       'Japan':                    'JP',
       'United Kingdom':           'GB',
-      'India':                    'IN',
+      'France':                   'FR',
+      'Italy':                    'IT',
+      'Brazil':                   'BR',
+      'Canada':                   'CA',
+      'Russia':                   'RU',
+      'Russian Federation':       'RU',
+      'South Korea':              'KR',
+      'Korea, Republic of':       'KR',
+      'Republic of Korea':        'KR',
+      'Australia':                'AU',
+      'Mexico':                   'MX',
+      'Indonesia':                'ID',
+      'Netherlands':              'NL',
+      'Saudi Arabia':             'SA',
+      'Turkey':                   'TR',
+      'Türkiye':                  'TR',
+      'Switzerland':              'CH',
+      'Taiwan':                   'TW',
+      'Chinese Taipei':           'TW',
     };
-    const ISO_A2_MAP = { US:'US', CN:'CN', DE:'DE', JP:'JP', GB:'GB', IN:'IN' };
+    const ISO_A2_MAP = {
+      US:'US', CN:'CN', DE:'DE', IN:'IN', JP:'JP', GB:'GB',
+      FR:'FR', IT:'IT', BR:'BR', CA:'CA', RU:'RU', KR:'KR',
+      AU:'AU', MX:'MX', ID:'ID', NL:'NL', SA:'SA', TR:'TR',
+      CH:'CH', TW:'TW',
+    };
 
     function resolveEconomyCode(props) {
-      if (props.ISO_A2 && ISO_A2_MAP[props.ISO_A2]) return ISO_A2_MAP[props.ISO_A2];
+      const iso = props.ISO_A2;
+      // Skip "-1" (Taiwan in some Natural Earth builds) — fall through to name matching
+      if (iso && iso !== '-1' && ISO_A2_MAP[iso]) return ISO_A2_MAP[iso];
       for (const n of [props.NAME, props.NAME_EN, props.ADMIN, props.NAME_LONG]) {
         if (n && COUNTRY_NAME_MAP[n]) return COUNTRY_NAME_MAP[n];
       }
@@ -793,12 +847,17 @@
       const val = eco.currency_vs_usd;
       if (eco.code === 'US') return '1.0000 USD';
       if (val == null) return '—';
-      if (eco.code === 'DE') return val.toFixed(4) + ' EUR/USD';
+      // Non-USD base (ticker is XXX/USD)
+      if (['DE', 'FR', 'IT', 'NL'].includes(eco.code)) return val.toFixed(4) + ' EUR/USD';
       if (eco.code === 'GB') return val.toFixed(4) + ' GBP/USD';
-      if (eco.code === 'CN') return val.toFixed(4) + ' USD/CNY';
+      if (eco.code === 'AU') return val.toFixed(4) + ' AUD/USD';
+      // USD base — large integer currencies
       if (eco.code === 'JP') return val.toFixed(2) + ' USD/JPY';
       if (eco.code === 'IN') return val.toFixed(2) + ' USD/INR';
-      return val.toFixed(4) + ' ' + eco.currency_label;
+      if (eco.code === 'KR') return val.toFixed(0) + ' USD/KRW';
+      if (eco.code === 'ID') return val.toFixed(0) + ' USD/IDR';
+      // USD base — generic (works for CN, BR, CA, MX, TR, CH, TW, etc.)
+      return val.toFixed(4) + ' USD/' + eco.currency_label;
     }
     function gdpColor(v) {
       if (v == null) return 'var(--text-2)';
@@ -1049,8 +1108,16 @@
     }
 
     function buildSizeChart(currentCode) {
-      const GDP_FALLBACK = { US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6 };
-      const ORDER = ['US', 'CN', 'DE', 'IN', 'JP', 'GB'];
+      const GDP_FALLBACK = {
+        US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6,
+        FR: 3.2,  IT: 2.3,  BR: 2.3, CA: 2.2, RU: 2.1, KR: 1.9,
+        AU: 1.8,  MX: 1.6,  ID: 1.5, NL: 1.2, SA: 1.1, TR: 1.1,
+        CH: 0.9,  TW: 0.8,
+      };
+      const ORDER = [
+        'US','CN','DE','IN','JP','GB','FR','IT','BR','CA',
+        'RU','KR','AU','MX','ID','NL','SA','TR','CH','TW',
+      ];
       const isLight = document.documentElement.classList.contains('light');
 
       const rows = ORDER.map(code => {
@@ -1065,8 +1132,8 @@
       const maxGdp  = rows[0].gdp;
       const labelW  = 32;
       const barMaxW = 300;
-      const rowH    = 20;
-      const rowGap  = 5;
+      const rowH    = 14;
+      const rowGap  = 4;
       const totalH  = rows.length * (rowH + rowGap);
       const totalW  = labelW + barMaxW + 70;
 
@@ -1080,11 +1147,11 @@
         const opacity = isSel ? '1' : '0.38';
         const tc      = isSel ? raw : (isLight ? '#4a5872' : '#7a8baa');
         const fw      = isSel ? '600' : '400';
-        const cy      = y + rowH * 0.68;
+        const cy      = y + rowH * 0.72;
         return `
-          <text x="${labelW - 6}" y="${cy}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="${tc}" font-weight="${fw}">${e.code}</text>
-          <rect x="${labelW}" y="${y + 3}" width="${barW}" height="${rowH - 6}" rx="3" fill="${raw}" opacity="${opacity}"/>
-          <text x="${labelW + barW + 7}" y="${cy}" font-family="JetBrains Mono,monospace" font-size="10" fill="${tc}" font-weight="${fw}">$${e.gdp}T</text>
+          <text x="${labelW - 6}" y="${cy}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">${e.code}</text>
+          <rect x="${labelW}" y="${y + 2}" width="${barW}" height="${rowH - 4}" rx="2" fill="${raw}" opacity="${opacity}"/>
+          <text x="${labelW + barW + 6}" y="${cy}" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">$${e.gdp}T</text>
         `;
       }).join('');
 
@@ -1174,6 +1241,14 @@
 
     /* ── Fetch macro data ── */
     async function loadMacroData() {
+      if (!Object.keys(economiesData).length) {
+        document.getElementById('detail-content').innerHTML = `
+          <div class="detail-empty">
+            <span style="font-size:18px;">⏳</span>
+            <span>Fetching data for 20 economies — this may take up to 10 seconds on first load</span>
+          </div>
+        `;
+      }
       try {
         const res  = await fetch(`${RAIL}/api/global-macro`);
         const data = await res.json();
@@ -1183,8 +1258,22 @@
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
+        else {
+          document.getElementById('detail-content').innerHTML = `
+            <div class="detail-empty">
+              <span style="font-size:18px;">←</span>
+              <span>Select an economy on the map to view macro details</span>
+            </div>
+          `;
+        }
       } catch (err) {
         console.error('Global macro fetch failed:', err);
+        document.getElementById('detail-content').innerHTML = `
+          <div class="detail-empty">
+            <span style="font-size:18px;">⚠</span>
+            <span>Failed to load macro data — please refresh</span>
+          </div>
+        `;
       }
     }
 

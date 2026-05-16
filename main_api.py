@@ -1192,14 +1192,28 @@ async def get_ticker():
         return {"ticker": {}, "error": str(e)}
     
 # ── Hardcoded policy rates — update when central banks meet ──────────────────
-# Last verified: May 2026 (sources: Fed, ECB, BoJ, PBoC, BoE, RBI official pages)
+# Last verified: May 2026 (sources: Fed, ECB, BoJ, PBoC, BoE, RBI and other official pages)
 _POLICY_RATES = {
     "US": 4.50,   # US Federal Funds Rate
     "CN": 3.10,   # PBoC Loan Prime Rate 1Y
     "DE": 2.40,   # ECB Deposit Facility Rate
+    "IN": 5.25,   # RBI Repo Rate
     "JP": 0.50,   # Bank of Japan Policy Rate
     "GB": 4.25,   # Bank of England Bank Rate
-    "IN": 5.25,   # RBI Repo Rate
+    "FR": 2.40,   # ECB Deposit Facility Rate
+    "IT": 2.40,   # ECB Deposit Facility Rate
+    "BR": 13.75,  # Banco do Brasil SELIC rate
+    "CA": 2.75,   # Bank of Canada overnight rate
+    "RU": 21.00,  # Bank of Russia key rate
+    "KR": 2.75,   # Bank of Korea base rate
+    "AU": 4.10,   # Reserve Bank of Australia cash rate
+    "MX": 9.00,   # Banco de Mexico overnight rate
+    "ID": 5.75,   # Bank Indonesia BI rate
+    "NL": 2.40,   # ECB Deposit Facility Rate
+    "SA": 5.00,   # Saudi Central Bank repo rate
+    "TR": 42.50,  # Central Bank of Turkey rate
+    "CH": 0.25,   # Swiss National Bank policy rate
+    "TW": 2.00,   # Central Bank of ROC rate
 }
 
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
@@ -1208,54 +1222,113 @@ _PMI_VALUES = {
     "US": 50.2,   # S&P Global US Manufacturing PMI
     "CN": 49.8,   # Caixin China Manufacturing PMI
     "DE": 48.4,   # S&P Global Germany Manufacturing PMI
+    "IN": 58.8,   # S&P Global India Manufacturing PMI
     "JP": 48.7,   # au Jibun Bank Japan Manufacturing PMI
     "GB": 45.4,   # S&P Global UK Manufacturing PMI
-    "IN": 58.8,   # S&P Global India Manufacturing PMI
+    "FR": 48.2,   # S&P Global France Manufacturing PMI
+    "IT": 49.3,   # S&P Global Italy Manufacturing PMI
+    "BR": 51.8,   # S&P Global Brazil Manufacturing PMI
+    "CA": 46.8,   # S&P Global Canada Manufacturing PMI
+    "RU": 50.2,   # S&P Global Russia Manufacturing PMI
+    "KR": 48.3,   # S&P Global South Korea Manufacturing PMI
+    "AU": 51.7,   # S&P Global Australia Manufacturing PMI
+    "MX": 47.3,   # S&P Global Mexico Manufacturing PMI
+    "ID": 52.4,   # S&P Global Indonesia Manufacturing PMI
+    "NL": 49.1,   # S&P Global Netherlands Manufacturing PMI
+    "SA": 54.2,   # S&P Global Saudi Arabia PMI
+    "TR": 48.6,   # S&P Global Turkey Manufacturing PMI
+    "CH": 48.9,   # procure.ch Switzerland PMI
+    "TW": 50.8,   # S&P Global Taiwan Manufacturing PMI
 }
 
 _ECONOMIES = [
-    {"code": "US", "name": "United States",  "flag": "🇺🇸",
+    {"code": "US", "name": "United States",   "flag": "🇺🇸",
      "currency_label": "USD", "wb_code": "US",
-     "ticker_currency": None,
-     "ticker_yield": "^TNX"},
-    {"code": "CN", "name": "China",          "flag": "🇨🇳",
+     "ticker_currency": None,        "ticker_yield": "^TNX"},
+    {"code": "CN", "name": "China",           "flag": "🇨🇳",
      "currency_label": "CNY", "wb_code": "CN",
-     "ticker_currency": "USDCNY=X",
-     "ticker_yield": None},
-    {"code": "DE", "name": "Germany",        "flag": "🇩🇪",
+     "ticker_currency": "USDCNY=X",  "ticker_yield": None},
+    {"code": "DE", "name": "Germany",         "flag": "🇩🇪",
      "currency_label": "EUR", "wb_code": "DE",
-     "ticker_currency": "EURUSD=X",
-     "ticker_yield": "^IRDE10"},
-    {"code": "JP", "name": "Japan",          "flag": "🇯🇵",
-     "currency_label": "JPY", "wb_code": "JP",
-     "ticker_currency": "USDJPY=X",
-     "ticker_yield": "^IRJP10"},
-    {"code": "GB", "name": "United Kingdom", "flag": "🇬🇧",
-     "currency_label": "GBP", "wb_code": "GB",
-     "ticker_currency": "GBPUSD=X",
-     "ticker_yield": "^IRGB10Y"},
-    {"code": "IN", "name": "India",          "flag": "🇮🇳",
+     "ticker_currency": "EURUSD=X",  "ticker_yield": "^IRDE10"},
+    {"code": "IN", "name": "India",           "flag": "🇮🇳",
      "currency_label": "INR", "wb_code": "IN",
-     "ticker_currency": "USDINR=X",
-     "ticker_yield": None},
+     "ticker_currency": "USDINR=X",  "ticker_yield": None},
+    {"code": "JP", "name": "Japan",           "flag": "🇯🇵",
+     "currency_label": "JPY", "wb_code": "JP",
+     "ticker_currency": "USDJPY=X",  "ticker_yield": "^IRJP10"},
+    {"code": "GB", "name": "United Kingdom",  "flag": "🇬🇧",
+     "currency_label": "GBP", "wb_code": "GB",
+     "ticker_currency": "GBPUSD=X",  "ticker_yield": "^IRGB10Y"},
+    {"code": "FR", "name": "France",          "flag": "🇫🇷",
+     "currency_label": "EUR", "wb_code": "FR",
+     "ticker_currency": None,        "ticker_yield": None},
+    {"code": "IT", "name": "Italy",           "flag": "🇮🇹",
+     "currency_label": "EUR", "wb_code": "IT",
+     "ticker_currency": None,        "ticker_yield": None},
+    {"code": "BR", "name": "Brazil",          "flag": "🇧🇷",
+     "currency_label": "BRL", "wb_code": "BR",
+     "ticker_currency": "USDBRL=X",  "ticker_yield": None},
+    {"code": "CA", "name": "Canada",          "flag": "🇨🇦",
+     "currency_label": "CAD", "wb_code": "CA",
+     "ticker_currency": "USDCAD=X",  "ticker_yield": None},
+    {"code": "RU", "name": "Russia",          "flag": "🇷🇺",
+     "currency_label": "RUB", "wb_code": "RU",
+     "ticker_currency": None,        "ticker_yield": None},
+    {"code": "KR", "name": "South Korea",     "flag": "🇰🇷",
+     "currency_label": "KRW", "wb_code": "KR",
+     "ticker_currency": "USDKRW=X",  "ticker_yield": None},
+    {"code": "AU", "name": "Australia",       "flag": "🇦🇺",
+     "currency_label": "AUD", "wb_code": "AU",
+     "ticker_currency": "AUDUSD=X",  "ticker_yield": None},
+    {"code": "MX", "name": "Mexico",          "flag": "🇲🇽",
+     "currency_label": "MXN", "wb_code": "MX",
+     "ticker_currency": "USDMXN=X",  "ticker_yield": None},
+    {"code": "ID", "name": "Indonesia",       "flag": "🇮🇩",
+     "currency_label": "IDR", "wb_code": "ID",
+     "ticker_currency": "USDIDR=X",  "ticker_yield": None},
+    {"code": "NL", "name": "Netherlands",     "flag": "🇳🇱",
+     "currency_label": "EUR", "wb_code": "NL",
+     "ticker_currency": None,        "ticker_yield": None},
+    {"code": "SA", "name": "Saudi Arabia",    "flag": "🇸🇦",
+     "currency_label": "SAR", "wb_code": "SA",
+     "ticker_currency": None,        "ticker_yield": None},
+    {"code": "TR", "name": "Turkey",          "flag": "🇹🇷",
+     "currency_label": "TRY", "wb_code": "TR",
+     "ticker_currency": "USDTRY=X",  "ticker_yield": None},
+    {"code": "CH", "name": "Switzerland",     "flag": "🇨🇭",
+     "currency_label": "CHF", "wb_code": "CH",
+     "ticker_currency": "USDCHF=X",  "ticker_yield": None},
+    {"code": "TW", "name": "Taiwan",          "flag": "🇹🇼",
+     "currency_label": "TWD", "wb_code": "TW",
+     "ticker_currency": "USDTWD=X",  "ticker_yield": None},
 ]
 
 _YIELD_FALLBACKS = {
-    "CN": 2.10,
-    "IN": 6.85,
-    "DE": 2.45,
-    "JP": 1.45,
-    "GB": 4.42,
+    "CN": 2.10,   "IN": 6.85,  "DE": 2.45,  "JP": 1.45,  "GB": 4.42,
+    "FR": 3.12,   # France 10Y OAT
+    "IT": 3.85,   # Italy 10Y BTP
+    "BR": 13.20,  # Brazil 10Y NTN-F
+    "CA": 3.28,   # Canada 10Y bond
+    "RU": 15.40,  # Russia 10Y OFZ
+    "KR": 2.85,   # South Korea 10Y bond
+    "AU": 4.22,   # Australia 10Y bond
+    "MX": 9.45,   # Mexico 10Y bond
+    "ID": 6.95,   # Indonesia 10Y bond
+    "NL": 2.65,   # Netherlands 10Y bond
+    "SA": 4.85,   # Saudi Arabia 10Y sukuk
+    "TR": 28.40,  # Turkey 10Y bond
+    "CH": 0.68,   # Switzerland 10Y bond
+    "TW": 1.85,   # Taiwan 10Y bond
 }
 
 # Nominal GDP in USD trillion — IMF WEO April 2026
 _NOMINAL_GDP_TRILLION = {
-    "US": 29.2,
-    "CN": 18.6,
-    "DE":  4.6,
-    "JP":  4.1,
-    "GB":  3.6,
-    "IN":  4.3,
+    "US": 29.2, "CN": 18.6, "DE":  4.6, "IN":  4.3,
+    "JP":  4.1, "GB":  3.6, "FR":  3.2, "IT":  2.3,
+    "BR":  2.3, "CA":  2.2, "RU":  2.1, "KR":  1.9,
+    "AU":  1.8, "MX":  1.6, "ID":  1.5, "NL":  1.2,
+    "SA":  1.1, "TR":  1.1, "CH":  0.9, "TW":  0.8,
 }
 
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
@@ -1366,7 +1439,7 @@ async def get_global_macro():
             _supabase.table("global_macro_cache")
             .select("*").gte("last_updated", cutoff).execute()
         )
-        if cached.data and len(cached.data) >= 6:
+        if cached.data and len(cached.data) >= 20:
             # Enrich cached rows with computed fields not stored in Supabase
             economy_meta = {e["code"]: e for e in _ECONOMIES}
             enriched = []
@@ -1394,19 +1467,28 @@ async def get_global_macro():
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
 
-    print("[GLOBAL_MACRO] Fetching fresh data...", flush=True)
+    print("[GLOBAL_MACRO] Fetching fresh data for 20 economies...", flush=True)
     try:
         currency_map, yield_map = _fetch_live_economy_data()
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Live data fetch failed: {_e}", flush=True)
         currency_map, yield_map = {}, {}
 
-    economies = []
-    for eco in _ECONOMIES:
+    async def _fetch_one(eco):
+        loop = asyncio.get_event_loop()
         wb = eco["wb_code"]
-        gdp          = _wb_fetch(wb, "NY.GDP.MKTP.KD.ZG")
-        inflation    = _wb_fetch(wb, "FP.CPI.TOTL.ZG")
-        unemployment = _wb_fetch(wb, "SL.UEM.TOTL.ZS")
+        gdp, inflation, unemployment = await asyncio.gather(
+            loop.run_in_executor(None, _wb_fetch, wb, "NY.GDP.MKTP.KD.ZG"),
+            loop.run_in_executor(None, _wb_fetch, wb, "FP.CPI.TOTL.ZG"),
+            loop.run_in_executor(None, _wb_fetch, wb, "SL.UEM.TOTL.ZS"),
+        )
+        return eco, gdp, inflation, unemployment
+
+    print("[GLOBAL_MACRO] Parallel World Bank fetch for all 20 economies...", flush=True)
+    wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
+
+    economies = []
+    for eco, gdp, inflation, unemployment in wb_results:
         record = _build_economy_record(
             eco, gdp, inflation, unemployment, currency_map, yield_map
         )
@@ -1437,7 +1519,7 @@ async def get_global_macro():
             ).execute()
         except Exception as _e:
             print(f"[GLOBAL_MACRO] Supabase upsert failed {eco['code']}: {_e}", flush=True)
-        print(f"[GLOBAL_MACRO] {eco['code']} — signal: {record['macro_signal']}", flush=True)
+        print(f"[GLOBAL_MACRO] {eco['code']} — gdp={gdp} inf={inflation} signal: {record['macro_signal']}", flush=True)
 
     result = {
         "economies":       economies,
