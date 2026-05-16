@@ -2599,6 +2599,16 @@
         <div id="adminEmailLogs"></div>
         <div class="admin-section-title">Regime Activity</div>
         <div id="adminRegimeStats"></div>
+
+        <div class="admin-section-title">Outcome Evaluation</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <button class="admin-action-btn" style="padding:8px 16px;font-size:11px;" onclick="triggerOutcomeEvaluation()">
+            ▶ Evaluate Outcomes Now
+          </button>
+          <span id="outcomeEvalStatus" style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
+            Click to evaluate runs older than 30 days
+          </span>
+        </div>
       </div>
     </div>
 
@@ -3324,11 +3334,46 @@
         const _alloc = (typeof r.allocation === 'string') ? JSON.parse(r.allocation) : (r.allocation || {});
         const bias = _alloc.equity_bias || '—';
         const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
-        const isOld = new Date(r.run_at).getTime() < thirtyDaysAgo;
-        const outcome = isOld ? (r.outcome || 'Pending') : 'Pending';
-        const outcomeCls = (outcome !== 'Pending') ? 'color:var(--green);' : 'color:var(--text-3);';
+        const isOldEnough = new Date(r.run_at).getTime() < thirtyDaysAgo;
+        const outcome = r.outcome || (isOldEnough ? 'Awaiting eval' : 'Pending');
+        const outcomeCls =
+          outcome.includes('Confirmed ✓')    ? 'color:var(--green);font-weight:600;' :
+          outcome.includes('Not Confirmed')  ? 'color:var(--red);' :
+          outcome === 'Awaiting eval'        ? 'color:var(--amber);' :
+                                               'color:var(--text-3);';
         return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;color:var(--text-2);">${impliedAction}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
       }).join('');
+    }
+
+    async function triggerOutcomeEvaluation() {
+      const btn    = document.querySelector('[onclick="triggerOutcomeEvaluation()"]');
+      const status = document.getElementById('outcomeEvalStatus');
+      if (!btn || !status) return;
+      btn.disabled = true;
+      status.textContent = 'Evaluating…';
+      status.style.color = 'var(--amber)';
+      try {
+        const res = await api('/api/outcomes/evaluate', { method: 'POST' });
+        status.textContent =
+          `✓ Evaluated ${res.evaluated} runs — ` +
+          `${res.confirmed} confirmed, ` +
+          `${res.not_confirmed} not confirmed, ` +
+          `${res.skipped} skipped`;
+        status.style.color = 'var(--green)';
+        // Refresh the history table to show updated outcomes
+        const { data: freshData } = await sb
+          .from('runs')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap')
+          .eq('user_id', _session.user.id)
+          .order('run_at', { ascending: false })
+          .limit(20);
+        renderHistoryTable(freshData || []);
+      } catch (e) {
+        status.textContent = 'Evaluation failed — check logs';
+        status.style.color = 'var(--red)';
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function loadTicker() {

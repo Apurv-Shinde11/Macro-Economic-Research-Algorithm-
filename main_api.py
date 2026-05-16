@@ -498,6 +498,100 @@ REGIME_BACKTEST = {
 }
 
 
+BULLISH_ACTIONS = {
+    "Selectively add to risk assets",
+    "Deploy — high conviction window",
+}
+DEFENSIVE_ACTIONS = {
+    "Hold current positions",
+    "Reduce risk exposure",
+    "Monitor and hold",
+}
+
+
+def _do_evaluate_outcomes() -> dict:
+    """Sync — runs in executor. Fetches Nifty 50 prices via yfinance and writes outcomes."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return {"evaluated": 0, "confirmed": 0, "not_confirmed": 0, "skipped": 0, "pending": 0, "error": "yfinance not installed"}
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    try:
+        result = (
+            _supabase.table("runs")
+            .select("id,run_at,implied_action,outcome")
+            .is_("outcome", "null")
+            .lte("run_at", cutoff)
+            .execute()
+        )
+        runs = result.data or []
+    except Exception as e:
+        print(f"[OUTCOME] Supabase fetch failed: {e}", flush=True)
+        return {"evaluated": 0, "confirmed": 0, "not_confirmed": 0, "skipped": 0, "pending": 0, "error": str(e)}
+
+    ticker = yf.Ticker("^NSEI")
+    evaluated = confirmed = not_confirmed = skipped = 0
+
+    for run in runs:
+        try:
+            run_at = datetime.fromisoformat(str(run["run_at"]).replace("Z", "+00:00"))
+            run_date = run_at.date()
+
+            entry_end = run_date + timedelta(days=3)
+            hist_entry = ticker.history(start=run_date.isoformat(), end=entry_end.isoformat())
+            if len(hist_entry) == 0:
+                skipped += 1
+                continue
+            entry_price = float(hist_entry["Close"].iloc[0])
+
+            exit_start = run_date + timedelta(days=30)
+            exit_end   = exit_start + timedelta(days=3)
+            hist_exit  = ticker.history(start=exit_start.isoformat(), end=exit_end.isoformat())
+            if len(hist_exit) == 0:
+                skipped += 1
+                continue
+            exit_price = float(hist_exit["Close"].iloc[0])
+
+            nifty_return = (exit_price - entry_price) / entry_price * 100
+            implied = run.get("implied_action", "")
+
+            if implied in BULLISH_ACTIONS:
+                outcome = "Confirmed ✓" if nifty_return > 0 else "Not Confirmed ✗"
+            elif implied in DEFENSIVE_ACTIONS:
+                outcome = "Confirmed ✓" if nifty_return <= 0 else "Not Confirmed ✗"
+            else:
+                outcome = "Confirmed ✓" if nifty_return > 0 else "Not Confirmed ✗"
+
+            _supabase.table("runs").update({"outcome": outcome}).eq("id", run["id"]).execute()
+            evaluated += 1
+            if "Confirmed ✓" in outcome:
+                confirmed += 1
+            else:
+                not_confirmed += 1
+
+        except Exception as e:
+            print(f"[OUTCOME] Error evaluating run {run.get('id')}: {e}", flush=True)
+            skipped += 1
+
+    print(f"[OUTCOME] Evaluated {evaluated} runs: {confirmed} confirmed, {not_confirmed} not confirmed, {skipped} skipped", flush=True)
+    return {
+        "evaluated":     evaluated,
+        "confirmed":     confirmed,
+        "not_confirmed": not_confirmed,
+        "skipped":       skipped,
+        "pending":       0,
+    }
+
+
+async def _evaluate_outcomes_async():
+    loop = asyncio.get_event_loop()
+    try:
+        await loop.run_in_executor(None, _do_evaluate_outcomes)
+    except Exception as e:
+        print(f"[OUTCOME] Background evaluation error: {e}", flush=True)
+
+
 def _derive_implied_action(regime_key: str, conviction: str) -> str:
     conv = (conviction or "").upper()
     if conv == "LOW":
@@ -683,7 +777,20 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
     _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_crore,dii_net_crore,crude_price,scenarios,triggers,asset_out,strat,sector_heatmap"
     result = _supabase.table("runs").select(_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
-    return {"history": result.data or []}
+    runs = result.data or []
+    # Auto-evaluate any runs older than 30 days that still have no outcome
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    needs_eval = any(r.get("outcome") is None and (r.get("run_at") or "") <= cutoff for r in runs)
+    if needs_eval:
+        asyncio.create_task(_evaluate_outcomes_async())
+    return {"history": runs}
+
+
+@app.post("/api/outcomes/evaluate")
+async def evaluate_outcomes(_profile: dict = Depends(require_admin)):
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, _do_evaluate_outcomes)
+    return result
 
 @app.get("/api/backtest")
 async def get_backtest(regime: str = "LIQUIDITY_DRIVEN_EXPANSION", profile: dict = Depends(require_access)):
