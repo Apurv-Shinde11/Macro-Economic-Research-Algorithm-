@@ -4086,7 +4086,7 @@
 
       let res;
       try {
-        res = await apiFetch(`/api/backtest?regime=${encodeURIComponent(regimeKey)}`);
+        res = await api(`/api/backtest?regime=${encodeURIComponent(regimeKey)}`);
       } catch (e) {
         summaryEl.innerHTML = `<span style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;">Backtest data unavailable.</span>`;
         return;
