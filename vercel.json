@@ -17,6 +17,10 @@
         {
             "src": "global_macro.html",
             "use": "@vercel/static"
+        },
+        {
+            "src": "pe.html",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -35,6 +39,10 @@
         {
             "src": "/global-macro",
             "dest": "/global_macro.html"
+        },
+        {
+            "src": "/pe",
+            "dest": "/pe.html"
         },
         {
             "src": "/(.*\\.html)",

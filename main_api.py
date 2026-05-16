@@ -799,6 +799,242 @@ async def get_backtest(regime: str = "LIQUIDITY_DRIVEN_EXPANSION", profile: dict
         return {"regime": regime, "available": False, "message": "No backtest data for this regime"}
     return {"regime": regime, "available": True, "data": data}
 
+PE_SECTOR_CYCLES = {
+    "Consumer & Retail": {
+        "cycle_stage": "GROWTH",
+        "pe_signal": "FAVOURABLE",
+        "macro_tailwind": "Rising disposable income, credit expansion, urban consumption recovery",
+        "macro_headwind": "Elevated crude → input cost pressure, INR weakness",
+        "irr_context": "Consumer deals supported by volume growth; margin recovery thesis intact",
+        "entry_timing": "SELECTIVE — quality brands with pricing power",
+    },
+    "Financial Services & Fintech": {
+        "cycle_stage": "GROWTH",
+        "pe_signal": "FAVOURABLE",
+        "macro_tailwind": "Liquidity expansion, credit cycle upturn, digital payment penetration",
+        "macro_headwind": "Credit quality risk if cycle turns; regulatory overhang on fintech",
+        "irr_context": "Lending and payments platforms in sweet spot; exit via IPO feasible",
+        "entry_timing": "DEPLOY — regime actively supports financial sector",
+    },
+    "Infrastructure & Logistics": {
+        "cycle_stage": "EARLY_GROWTH",
+        "pe_signal": "FAVOURABLE",
+        "macro_tailwind": "Govt capex ₹12.2L Cr, PLI schemes, data centre demand",
+        "macro_headwind": "Rate sensitivity on long-duration assets; execution risk",
+        "irr_context": "Long-hold infrastructure thesis supported by policy cycle",
+        "entry_timing": "DEPLOY — capex supercycle in early stages",
+    },
+    "Healthcare & Pharma": {
+        "cycle_stage": "MATURE",
+        "pe_signal": "NEUTRAL",
+        "macro_tailwind": "Export opportunity, API localisation push, hospital capacity",
+        "macro_headwind": "US pricing pressure, USFDA compliance costs",
+        "irr_context": "Defensive returns; selective hospital and diagnostics plays",
+        "entry_timing": "SELECTIVE — quality assets at reasonable valuations only",
+    },
+    "Technology & SaaS": {
+        "cycle_stage": "GROWTH",
+        "pe_signal": "NEUTRAL",
+        "macro_tailwind": "Global IT spending recovery, AI adoption, GCC buildout in India",
+        "macro_headwind": "US recession risk dampens discretionary IT spend",
+        "irr_context": "B2B SaaS and GCC-linked plays have strong exit visibility",
+        "entry_timing": "SELECTIVE — unit economics and path to profitability critical",
+    },
+    "Space & Deep Tech": {
+        "cycle_stage": "EARLY",
+        "pe_signal": "HIGH_CONVICTION",
+        "macro_tailwind": "IN-SPACe framework, ISRO commercialisation, defence dual-use, ₹1000Cr space fund",
+        "macro_headwind": "Long gestation, limited exit visibility, talent pool constraints",
+        "irr_context": "10Y+ horizon; early positions in launch vehicles, satellites, and ground systems",
+        "entry_timing": "BUILD POSITION — policy window open, competition low",
+    },
+    "Defence & Aerospace": {
+        "cycle_stage": "EARLY_GROWTH",
+        "pe_signal": "HIGH_CONVICTION",
+        "macro_tailwind": "₹6L Cr defence budget, 75% domestic procurement mandate, export push",
+        "macro_headwind": "Long procurement cycles, single-customer risk (MoD)",
+        "irr_context": "Ordnance, electronics, and MRO have clearest near-term revenue visibility",
+        "entry_timing": "DEPLOY — policy tailwinds strongest in a decade",
+    },
+    "Green Energy & Climate": {
+        "cycle_stage": "EARLY_GROWTH",
+        "pe_signal": "FAVOURABLE",
+        "macro_tailwind": "500GW renewable target, green hydrogen mission, MNRE incentives",
+        "macro_headwind": "Rate sensitivity, land acquisition, grid integration challenges",
+        "irr_context": "Solar and wind generation mature; storage and green H2 are early bets",
+        "entry_timing": "SELECTIVE — utility scale mature, storage tech early",
+    },
+}
+
+PE_DEAL_FLOW = [
+    {
+        "date": "May 2026",
+        "sector": "Space & Deep Tech",
+        "deal_type": "Series B",
+        "investor_type": "VC/PE",
+        "signal": "POSITIVE",
+        "headline": "Multiple launch vehicle startups raise Series B rounds as IN-SPACe approvals accelerate",
+        "macro_read": "Policy momentum converting to commercial capital — sector formation underway",
+    },
+    {
+        "date": "May 2026",
+        "sector": "Defence & Aerospace",
+        "deal_type": "Growth Equity",
+        "investor_type": "PE",
+        "signal": "POSITIVE",
+        "headline": "Defence electronics and MRO platforms attracting growth equity on back of indigenisation mandate",
+        "macro_read": "₹6L Cr defence budget creating durable revenue visibility for private players",
+    },
+    {
+        "date": "Apr 2026",
+        "sector": "Green Energy",
+        "deal_type": "Infrastructure PE",
+        "investor_type": "Infrastructure Fund",
+        "signal": "POSITIVE",
+        "headline": "Large infrastructure funds increasing allocation to utility-scale solar and wind",
+        "macro_read": "500GW renewable target driving long-term contracted cash flow assets",
+    },
+    {
+        "date": "Apr 2026",
+        "sector": "Financial Services",
+        "deal_type": "Series C",
+        "investor_type": "VC/PE",
+        "signal": "POSITIVE",
+        "headline": "Lending and payments fintechs closing large rounds on credit cycle recovery thesis",
+        "macro_read": "Liquidity expansion regime actively supports financial sector deal-making",
+    },
+    {
+        "date": "Apr 2026",
+        "sector": "Healthcare",
+        "deal_type": "Buyout",
+        "investor_type": "PE",
+        "signal": "NEUTRAL",
+        "headline": "Hospital chains and diagnostics networks seeing consolidation interest",
+        "macro_read": "Defensive positioning — healthcare deals resilient across macro regimes",
+    },
+]
+
+COST_OF_CAPITAL = {
+    "LIQUIDITY_DRIVEN_EXPANSION": {
+        "environment": "SUPPORTIVE",
+        "repo_rate_trend": "STABLE TO DECLINING",
+        "credit_spread": "COMPRESSING",
+        "debt_financing": "Favourable — credit markets open, spreads tight",
+        "irr_implication": "Current environment supports 18-22% IRR assumptions on 5-7 year holds",
+        "exit_environment": "POSITIVE — public markets receptive, IPO window open",
+        "dry_powder_call": "DEPLOY — macro conditions actively favour capital deployment",
+    },
+    "STABLE_GROWTH": {
+        "environment": "NEUTRAL",
+        "repo_rate_trend": "STABLE",
+        "credit_spread": "STABLE",
+        "debt_financing": "Neutral — credit available at fair terms",
+        "irr_implication": "Conservative 15-18% IRR assumptions appropriate; quality assets command premium",
+        "exit_environment": "NEUTRAL — selective exit opportunities; quality assets trade well",
+        "dry_powder_call": "SELECTIVE DEPLOYMENT — favour quality over momentum",
+    },
+    "MONETARY_TIGHTENING": {
+        "environment": "CHALLENGING",
+        "repo_rate_trend": "RISING",
+        "credit_spread": "WIDENING",
+        "debt_financing": "Expensive — higher cost of debt compresses equity IRR",
+        "irr_implication": "Adjust IRR targets upward 200-300bps; debt structures need stress testing",
+        "exit_environment": "DIFFICULT — public markets under pressure; delay non-urgent exits",
+        "dry_powder_call": "PRESERVE DRY POWDER — deploy only into exceptional opportunities",
+    },
+    "EXTERNAL_SHOCK": {
+        "environment": "RISK-OFF",
+        "repo_rate_trend": "UNCERTAIN",
+        "credit_spread": "SPIKING",
+        "debt_financing": "Constrained — credit markets stressed, debt expensive",
+        "irr_implication": "Existing portfolio stress-test critical; new deals require significant discount",
+        "exit_environment": "CLOSED — avoid exits; extend hold periods",
+        "dry_powder_call": "HOLD — exceptional distressed opportunities only",
+    },
+    "STAGFLATION_RISK": {
+        "environment": "VERY CHALLENGING",
+        "repo_rate_trend": "RISING",
+        "credit_spread": "WIDENING SHARPLY",
+        "debt_financing": "Very expensive — worst environment for leveraged structures",
+        "irr_implication": "Portfolio review and restructuring priority over new deployment",
+        "exit_environment": "VERY DIFFICULT — preserve portfolio companies",
+        "dry_powder_call": "PRESERVE — protect existing portfolio first",
+    },
+    "STAGFLATIONARY_RISK": {
+        "environment": "VERY CHALLENGING",
+        "repo_rate_trend": "RISING",
+        "credit_spread": "WIDENING SHARPLY",
+        "debt_financing": "Very expensive — worst environment for leveraged structures",
+        "irr_implication": "Portfolio review and restructuring priority over new deployment",
+        "exit_environment": "VERY DIFFICULT — preserve portfolio companies",
+        "dry_powder_call": "PRESERVE — protect existing portfolio first",
+    },
+    "EARLY_CYCLE_RECOVERY": {
+        "environment": "HIGHLY SUPPORTIVE",
+        "repo_rate_trend": "DECLINING",
+        "credit_spread": "COMPRESSING RAPIDLY",
+        "debt_financing": "Improving rapidly — best entry point for leveraged structures",
+        "irr_implication": "Highest return potential — early cycle entry with 5Y+ hold maximises IRR",
+        "exit_environment": "BUILDING — IPO pipeline recovering; strategic buyers returning",
+        "dry_powder_call": "DEPLOY AGGRESSIVELY — best deployment window in the cycle",
+    },
+    "GROWTH_SLOWDOWN_SUPPORT": {
+        "environment": "NEUTRAL",
+        "repo_rate_trend": "STABLE TO DECLINING",
+        "credit_spread": "STABLE",
+        "debt_financing": "Reasonable — rate support offsetting weaker growth backdrop",
+        "irr_implication": "Selective deployment into quality assets with defensive revenue profiles",
+        "exit_environment": "SELECTIVE — quality assets exit; cyclicals wait",
+        "dry_powder_call": "SELECTIVE — defensive sectors and quality cash-flow businesses only",
+    },
+}
+
+
+@app.get("/api/pe/overview")
+async def get_pe_overview(profile: dict = Depends(require_access)):
+    try:
+        latest_run = (
+            _supabase.table("runs")
+            .select("regime,confidence,conviction,run_at")
+            .eq("user_id", profile["id"])
+            .order("run_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        current_regime = "LIQUIDITY_DRIVEN_EXPANSION"
+        confidence     = 0.0
+        conviction     = "MEDIUM"
+        run_at         = None
+        if latest_run.data:
+            r              = latest_run.data[0]
+            current_regime = r.get("regime", current_regime)
+            confidence     = r.get("confidence", 0.0)
+            conviction     = r.get("conviction", "MEDIUM")
+            run_at         = r.get("run_at")
+        cost_of_capital = COST_OF_CAPITAL.get(current_regime, COST_OF_CAPITAL["STABLE_GROWTH"])
+        return {
+            "regime":          current_regime,
+            "confidence":      confidence,
+            "conviction":      conviction,
+            "run_at":          run_at,
+            "cost_of_capital": cost_of_capital,
+            "sector_cycles":   PE_SECTOR_CYCLES,
+            "deal_flow":       PE_DEAL_FLOW,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PE overview failed: {e}")
+
+
+@app.get("/api/pe/sectors")
+async def get_pe_sectors(profile: dict = Depends(require_access)):
+    return {"sectors": PE_SECTOR_CYCLES}
+
+
+@app.get("/api/pe/deal-flow")
+async def get_pe_deal_flow(profile: dict = Depends(require_access)):
+    return {"deals": PE_DEAL_FLOW}
+
+
 @app.get("/api/profile")
 async def get_user_profile(profile: dict = Depends(get_profile)):
     return {"profile": profile}

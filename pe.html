@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EconIq — PE Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══ DARK THEME ══ */
+    :root {
+      --bg:         #04060f;
+      --bg-2:       #080d1c;
+      --bg-3:       #0d1428;
+      --bg-4:       #111d38;
+      --bg-glass:   rgba(8,13,28,0.70);
+      --border:     rgba(99,132,255,0.10);
+      --border-2:   rgba(99,132,255,0.20);
+      --text:       #e8eeff;
+      --text-2:     #7a8baa;
+      --text-3:     #2e3d58;
+      --blue:       #4f83ff;
+      --blue-light: #7aa3ff;
+      --blue-dim:   rgba(79,131,255,0.10);
+      --indigo:     #6366f1;
+      --violet:     #8b5cf6;
+      --cyan:       #22d3ee;
+      --green:      #10d48a;
+      --green-dim:  rgba(16,212,138,0.10);
+      --amber:      #fbbf24;
+      --amber-dim:  rgba(251,191,36,0.10);
+      --red:        #f87171;
+      --red-dim:    rgba(248,113,113,0.10);
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-sans:  'DM Sans', sans-serif;
+      --font-mono:  'JetBrains Mono', monospace;
+      --nav-h:      64px;
+      --radius:     8px;
+      --radius-lg:  14px;
+      --card-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06);
+    }
+
+    /* ══ LIGHT THEME ══ */
+    html.light {
+      --bg:         #f4f6fc;
+      --bg-2:       #ffffff;
+      --bg-3:       #eaf0fb;
+      --bg-4:       #dde8f8;
+      --bg-glass:   rgba(255,255,255,0.80);
+      --border:     rgba(79,131,255,0.12);
+      --border-2:   rgba(79,131,255,0.22);
+      --text:       #0d1120;
+      --text-2:     #4a5872;
+      --text-3:     #9aaabb;
+      --blue:       #2563eb;
+      --blue-light: #3b82f6;
+      --blue-dim:   rgba(37,99,235,0.08);
+      --indigo:     #4f46e5;
+      --violet:     #7c3aed;
+      --cyan:       #0891b2;
+      --green:      #059669;
+      --green-dim:  rgba(5,150,105,0.09);
+      --amber:      #b45309;
+      --amber-dim:  rgba(180,83,9,0.08);
+      --red:        #dc2626;
+      --red-dim:    rgba(220,38,38,0.08);
+      --card-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(79,131,255,0.08);
+    }
+
+    body, nav, .pe-card, .sector-card, .deal-card, .cap-metric {
+      transition: background 0.32s ease, color 0.32s ease, border-color 0.32s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ══ GRID TEXTURE ══ */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(79,131,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,131,255,0.028) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none; z-index: 0;
+    }
+    html.light body::before {
+      background-image:
+        linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px);
+    }
+
+    /* ══ AURORA ══ */
+    .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .aurora-blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(110px); opacity: 0.10;
+      animation: auroraFloat 22s ease-in-out infinite;
+    }
+    .aurora-blob:nth-child(1) {
+      width: 800px; height: 600px;
+      background: radial-gradient(circle, #4f83ff 0%, #6366f1 50%, transparent 70%);
+      top: -250px; left: -200px; animation-duration: 24s;
+    }
+    .aurora-blob:nth-child(2) {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #8b5cf6 0%, #4f83ff 50%, transparent 70%);
+      top: 40%; right: -100px; animation-duration: 19s; animation-delay: -8s;
+    }
+    .aurora-blob:nth-child(3) {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #10d48a 0%, #22d3ee 50%, transparent 70%);
+      bottom: -100px; left: 35%; animation-duration: 28s; animation-delay: -16s;
+    }
+    html.light .aurora-blob { opacity: 0.06; }
+    @keyframes auroraFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(60px,-40px) scale(1.06); }
+      66%      { transform: translate(-40px,55px) scale(0.96); }
+    }
+
+    /* ══ NAV ══ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(4,6,15,0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.35s, box-shadow 0.35s;
+    }
+    .nav.scrolled {
+      background: rgba(4,6,15,0.88);
+      box-shadow: 0 1px 0 rgba(79,131,255,0.12), 0 8px 32px rgba(0,0,0,0.4);
+    }
+    html.light .nav { background: rgba(244,246,252,0.75); }
+    html.light .nav.scrolled { background: rgba(244,246,252,0.93); }
+
+    .nav-left { display: flex; align-items: center; gap: 14px; }
+    .nav-logo {
+      font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+      letter-spacing: 0.14em; text-decoration: none;
+      background: linear-gradient(135deg, var(--text) 30%, var(--blue-light) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--text-2); text-decoration: none;
+      padding: 6px 10px; border-radius: 6px;
+      border: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
+    .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
+
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .theme-toggle {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border-2);
+      background: rgba(79,131,255,0.07);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: background 0.2s, border-color 0.2s, transform 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .theme-toggle:hover { border-color: var(--blue); transform: rotate(15deg); }
+    .theme-toggle .icon-sun, .theme-toggle .icon-moon { position: absolute; transition: opacity 0.3s ease, transform 0.4s ease; }
+    .theme-toggle .icon-sun  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+    .theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+    .nav-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border-2); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-2); font-size: 15px;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .nav-btn:hover { background: var(--bg-3); color: var(--text); }
+    .nav-user {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border: 1px solid var(--border-2); border-radius: 8px;
+      cursor: default; background: transparent;
+    }
+    .nav-avatar {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--blue-dim); border: 1px solid rgba(79,131,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      color: var(--blue); letter-spacing: 0.05em;
+    }
+    .nav-user-name { font-size: 12px; font-weight: 500; color: var(--text); }
+
+    /* ══ MAIN CONTENT ══ */
+    .main-wrap {
+      position: relative; z-index: 1;
+      padding-top: var(--nav-h);
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-left: 32px; padding-right: 32px;
+      padding-bottom: 80px;
+    }
+
+    /* ══ PAGE HEADER ══ */
+    .page-header {
+      padding: 40px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px;
+    }
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: 36px; font-weight: 600;
+      letter-spacing: 0.01em;
+      background: linear-gradient(135deg, var(--text) 40%, var(--blue-light) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 8px;
+    }
+    .page-subtitle {
+      font-size: 13px; color: var(--text-2); max-width: 640px; line-height: 1.7;
+    }
+    .page-meta {
+      display: flex; align-items: center; gap: 16px; margin-top: 16px;
+    }
+    .page-meta-item {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    /* ══ SECTION HEADER ══ */
+    .section-header {
+      display: flex; align-items: baseline; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2);
+    }
+    .section-meta {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+    }
+
+    /* ══ DIVIDER ══ */
+    .divider { height: 1px; background: var(--border); margin: 36px 0; }
+
+    /* ══ SKELETON ══ */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
+      background-size: 400% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: var(--radius);
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ══ PE ENVIRONMENT CARD ══ */
+    .env-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 0;
+    }
+    .env-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .env-signal {
+      font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .env-signal.green  { color: var(--green); }
+    .env-signal.blue   { color: var(--blue); }
+    .env-signal.amber  { color: var(--amber); }
+    .env-signal.red    { color: var(--red); }
+    .env-regime-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; padding: 4px 10px;
+      background: var(--blue-dim); color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.2); border-radius: 20px;
+    }
+    .env-call {
+      font-family: var(--font-serif); font-size: 18px; font-style: italic;
+      color: var(--text); margin-bottom: 20px; line-height: 1.4;
+    }
+    .env-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    .env-item { display: flex; flex-direction: column; gap: 4px; }
+    .env-label {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3);
+    }
+    .env-value { font-size: 12px; color: var(--text-2); line-height: 1.4; }
+    .env-exit-badge {
+      display: inline-block; font-family: var(--font-mono); font-size: 10px;
+      font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    }
+    .env-exit-badge.positive { background: var(--green-dim); color: var(--green); }
+    .env-exit-badge.neutral  { background: var(--blue-dim);  color: var(--blue); }
+    .env-exit-badge.negative { background: var(--red-dim);   color: var(--red); }
+    .env-exit-badge.closed   { background: var(--amber-dim); color: var(--amber); }
+
+    /* ══ EMERGING SECTORS ══ */
+    .emerging-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+      margin-bottom: 0;
+    }
+    .emerging-card {
+      background: var(--bg-2);
+      border: 1px solid rgba(16,212,138,0.25);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--card-shadow), 0 0 20px rgba(16,212,138,0.04);
+      animation: emergingPulse 3s ease-in-out infinite;
+      position: relative;
+    }
+    @keyframes emergingPulse {
+      0%,100% { border-color: rgba(16,212,138,0.20); }
+      50%      { border-color: rgba(16,212,138,0.45); }
+    }
+    .emerging-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; padding: 3px 8px;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(16,212,138,0.3); border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    /* ══ SECTOR GRID ══ */
+    .sector-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    .sector-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .sector-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      margin-bottom: 8px; line-height: 1.3;
+    }
+    .sector-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .badge {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px;
+    }
+    .badge.cycle-early      { background: rgba(79,131,255,0.12); color: var(--blue); border: 1px solid rgba(79,131,255,0.2); }
+    .badge.cycle-early-g    { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(122,163,255,0.3); }
+    .badge.cycle-growth     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.25); }
+    .badge.cycle-mature     { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+    .badge.cycle-late       { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+    .badge.sig-high         { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.35); box-shadow: 0 0 8px rgba(16,212,138,0.15); }
+    .badge.sig-favourable   { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.2); }
+    .badge.sig-neutral      { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+    .badge.sig-cautious     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
+    .sector-wind {
+      font-size: 11px; color: var(--text-2); margin-bottom: 6px; line-height: 1.5;
+    }
+    .sector-wind-label {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+      letter-spacing: 0.08em; margin-bottom: 2px;
+    }
+    .sector-entry {
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+
+    /* ══ COST OF CAPITAL ══ */
+    .cap-metrics {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      margin-bottom: 20px;
+    }
+    .cap-metric {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .cap-metric-label {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 8px;
+    }
+    .cap-metric-val {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+      color: var(--text); line-height: 1.3;
+    }
+    .cap-narrative {
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+    }
+    .cap-narrative p { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 8px; }
+    .cap-narrative p:last-child { margin-bottom: 0; }
+
+    /* ══ DEAL FLOW ══ */
+    .deal-list { display: flex; flex-direction: column; gap: 12px; }
+    .deal-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--card-shadow);
+    }
+    .deal-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .deal-date {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      min-width: 60px;
+    }
+    .deal-sector-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      padding: 2px 8px; background: var(--blue-dim); color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.2); border-radius: 4px;
+    }
+    .deal-type-badge {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px;
+    }
+    .deal-signal-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-left: auto;
+    }
+    .deal-signal-dot.positive { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .deal-signal-dot.neutral  { background: var(--amber); }
+    .deal-signal-dot.negative { background: var(--red); }
+    .deal-headline { font-size: 13px; color: var(--text); margin-bottom: 6px; line-height: 1.4; }
+    .deal-macro {
+      font-size: 12px; color: var(--text-2); padding: 8px 10px;
+      background: var(--bg-3); border-radius: 6px; line-height: 1.5;
+      border-left: 2px solid var(--blue-dim);
+    }
+    .deal-macro-label {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+      letter-spacing: 0.08em; margin-bottom: 2px;
+    }
+
+    /* ══ SENTINEL LINK CARD ══ */
+    .sentinel-card {
+      background: var(--bg-2); border: 1px solid var(--border-2);
+      border-radius: var(--radius-lg); padding: 28px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; box-shadow: var(--card-shadow);
+    }
+    .sentinel-text { flex: 1; }
+    .sentinel-text p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+    .sentinel-text p strong { color: var(--text); }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px;
+      background: var(--blue-dim); color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.25); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.06em; text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .back-btn:hover { background: rgba(79,131,255,0.18); border-color: rgba(79,131,255,0.4); }
+
+    /* ══ FOOTER ══ */
+    .pe-footer {
+      text-align: center; padding: 40px 0 20px;
+      border-top: 1px solid var(--border); margin-top: 40px;
+    }
+    .pe-footer p { font-size: 11px; color: var(--text-3); line-height: 1.7; max-width: 600px; margin: 0 auto 4px; }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 900px) {
+      .main-wrap { padding-left: 16px; padding-right: 16px; }
+      .env-grid  { grid-template-columns: repeat(2, 1fr); }
+      .emerging-grid { grid-template-columns: 1fr; }
+      .sector-grid   { grid-template-columns: repeat(2, 1fr); }
+      .cap-metrics   { grid-template-columns: repeat(2, 1fr); }
+      .sentinel-card { flex-direction: column; align-items: flex-start; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 560px) {
+      .sector-grid { grid-template-columns: 1fr; }
+      .cap-metrics { grid-template-columns: 1fr; }
+      .env-grid    { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Aurora -->
+  <div class="aurora">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" id="mainNav">
+    <div class="nav-left">
+      <a class="nav-logo" href="landing_page.html">EconIq</a>
+      <div class="nav-links">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/pe">PE Intelligence</a>
+        <a class="nav-link" href="/global-macro">Global Macro</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+      </button>
+      <div class="nav-user">
+        <div class="nav-avatar" id="userAvatar">—</div>
+        <span class="nav-user-name" id="userName">Loading</span>
+      </div>
+      <button class="nav-btn" id="signOutBtn" title="Sign out"
+        style="font-size:13px;font-family:var(--font-mono);">↪</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-wrap">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="page-title">PE Intelligence</div>
+      <div class="page-subtitle">Private equity deal environment, sector cycle positioning, and emerging sector signals — powered by Sentinel's macro engine.</div>
+      <div class="page-meta">
+        <span class="page-meta-item"><span class="live-dot"></span>Regime-linked</span>
+        <span class="page-meta-item" id="regimeMetaLabel">Loading regime...</span>
+        <span class="page-meta-item" id="runAtLabel"></span>
+      </div>
+    </div>
+
+    <!-- SECTION 1: Deal-Making Environment -->
+    <div class="section-header">
+      <span class="section-title">Current Deal-Making Environment</span>
+      <span class="section-meta">Driven by active macro regime</span>
+    </div>
+    <div id="envCard" class="env-card">
+      <div style="height:120px;" class="skeleton"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 2: Emerging Sectors Spotlight -->
+    <div class="section-header">
+      <span class="section-title">Emerging Sectors Spotlight</span>
+      <span class="section-meta">High-conviction early-stage opportunities</span>
+    </div>
+    <div class="emerging-grid" id="emergingGrid">
+      <div style="height:200px;" class="skeleton"></div>
+      <div style="height:200px;" class="skeleton"></div>
+      <div style="height:200px;" class="skeleton"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 3: Full Sector Cycle Dashboard -->
+    <div class="section-header">
+      <span class="section-title">Sector Cycle Positioning</span>
+      <span class="section-meta">PE signal strength by sector — updated with macro regime</span>
+    </div>
+    <div class="sector-grid" id="sectorGrid">
+      <div style="height:220px;" class="skeleton"></div>
+      <div style="height:220px;" class="skeleton"></div>
+      <div style="height:220px;" class="skeleton"></div>
+      <div style="height:220px;" class="skeleton"></div>
+      <div style="height:220px;" class="skeleton"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 4: Cost of Capital Monitor -->
+    <div class="section-header">
+      <span class="section-title">Cost of Capital Monitor</span>
+      <span class="section-meta">Rate environment and IRR implications</span>
+    </div>
+    <div class="cap-metrics" id="capMetrics">
+      <div style="height:80px;" class="skeleton"></div>
+      <div style="height:80px;" class="skeleton"></div>
+      <div style="height:80px;" class="skeleton"></div>
+      <div style="height:80px;" class="skeleton"></div>
+    </div>
+    <div class="cap-narrative" id="capNarrative">
+      <div style="height:40px;" class="skeleton"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 5: PE Deal Flow -->
+    <div class="section-header">
+      <span class="section-title">Recent PE Activity</span>
+      <span class="section-meta">Public deal flow and sector signals — sourced from public filings and announcements</span>
+    </div>
+    <div class="deal-list" id="dealList">
+      <div style="height:90px;" class="skeleton"></div>
+      <div style="height:90px;" class="skeleton"></div>
+      <div style="height:90px;" class="skeleton"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Sentinel link -->
+    <div class="sentinel-card">
+      <div class="sentinel-text">
+        <p>This intelligence is powered by <strong>Sentinel's macro regime engine</strong>. Sector signals and cost of capital positioning update automatically as the macro regime shifts.</p>
+      </div>
+      <a class="back-btn" href="/dashboard">← Back to Macro Dashboard</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="pe-footer">
+      <p>PE deal flow sourced from public filings, company announcements, and market intelligence. Not investment advice. Sector cycle positioning driven by Sentinel's macro regime engine.</p>
+      <p style="margin-top:8px;">© 2026 EconIq — Macro Intelligence for India</p>
+    </div>
+
+  </main>
+
+  <script>
+    const RAILWAY_URL   = 'https://macro-economic-research-algorithm-production.up.railway.app';
+    const SUPABASE_URL  = 'https://nurqjuywtypqvciyjlrw.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let _token = null;
+
+    /* ── Init ── */
+    async function init() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      _token = session.access_token;
+
+      // Nav user
+      try {
+        const res = await api('/api/profile');
+        const p   = res.profile || {};
+        const name = p.full_name || p.email || '';
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '—';
+        document.getElementById('userName').textContent   = name.split(' ')[0] || name;
+        document.getElementById('userAvatar').textContent = initials;
+      } catch(e) { /* non-fatal */ }
+
+      // Theme
+      const saved = localStorage.getItem('sentinel-theme');
+      if (saved === 'light') document.documentElement.classList.add('light');
+
+      // Nav scroll
+      window.addEventListener('scroll', () => {
+        document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 10);
+      });
+
+      // Theme toggle
+      document.getElementById('themeToggle').addEventListener('click', () => {
+        const isLight = document.documentElement.classList.toggle('light');
+        localStorage.setItem('sentinel-theme', isLight ? 'light' : 'dark');
+      });
+
+      // Sign out
+      document.getElementById('signOutBtn').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        window.location.href = 'login.html';
+      });
+
+      await loadPE();
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(RAILWAY_URL + path, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_token}`, ...(options.headers || {}) }
+      });
+      if (!res.ok) throw new Error(`API ${path} → ${res.status}`);
+      return res.json();
+    }
+
+    /* ── Main data load ── */
+    async function loadPE() {
+      let data;
+      try {
+        data = await api('/api/pe/overview');
+      } catch(e) {
+        showError('Failed to load PE intelligence. Please try again.');
+        return;
+      }
+
+      const regime         = data.regime         || 'UNKNOWN';
+      const confidence     = data.confidence      || 0;
+      const conviction     = data.conviction      || 'MEDIUM';
+      const costOfCapital  = data.cost_of_capital || {};
+      const sectorCycles   = data.sector_cycles   || {};
+      const dealFlow       = data.deal_flow       || [];
+      const runAt          = data.run_at;
+
+      // Meta labels
+      const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('regimeMetaLabel').textContent =
+        `${regimeLabel} · ${Math.round(confidence * 100)}% confidence · ${conviction} conviction`;
+      if (runAt) {
+        const d = new Date(runAt);
+        document.getElementById('runAtLabel').textContent =
+          'Engine run: ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+
+      renderEnvCard(costOfCapital, regime);
+      renderSectors(sectorCycles);
+      renderCapMetrics(costOfCapital);
+      renderDeals(dealFlow);
+    }
+
+    /* ── Environment card ── */
+    function renderEnvCard(coc, regime) {
+      const env    = coc.environment   || 'NEUTRAL';
+      const call   = coc.dry_powder_call || '';
+      const rate   = coc.repo_rate_trend || '—';
+      const spread = coc.credit_spread   || '—';
+      const exit   = coc.exit_environment || '—';
+      const debt   = coc.debt_financing   || '—';
+
+      const envColour = _envColour(env);
+      const exitCls   = _exitClass(exit);
+      const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+
+      document.getElementById('envCard').innerHTML = `
+        <div class="env-header">
+          <div class="env-signal ${envColour}">${env}</div>
+          <div class="env-regime-badge">${regimeLabel}</div>
+        </div>
+        <div class="env-call">"${call}"</div>
+        <div class="env-grid">
+          <div class="env-item">
+            <div class="env-label">Repo Rate Trend</div>
+            <div class="env-value">${rate}</div>
+          </div>
+          <div class="env-item">
+            <div class="env-label">Credit Spreads</div>
+            <div class="env-value">${spread}</div>
+          </div>
+          <div class="env-item">
+            <div class="env-label">Debt Financing</div>
+            <div class="env-value">${debt}</div>
+          </div>
+          <div class="env-item">
+            <div class="env-label">Exit Environment</div>
+            <div class="env-value"><span class="env-exit-badge ${exitCls}">${exit.split('—')[0].trim()}</span></div>
+          </div>
+        </div>`;
+    }
+
+    function _envColour(env) {
+      const e = (env || '').toUpperCase();
+      if (e.includes('HIGHLY SUPPORTIVE') || e.includes('SUPPORTIVE')) return 'green';
+      if (e.includes('RISK-OFF'))  return 'red';
+      if (e.includes('VERY CHALLENGING') || e.includes('CHALLENGING')) return 'amber';
+      return 'blue';
+    }
+
+    function _exitClass(exit) {
+      const e = (exit || '').toUpperCase();
+      if (e.startsWith('POSITIVE') || e.startsWith('BUILDING') || e.startsWith('HIGHLY'))  return 'positive';
+      if (e.startsWith('CLOSED') || e.startsWith('VERY DIFFICULT')) return 'negative';
+      if (e.startsWith('DIFFICULT')) return 'closed';
+      return 'neutral';
+    }
+
+    /* ── Sector rendering ── */
+    const EMERGING_NAMES = new Set(['Space & Deep Tech', 'Defence & Aerospace', 'Green Energy & Climate']);
+
+    function renderSectors(sectors) {
+      const entries = Object.entries(sectors);
+      const emerging = entries.filter(([n]) => EMERGING_NAMES.has(n));
+      const regular  = entries.filter(([n]) => !EMERGING_NAMES.has(n));
+
+      // Emerging grid
+      document.getElementById('emergingGrid').innerHTML = emerging.map(([name, s]) =>
+        _emergingCardHtml(name, s)
+      ).join('');
+
+      // Regular grid
+      document.getElementById('sectorGrid').innerHTML = regular.map(([name, s]) =>
+        _sectorCardHtml(name, s)
+      ).join('');
+    }
+
+    function _emergingCardHtml(name, s) {
+      return `
+        <div class="emerging-card">
+          <div class="emerging-badge">⚡ Emerging</div>
+          <div class="sector-name">${name}</div>
+          <div class="sector-badges">
+            ${_cycleBadge(s.cycle_stage)}
+            ${_signalBadge(s.pe_signal)}
+          </div>
+          <div class="sector-wind-label">▲ TAILWIND</div>
+          <div class="sector-wind">${s.macro_tailwind}</div>
+          <div class="sector-wind-label" style="margin-top:8px;">▼ HEADWIND</div>
+          <div class="sector-wind">${s.macro_headwind}</div>
+          <div class="sector-entry">${s.entry_timing}</div>
+        </div>`;
+    }
+
+    function _sectorCardHtml(name, s) {
+      return `
+        <div class="sector-card">
+          <div class="sector-name">${name}</div>
+          <div class="sector-badges">
+            ${_cycleBadge(s.cycle_stage)}
+            ${_signalBadge(s.pe_signal)}
+          </div>
+          <div class="sector-wind-label">▲ Tailwind</div>
+          <div class="sector-wind">${s.macro_tailwind}</div>
+          <div class="sector-wind-label" style="margin-top:6px;">▼ Headwind</div>
+          <div class="sector-wind">${s.macro_headwind}</div>
+          <div class="sector-entry">${s.entry_timing}</div>
+        </div>`;
+    }
+
+    function _cycleBadge(stage) {
+      const map = {
+        'EARLY':       ['cycle-early',   'EARLY'],
+        'EARLY_GROWTH':['cycle-early-g', 'EARLY GROWTH'],
+        'GROWTH':      ['cycle-growth',  'GROWTH'],
+        'MATURE':      ['cycle-mature',  'MATURE'],
+        'LATE':        ['cycle-late',    'LATE'],
+      };
+      const [cls, label] = map[stage] || ['cycle-growth', stage];
+      return `<span class="badge ${cls}">${label}</span>`;
+    }
+
+    function _signalBadge(signal) {
+      const map = {
+        'HIGH_CONVICTION': ['sig-high',       'HIGH CONVICTION'],
+        'FAVOURABLE':      ['sig-favourable',  'FAVOURABLE'],
+        'NEUTRAL':         ['sig-neutral',     'NEUTRAL'],
+        'CAUTIOUS':        ['sig-cautious',    'CAUTIOUS'],
+      };
+      const [cls, label] = map[signal] || ['sig-neutral', signal];
+      return `<span class="badge ${cls}">${label}</span>`;
+    }
+
+    /* ── Capital metrics ── */
+    function renderCapMetrics(coc) {
+      const irr  = coc.irr_implication  || '—';
+      const rate  = coc.repo_rate_trend  || '—';
+      const spread= coc.credit_spread    || '—';
+      const exit  = coc.exit_environment || '—';
+
+      document.getElementById('capMetrics').innerHTML = `
+        <div class="cap-metric">
+          <div class="cap-metric-label">Rate Trend</div>
+          <div class="cap-metric-val">${rate}</div>
+        </div>
+        <div class="cap-metric">
+          <div class="cap-metric-label">Credit Spreads</div>
+          <div class="cap-metric-val">${spread}</div>
+        </div>
+        <div class="cap-metric">
+          <div class="cap-metric-label">Exit Window</div>
+          <div class="cap-metric-val">${exit.split('—')[0].trim()}</div>
+        </div>
+        <div class="cap-metric">
+          <div class="cap-metric-label">IRR Context</div>
+          <div class="cap-metric-val" style="font-size:11px;line-height:1.4;">${irr.split(';')[0]}</div>
+        </div>`;
+
+      document.getElementById('capNarrative').innerHTML = `
+        <p><strong>Debt Financing:</strong> ${coc.debt_financing || '—'}</p>
+        <p><strong>IRR Implication:</strong> ${irr}</p>`;
+    }
+
+    /* ── Deal flow ── */
+    function renderDeals(deals) {
+      if (!deals.length) {
+        document.getElementById('dealList').innerHTML =
+          `<div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:24px 0;text-align:center;">No deal flow data available.</div>`;
+        return;
+      }
+      document.getElementById('dealList').innerHTML = deals.map(d => `
+        <div class="deal-card">
+          <div class="deal-header">
+            <span class="deal-date">${d.date}</span>
+            <span class="deal-sector-badge">${d.sector}</span>
+            <span class="deal-type-badge">${d.deal_type}</span>
+            <span class="deal-signal-dot ${(d.signal || 'neutral').toLowerCase()}"></span>
+          </div>
+          <div class="deal-headline">${d.headline}</div>
+          <div class="deal-macro">
+            <div class="deal-macro-label">MACRO READ</div>
+            ${d.macro_read}
+          </div>
+        </div>`).join('');
+    }
+
+    /* ── Error state ── */
+    function showError(msg) {
+      ['envCard','emergingGrid','sectorGrid','capMetrics','capNarrative','dealList'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div style="color:var(--red);font-family:var(--font-mono);font-size:11px;padding:16px 0;">${msg}</div>`;
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
