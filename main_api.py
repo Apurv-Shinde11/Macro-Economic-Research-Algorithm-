@@ -632,6 +632,28 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     "fii_trade_date":    _fii.get("trade_date"),
                 })
                 print(f"[FII] resolved: fii={_fii['fii_net_crore']} dii={_fii.get('dii_net_crore')} src={_fii.get('source')}", flush=True)
+                # ── Persist daily snapshot for multi-timeframe aggregation ─────────────
+                try:
+                    from datetime import date as _date
+                    _trade_date = str(nse_snapshot.get("fii_trade_date") or _date.today())[:10]
+                    _supabase.table("fii_dii_daily").upsert(
+                        {
+                            "trade_date":    _trade_date,
+                            "fii_net_crore": nse_snapshot.get("fii_net_crore"),
+                            "dii_net_crore": nse_snapshot.get("dii_net_crore"),
+                            "fii_signal":    "BUYING"  if (nse_snapshot.get("fii_net_crore") or 0) >  500
+                                             else "SELLING" if (nse_snapshot.get("fii_net_crore") or 0) < -500
+                                             else "NEUTRAL",
+                            "dii_signal":    "BUYING"  if (nse_snapshot.get("dii_net_crore") or 0) >  500
+                                             else "SELLING" if (nse_snapshot.get("dii_net_crore") or 0) < -500
+                                             else "NEUTRAL",
+                            "source":        nse_snapshot.get("fii_dii_source", "bse"),
+                        },
+                        on_conflict="trade_date",
+                    ).execute()
+                    print(f"[FII_DAILY] Stored: date={_trade_date} fii={nse_snapshot.get('fii_net_crore')}", flush=True)
+                except Exception as _store_err:
+                    print(f"[FII_DAILY] Store failed: {_store_err}", flush=True)
             else:
                 print("[FII] all sources returned None — fii_net_crore will be null in this run", flush=True)
                 nse_snapshot.setdefault("fii_dii_source", "unavailable")
@@ -798,6 +820,86 @@ async def get_backtest(regime: str = "LIQUIDITY_DRIVEN_EXPANSION", profile: dict
     if not data:
         return {"regime": regime, "available": False, "message": "No backtest data for this regime"}
     return {"regime": regime, "available": True, "data": data}
+
+
+@app.get("/api/fii-history")
+async def get_fii_history(profile: dict = Depends(require_access)):
+    """
+    Returns aggregated FII/DII flows across 1D/1W/1M/3M timeframes.
+    Primary source: fii_dii_daily table.
+    Falls back to runs table when fii_dii_daily has fewer than 3 rows.
+    """
+    try:
+        from datetime import date, timedelta
+        today = date.today()
+        cutoff_90d = (today - timedelta(days=90)).isoformat()
+
+        daily_res = (
+            _supabase.table("fii_dii_daily")
+            .select("trade_date,fii_net_crore,dii_net_crore")
+            .gte("trade_date", cutoff_90d)
+            .order("trade_date", desc=True)
+            .execute()
+        )
+        rows = daily_res.data or []
+
+        if len(rows) < 3:
+            runs_res = (
+                _supabase.table("runs")
+                .select("run_at,fii_net_crore,dii_net_crore")
+                .eq("user_id", profile["id"])
+                .gte("run_at", cutoff_90d)
+                .not_.is_("fii_net_crore", "null")
+                .order("run_at", desc=True)
+                .execute()
+            )
+            seen_dates: set = set()
+            rows = []
+            for r in (runs_res.data or []):
+                d = str(r["run_at"])[:10]
+                if d not in seen_dates:
+                    seen_dates.add(d)
+                    rows.append({
+                        "trade_date":    d,
+                        "fii_net_crore": r["fii_net_crore"],
+                        "dii_net_crore": r["dii_net_crore"],
+                    })
+
+        def aggregate(rows, days):
+            cutoff = (today - timedelta(days=days)).isoformat()
+            subset = [
+                r for r in rows
+                if r["trade_date"] >= cutoff and r.get("fii_net_crore") is not None
+            ]
+            if not subset:
+                return None
+            fii_total = sum(r["fii_net_crore"] for r in subset)
+            dii_total = sum((r.get("dii_net_crore") or 0) for r in subset)
+            return {
+                "fii_total":    round(fii_total, 0),
+                "dii_total":    round(dii_total, 0),
+                "days":         days,
+                "data_points":  len(subset),
+                "fii_signal":   "BUYING"  if fii_total >  2000 else "SELLING" if fii_total < -2000 else "NEUTRAL",
+                "dii_signal":   "BUYING"  if dii_total >  2000 else "SELLING" if dii_total < -2000 else "NEUTRAL",
+                "net_combined": round(fii_total + dii_total, 0),
+            }
+
+        data_source = "fii_dii_daily" if len(daily_res.data or []) >= 3 else "runs_fallback"
+        return {
+            "timeframes": {
+                "1D": aggregate(rows, 1),
+                "1W": aggregate(rows, 7),
+                "1M": aggregate(rows, 30),
+                "3M": aggregate(rows, 90),
+            },
+            "daily_series": rows[:30],
+            "data_source":  data_source,
+        }
+
+    except Exception as e:
+        print(f"[FII_HISTORY] Error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail=f"FII history failed: {e}")
 
 PE_SECTOR_CYCLES = {
     "Consumer & Retail": {

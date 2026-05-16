@@ -1224,6 +1224,50 @@
       border: 1px solid var(--border);
     }
 
+    .flow-timeframe-tabs {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .flow-tab {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .flow-tab:hover {
+      border-color: var(--border-2);
+      color: var(--text-2);
+    }
+
+    .flow-tab.active {
+      background: var(--blue-dim);
+      border-color: rgba(79, 131, 255, 0.30);
+      color: var(--blue);
+    }
+
+    .flow-context {
+      margin-top: 6px;
+      padding: 8px 14px;
+      background: var(--bg-3);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+      grid-column: 1 / -1;
+      display: none;
+    }
+
     /* ══ YIELD ══ */
     .yield-grid {
       display: grid;
@@ -2877,7 +2921,15 @@
 
       <div class="section-header">
         <span class="section-title">FII / DII Flow Intelligence</span>
-        <span class="section-meta" id="flowDate">—</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="section-meta" id="flowDate">—</span>
+          <div class="flow-timeframe-tabs" id="flowTabs" style="display:none;">
+            <button class="flow-tab active" data-period="1D">1D</button>
+            <button class="flow-tab" data-period="1W">1W</button>
+            <button class="flow-tab" data-period="1M">1M</button>
+            <button class="flow-tab" data-period="3M">3M</button>
+          </div>
+        </div>
       </div>
       <div class="flows-grid">
         <div class="flow-card">
@@ -2891,6 +2943,7 @@
           <div class="flow-signal" id="diiSignal">Loading...</div>
         </div>
         <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
+        <div class="flow-context" id="flowContext"></div>
       </div>
 
       <div class="divider"></div>
@@ -2983,12 +3036,13 @@
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
     let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [], _lastHistory = [];
+    let _fiiHistory = null, _lastNseData = null;
 
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { window.location.href = 'login.html'; return; }
       _session = session; _token = session.access_token;
-      await loadProfile(); await loadDashboard(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
+      await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
       initNav(); initSidebar();
     }
 
@@ -3290,7 +3344,97 @@
       return String(raw).split('T')[0];
     }
 
+    /* ── FII / DII MULTI-TIMEFRAME ── */
+    async function loadFiiHistory() {
+      try {
+        const res = await api('/api/fii-history');
+        _fiiHistory = res;
+        document.getElementById('flowTabs').style.display = 'flex';
+        initFlowTabs();
+      } catch (e) {
+        console.error('FII history load failed:', e);
+      }
+    }
+
+    function initFlowTabs() {
+      document.querySelectorAll('.flow-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.flow-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderFlowTimeframe(btn.dataset.period);
+        });
+      });
+    }
+
+    function renderFlowTimeframe(period) {
+      if (!_fiiHistory) return;
+
+      if (period === '1D') {
+        if (_lastNseData) renderFlows(_lastNseData);
+        updateFlowContext('1D', null);
+        return;
+      }
+
+      const tf = _fiiHistory.timeframes?.[period];
+      if (!tf) {
+        if (_lastNseData) renderFlows(_lastNseData);
+        updateFlowContext(period, null);
+        return;
+      }
+
+      const fiiEl         = document.getElementById('fiiNet');
+      const diiEl         = document.getElementById('diiNet');
+      const fiiSigEl      = document.getElementById('fiiSignal');
+      const diiSigEl      = document.getElementById('diiSignal');
+      const flowDateEl    = document.getElementById('flowDate');
+      const flowNarrEl    = document.getElementById('flowNarrative');
+
+      const fmtFlow = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(v).toLocaleString('en-IN')} Cr`;
+      const periodLabels = { '1W': 'past 7 days', '1M': 'past 30 days', '3M': 'past 90 days' };
+
+      fiiEl.textContent = fmtFlow(tf.fii_total);
+      fiiEl.className   = 'flow-amount ' + (tf.fii_total >= 0 ? 'positive' : 'negative');
+      diiEl.textContent = fmtFlow(tf.dii_total);
+      diiEl.className   = 'flow-amount ' + (tf.dii_total >= 0 ? 'positive' : 'negative');
+
+      if (flowDateEl) flowDateEl.textContent = `Cumulative — ${periodLabels[period]} (${tf.data_points} sessions)`;
+
+      fiiSigEl.textContent = tf.fii_signal;
+      fiiSigEl.className   = 'flow-signal ' + (tf.fii_signal === 'BUYING' ? 'risk-on' : tf.fii_signal === 'SELLING' ? 'risk-off' : 'neutral');
+      diiSigEl.textContent = tf.dii_signal;
+      diiSigEl.className   = 'flow-signal ' + (tf.dii_signal === 'BUYING' ? 'risk-on' : tf.dii_signal === 'SELLING' ? 'risk-off' : 'neutral');
+
+      const fiiAbs = Math.abs(tf.fii_total).toLocaleString('en-IN');
+      const diiAbs = Math.abs(tf.dii_total).toLocaleString('en-IN');
+      const fiiDir = tf.fii_total >= 0 ? 'bought' : 'sold';
+      const diiDir = tf.dii_total >= 0 ? 'bought' : 'sold';
+      const label  = periodLabels[period];
+      const capLabel = label.charAt(0).toUpperCase() + label.slice(1);
+      if (flowNarrEl) flowNarrEl.textContent =
+        `${capLabel}: FII net ${fiiDir} ₹${fiiAbs} Cr. DII net ${diiDir} ₹${diiAbs} Cr. ` +
+        (tf.fii_total < 0 && tf.dii_total > 0
+          ? 'DII absorbing FII outflows — domestic support holding.'
+          : tf.fii_total > 0 && tf.dii_total > 0
+            ? 'Both institutional categories net buyers.'
+            : tf.fii_total < 0 && tf.dii_total < 0
+              ? 'Both selling — broad institutional risk-off.'
+              : 'Mixed flows — monitor for confirmation.');
+
+      updateFlowContext(period, tf);
+    }
+
+    function updateFlowContext(period, tf) {
+      const el = document.getElementById('flowContext');
+      if (!el) return;
+      if (!tf || period === '1D') { el.style.display = 'none'; return; }
+      const dataSource = _fiiHistory?.data_source === 'runs_fallback' ? 'Derived from run history' : 'BSE daily data';
+      const sign = tf.net_combined >= 0 ? '+' : '';
+      el.style.display = 'block';
+      el.textContent   = `${tf.data_points} trading sessions · ${dataSource} · Net combined: ${sign}₹${Math.abs(tf.net_combined).toLocaleString('en-IN')} Cr`;
+    }
+
     function renderFlows(nse) {
+      _lastNseData = nse;
       const fiiRaw = nse.fii_dii || {};
       const fiiNet = fiiRaw.fii?.net ?? nse.fii_net_crore ?? 0;
       const diiNet = fiiRaw.dii?.net ?? nse.dii_net_crore ?? 0;
