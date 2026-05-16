@@ -2173,7 +2173,7 @@
 
     .heatmap-sector {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       padding: 7px 0;
       border-bottom: 1px solid var(--border);
@@ -2185,11 +2185,31 @@
       border-bottom: none;
     }
 
+    .heatmap-sector-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .heatmap-sector-name {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    .heatmap-sector-reason {
+      font-size: 10px;
+      color: var(--text-3);
+      line-height: 1.4;
+      font-style: italic;
+    }
+
     .heatmap-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       flex-shrink: 0;
+      margin-top: 4px;
     }
 
     .favour .heatmap-dot {
@@ -3760,7 +3780,7 @@
       const cols = document.querySelectorAll('.heatmap-col');
       let favour = [], avoid = [];
       cols.forEach(col => {
-        const sectors = Array.from(col.querySelectorAll('.heatmap-sector span')).map(s => s.textContent.trim());
+        const sectors = Array.from(col.querySelectorAll('.heatmap-sector-name')).map(s => s.textContent.trim());
         if (col.classList.contains('favour')) favour = sectors.slice(0, 2);
         if (col.classList.contains('avoid')) avoid = sectors.slice(0, 1);
       });
@@ -4212,9 +4232,11 @@
       col.innerHTML = sections.map(s =>
         `<div class="heatmap-col ${s.cls}">` +
         `<div class="heatmap-col-title">${s.label}</div>` +
-        (heatmap[s.key] || []).map(sector =>
-          `<div class="heatmap-sector"><div class="heatmap-dot"></div><span>${sector}</span></div>`
-        ).join('') +
+        (heatmap[s.key] || []).map(sector => {
+          const name   = typeof sector === 'string' ? sector : sector.sector;
+          const reason = typeof sector === 'string' ? null   : sector.reason;
+          return `<div class="heatmap-sector"><div class="heatmap-dot"></div><div class="heatmap-sector-content"><span class="heatmap-sector-name">${name}</span>${reason ? `<span class="heatmap-sector-reason">${reason}</span>` : ''}</div></div>`;
+        }).join('') +
         `</div>`
       ).join('');
     }

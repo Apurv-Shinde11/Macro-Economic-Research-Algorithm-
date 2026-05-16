@@ -470,6 +470,48 @@
       line-height: 1.7;
     }
 
+    /* ══ ECONOMY SIZE BADGE ══ */
+    .economy-size-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    /* ══ COUNTRY TOOLTIP ══ */
+    .country-tooltip {
+      position: fixed;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text);
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+      display: none;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* ══ SIZE COMPARISON CHART ══ */
+    .size-chart-section {
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .size-chart-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
     /* ══ CTA SECTION ══ */
     .cta-section {
       max-width: 700px;
@@ -562,6 +604,8 @@
     <div class="aurora-blob"></div>
     <div class="aurora-blob"></div>
   </div>
+
+  <div id="country-tooltip" class="country-tooltip"></div>
 
   <!-- ══ NAV ══ -->
   <nav class="nav">
@@ -1004,12 +1048,63 @@
       if (eco) renderDetail(eco);
     }
 
+    function buildSizeChart(currentCode) {
+      const GDP_FALLBACK = { US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6 };
+      const ORDER = ['US', 'CN', 'DE', 'IN', 'JP', 'GB'];
+      const isLight = document.documentElement.classList.contains('light');
+
+      const rows = ORDER.map(code => {
+        const eco = economiesData[code];
+        const gdp = (eco && eco.gdp_nominal_trillion) || GDP_FALLBACK[code] || 0;
+        const sig = eco ? eco.macro_signal : 'MONITORING';
+        return { code, gdp, sig };
+      }).filter(e => e.gdp > 0).sort((a, b) => b.gdp - a.gdp);
+
+      if (!rows.length) return '';
+
+      const maxGdp  = rows[0].gdp;
+      const labelW  = 32;
+      const barMaxW = 300;
+      const rowH    = 20;
+      const rowGap  = 5;
+      const totalH  = rows.length * (rowH + rowGap);
+      const totalW  = labelW + barMaxW + 70;
+
+      const svgRows = rows.map((e, i) => {
+        const y       = i * (rowH + rowGap);
+        const barW    = Math.max(4, (e.gdp / maxGdp) * barMaxW);
+        const raw     = isLight
+          ? (SIG_COLOR_RAW_LIGHT[e.sig] || '#9aaabb')
+          : (SIG_COLOR_RAW[e.sig]       || '#2e3d58');
+        const isSel   = e.code === currentCode;
+        const opacity = isSel ? '1' : '0.38';
+        const tc      = isSel ? raw : (isLight ? '#4a5872' : '#7a8baa');
+        const fw      = isSel ? '600' : '400';
+        const cy      = y + rowH * 0.68;
+        return `
+          <text x="${labelW - 6}" y="${cy}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="${tc}" font-weight="${fw}">${e.code}</text>
+          <rect x="${labelW}" y="${y + 3}" width="${barW}" height="${rowH - 6}" rx="3" fill="${raw}" opacity="${opacity}"/>
+          <text x="${labelW + barW + 7}" y="${cy}" font-family="JetBrains Mono,monospace" font-size="10" fill="${tc}" font-weight="${fw}">$${e.gdp}T</text>
+        `;
+      }).join('');
+
+      return `
+        <div class="size-chart-section">
+          <div class="size-chart-label">Economy Size — Nominal GDP Comparison (IMF WEO Apr 2026)</div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW} ${totalH}" style="overflow:visible;max-width:460px;">
+            ${svgRows}
+          </svg>
+        </div>
+      `;
+    }
+
     function renderDetail(eco) {
       const meta   = ECONOMIES_META[eco.code];
       const sigCol = SIG_COLOR[eco.macro_signal]  || 'var(--text-3)';
       const sigBg  = SIG_BG[eco.macro_signal]     || 'rgba(0,0,0,0.1)';
       const sigLbl = SIG_LABEL[eco.macro_signal]  || (eco.macro_signal || 'Unknown').replace(/_/g, ' ');
       const isHome = meta && meta.home;
+      const gdpT   = eco.gdp_nominal_trillion;
 
       document.getElementById('detail-content').innerHTML = `
         <div class="detail-inner">
@@ -1024,8 +1119,12 @@
                 <div class="detail-updated">Updated ${relTime(eco.last_updated)}</div>
               </div>
             </div>
-            <span class="signal-badge" style="background:${sigBg};color:${sigCol};border-color:${sigCol};">${sigLbl}</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="signal-badge" style="background:${sigBg};color:${sigCol};border-color:${sigCol};">${sigLbl}</span>
+              ${gdpT != null ? `<span class="economy-size-badge">$${gdpT}T Economy</span>` : ''}
+            </div>
           </div>
+          ${buildSizeChart(eco.code)}
           <div class="detail-primary">
             <div class="detail-card">
               <div class="card-label">GDP Growth</div>
@@ -1099,6 +1198,30 @@
     loadGeoMap();
     loadMacroData();
     scheduleRefresh();
+
+    /* ── Map marker tooltip (delegated) ── */
+    const _mapSvg = document.getElementById('world-map');
+    const _tt     = document.getElementById('country-tooltip');
+    _mapSvg.addEventListener('mousemove', (e) => {
+      const path = e.target.closest && e.target.closest('.country-path.highlighted[data-code]');
+      if (path && _tt) {
+        const code = path.getAttribute('data-code');
+        const eco  = economiesData[code];
+        if (eco) {
+          const gdp = eco.gdp_nominal_trillion;
+          const sig = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || '').replace(/_/g, ' ');
+          _tt.textContent = `${eco.flag} ${eco.name}${gdp != null ? ' | $' + gdp + 'T' : ''} | ${sig}`;
+          _tt.style.display = 'block';
+          _tt.style.left    = (e.clientX + 16) + 'px';
+          _tt.style.top     = (e.clientY - 8)  + 'px';
+        }
+      } else if (_tt) {
+        _tt.style.display = 'none';
+      }
+    });
+    _mapSvg.addEventListener('mouseleave', () => {
+      if (_tt) _tt.style.display = 'none';
+    });
   </script>
 </body>
 </html>
