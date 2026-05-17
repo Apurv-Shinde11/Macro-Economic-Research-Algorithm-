@@ -1,0 +1,16 @@
+*.py
+*.pyc
+*.txt
+*.md
+__pycache__/
+.env
+.env.*
+venv/
+.venv/
+nse_data.py
+main_api.py
+data_ingestion.py
+regime_engine.py
+scheduler.py
+notifications.py
+requirements.txt
