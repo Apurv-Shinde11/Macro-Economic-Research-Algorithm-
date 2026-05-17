@@ -770,6 +770,115 @@ def _build_narrative_delta(
         return {"has_delta": False}
 
 
+def _apply_market_stress_overlay(
+    base_confidence: float,
+    nse_snapshot: dict,
+    regime_key: str,
+) -> float:
+    """
+    Adjusts confidence score based on live market stress signals.
+    These are fast-moving signals that the underlying NLP/regime engine
+    may not capture in real time.
+
+    Returns adjusted confidence (0.0 to 1.0).
+    Positive regimes lose confidence under stress.
+    Defensive regimes gain confidence under stress.
+    """
+    try:
+        adjustment = 0.0
+
+        crude = nse_snapshot.get("crude_price") or 0
+        vix   = nse_snapshot.get("india_vix",   0)
+        fii   = nse_snapshot.get("fii_net_crore")
+
+        is_positive = regime_key in {
+            "LIQUIDITY_DRIVEN_EXPANSION",
+            "STABLE_GROWTH",
+            "EARLY_CYCLE_RECOVERY",
+        }
+        is_defensive = regime_key in {
+            "MONETARY_TIGHTENING",
+            "EXTERNAL_SHOCK",
+            "STAGFLATION_RISK",
+            "STAGFLATIONARY_RISK",
+        }
+
+        if is_positive:
+            # Crude stress — each $5 above $95 reduces confidence by 2%
+            if crude >= 95:
+                crude_stress = min(((crude - 95) / 5) * 0.02, 0.10)
+                adjustment -= crude_stress
+
+            # VIX stress — elevated fear gauge
+            if vix >= 18:
+                vix_stress = min(((vix - 18) / 4) * 0.02, 0.06)
+                adjustment -= vix_stress
+
+            # FII selling pressure
+            if fii is not None and fii < -2000:
+                fii_stress = min(abs(fii + 2000) / 5000 * 0.04, 0.06)
+                adjustment -= fii_stress
+
+            # FII strong buying — confidence boost
+            if fii is not None and fii > 3000:
+                adjustment += min((fii - 3000) / 5000 * 0.03, 0.04)
+
+        elif is_defensive:
+            # Stress signals CONFIRM defensive regime
+            if crude >= 95:
+                adjustment += min(((crude - 95) / 5) * 0.02, 0.08)
+            if vix >= 20:
+                adjustment += min(((vix - 20) / 5) * 0.02, 0.06)
+            if fii is not None and fii < -2000:
+                adjustment += min(abs(fii + 2000) / 5000 * 0.03, 0.05)
+
+        adjusted = base_confidence + adjustment
+        adjusted = max(0.35, min(0.95, adjusted))
+
+        print(
+            f"[CONFIDENCE] base={base_confidence:.3f} "
+            f"adj={adjustment:+.3f} "
+            f"final={adjusted:.3f} "
+            f"(crude={crude}, vix={vix}, fii={fii})",
+            flush=True,
+        )
+        return adjusted
+    except Exception as _ov_err:
+        print(f"[CONFIDENCE] overlay error — returning base: {_ov_err}", flush=True)
+        return base_confidence
+
+
+def _get_data_freshness_weight(indicator: str) -> float:
+    """
+    Returns a weight (0.5 to 1.0) based on how stale the indicator data is.
+    Fresher data gets higher weight. Infrastructure only — weights are stored
+    in intel and logged; regime_engine.py uses them in a future task.
+    """
+    import datetime as _dt
+    try:
+        today = _dt.date.today()
+
+        # CPI: released ~12th of each month
+        cpi_release = today.replace(day=12)
+        if today >= cpi_release:
+            days_since_cpi = (today - cpi_release).days
+        else:
+            prev_month = (today.replace(day=1) - _dt.timedelta(days=1))
+            days_since_cpi = (today - prev_month.replace(day=12)).days
+
+        # GDP: quarterly, published ~60 days after quarter end — approx 45d avg staleness
+        days_since_gdp = 45
+
+        weights = {
+            "gdp": max(0.5, 1.0 - (days_since_gdp / 90) * 0.5),
+            "cpi": max(0.5, 1.0 - (days_since_cpi / 30) * 0.5),
+            "pmi": max(0.6, 1.0 - (days_since_cpi / 30) * 0.4),
+        }
+        return weights.get(indicator, 1.0)
+    except Exception:
+        return 1.0
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -848,12 +957,31 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             "india_vix": nse_snapshot.get("india_vix", 15),
             "nifty_pcr": nse_snapshot.get("pcr", 1.0),
         })
+        # Data freshness weights — infrastructure for regime engine; logged to Railway
+        gdp_weight = _get_data_freshness_weight("gdp")
+        cpi_weight = _get_data_freshness_weight("cpi")
+        intel["hard_data"]["gdp_freshness_weight"] = gdp_weight
+        intel["hard_data"]["cpi_freshness_weight"] = cpi_weight
+        print(
+            f"[FRESHNESS] GDP weight: {gdp_weight:.2f}, CPI weight: {cpi_weight:.2f}",
+            flush=True,
+        )
         try:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
         regime = ensure_dict(eng["regime"].detect_regime(intel, liq))
         regime = rep.repair(regime, REGIME_SCHEMA)
+        # Market stress overlay — adjusts confidence based on live crude/VIX/FII
+        _base_conf = regime.get("confidence", 0)
+        _adj_conf  = _apply_market_stress_overlay(
+            base_confidence=_base_conf,
+            nse_snapshot   =nse_snapshot,
+            regime_key     =regime.get("regime", ""),
+        )
+        regime["confidence"]        = _adj_conf
+        regime["base_confidence"]   = _base_conf
+        regime["stress_adjustment"] = round(_adj_conf - _base_conf, 3)
         if regime.get("regime") in POSITIVE_REGIMES and regime.get("confidence", 0) >= 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_ON"
         elif regime.get("regime") in DEFENSIVE_REGIMES and regime.get("confidence", 0) >= 0.65:

@@ -2983,6 +2983,7 @@
                 <span class="confidence-pct" id="confPct">—</span><span id="confArrow"
                   style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
                 <span class="confidence-lbl">CONF<span class="tip-icon" data-tip="conf">ⓘ</span></span>
+                <span id="confStressAdj" style="display:none;font-family:var(--font-mono);font-size:8px;margin-top:2px;letter-spacing:0.04em;"></span>
               </div>
             </div>
             <div class="conf-sparkline-wrap" id="confSparklineWrap"></div>
@@ -3360,6 +3361,17 @@
       const pct = Math.round(confidence * 100); const circ = 2 * Math.PI * 36;
       document.getElementById('confRing').setAttribute('stroke-dasharray', (circ * pct / 100).toFixed(1) + ' ' + circ.toFixed(1));
       document.getElementById('confPct').textContent = pct + '%';
+      const stressAdj = data.regime?.stress_adjustment || 0;
+      const stressEl  = document.getElementById('confStressAdj');
+      if (stressEl && Math.abs(stressAdj) >= 0.02) {
+        const adjPct = Math.round(stressAdj * 100);
+        const sign   = adjPct > 0 ? '+' : '';
+        stressEl.textContent    = `market adj: ${sign}${adjPct}%`;
+        stressEl.style.color   = adjPct < 0 ? 'var(--red)' : 'var(--green)';
+        stressEl.style.display = 'block';
+      } else if (stressEl) {
+        stressEl.style.display = 'none';
+      }
       document.getElementById('regimeNarrative').textContent = (!fromHistory && regime?.narrative) ? regime.narrative : 'Run the engine to generate today\'s regime narrative.';
       renderRegimeBridge(regimeName, conviction);
       if (!fromHistory) {
