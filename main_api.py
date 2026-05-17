@@ -1715,6 +1715,77 @@ async def get_global_macro():
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     return result
 
+
+@app.get("/api/currency-history")
+async def get_currency_history(code: str = "IN"):
+    """Public endpoint — no auth required. Returns currency performance vs USD."""
+    import yfinance as yf
+
+    CURRENCY_TICKERS = {
+        "US": None,        "CN": "USDCNY=X",  "DE": "EURUSD=X",  "IN": "USDINR=X",
+        "JP": "USDJPY=X",  "GB": "GBPUSD=X",  "FR": "EURUSD=X",  "IT": "EURUSD=X",
+        "BR": "USDBRL=X",  "CA": "USDCAD=X",  "RU": None,        "KR": "USDKRW=X",
+        "AU": "AUDUSD=X",  "MX": "USDMXN=X",  "ID": "USDIDR=X",  "NL": "EURUSD=X",
+        "SA": None,        "TR": "USDTRY=X",  "CH": "USDCHF=X",  "TW": "USDTWD=X",
+    }
+    # Pairs where a rising quote means the non-USD currency is weakening
+    INVERTED = {"IN", "JP", "CN", "BR", "CA", "KR", "MX", "ID", "TR", "CH", "TW"}
+
+    code_upper  = code.upper()
+    ticker_sym  = CURRENCY_TICKERS.get(code_upper)
+
+    if not ticker_sym:
+        return {"code": code_upper, "available": False,
+                "reason": "Currency data not available for this economy"}
+
+    try:
+        hist = yf.Ticker(ticker_sym).history(period="1y", interval="1d")
+        if hist.empty:
+            return {"code": code_upper, "available": False, "reason": "No data returned"}
+
+        prices = hist["Close"].dropna()
+
+        def calc_return(prices, days):
+            if len(prices) < 2:
+                return None
+            end_price   = float(prices.iloc[-1])
+            start_price = float(prices.iloc[max(0, len(prices) - days)])
+            if start_price == 0:
+                return None
+            raw = (end_price - start_price) / start_price * 100
+            if code_upper in INVERTED:
+                raw = -raw
+            return round(raw, 2)
+
+        prices_90d = prices.iloc[-90:]
+        sampled    = prices_90d.iloc[::5]
+        base = float(sampled.iloc[0]) if len(sampled) > 0 else 1.0
+        sparkline = []
+        for _, price in sampled.items():
+            pct = (float(price) - base) / base * 100
+            if code_upper in INVERTED:
+                pct = -pct
+            sparkline.append(round(pct, 2))
+
+        return {
+            "code":          code_upper,
+            "ticker":        ticker_sym,
+            "current_price": round(float(prices.iloc[-1]), 4),
+            "returns": {
+                "1W": calc_return(prices, 5),
+                "1M": calc_return(prices, 21),
+                "3M": calc_return(prices, 63),
+                "1Y": calc_return(prices, 252),
+            },
+            "sparkline_90d": sparkline,
+            "available":     True,
+        }
+
+    except Exception as e:
+        print(f"[CURRENCY_HISTORY] Error for {code}: {e}", flush=True)
+        return {"code": code_upper, "available": False, "reason": str(e)}
+
+
 @app.get("/api/calendar")
 async def get_calendar(days_ahead: int = 120, _=Depends(get_current_user)):
     events = get_events_by_window(days_ahead=days_ahead)
