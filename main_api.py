@@ -605,6 +605,150 @@ def _derive_implied_action(regime_key: str, conviction: str) -> str:
     return "Monitor and hold"
 
 
+def _detect_signal_correlation(
+    nse_snapshot: dict,
+    regime_key: str,
+    run_history: list,
+) -> dict:
+    """
+    Detects when multiple signals are moving together and identifies the pattern.
+    Never crashes — all inputs may be None.
+    """
+    try:
+        crude = nse_snapshot.get("crude_price") or 0
+        vix   = nse_snapshot.get("india_vix",   0)
+        fii   = nse_snapshot.get("fii_net_crore")
+
+        stress_signals  = []
+        support_signals = []
+
+        if crude >= 100:
+            stress_signals.append("crude")
+        elif 0 < crude <= 80:
+            support_signals.append("crude")
+
+        if vix >= 20:
+            stress_signals.append("vix")
+        elif 0 < vix <= 14:
+            support_signals.append("vix")
+
+        if fii is not None:
+            if fii < -2000:
+                stress_signals.append("fii_selling")
+            elif fii > 3000:
+                support_signals.append("fii_buying")
+
+        if run_history and len(run_history) >= 2:
+            recent_fii = [
+                r.get("fii_net_crore")
+                for r in run_history[:3]
+                if r.get("fii_net_crore") is not None
+            ]
+            if len(recent_fii) >= 2:
+                if all(f < -500 for f in recent_fii):
+                    stress_signals.append("fii_persistent")
+                if all(f > 500 for f in recent_fii):
+                    support_signals.append("fii_persistent")
+
+        pattern             = None
+        pattern_description = None
+        severity            = "NONE"
+        stress_count        = len(set(stress_signals))
+        support_count       = len(set(support_signals))
+
+        if stress_count >= 3:
+            pattern = "COORDINATED_RISK_OFF"
+            pattern_description = (
+                "Multiple stress signals aligning — "
+                "crude elevated, VIX spiking, and FII "
+                "selling together. This is a coordinated "
+                "risk-off event, not isolated noise. "
+                "Probability of regime transition elevated."
+            )
+            severity = "HIGH"
+
+        elif stress_count == 2:
+            sig = list(set(stress_signals))
+            if "crude" in sig and "fii_selling" in sig:
+                pattern = "IMPORTED_INFLATION_OUTFLOW"
+                pattern_description = (
+                    "Crude spike driving imported inflation "
+                    "fears while FII flows confirm risk-off. "
+                    "Classic external pressure pattern — "
+                    "INR at risk, watch RBI response."
+                )
+                severity = "MEDIUM"
+            elif "crude" in sig and "vix" in sig:
+                pattern = "COMMODITY_FEAR_SPIKE"
+                pattern_description = (
+                    "Crude and VIX rising together signals "
+                    "stagflation risk premium building. "
+                    "Not yet a regime shift but watch for "
+                    "FII response in next 2-3 sessions."
+                )
+                severity = "MEDIUM"
+            elif "vix" in sig and "fii_selling" in sig:
+                pattern = "RISK_SENTIMENT_DETERIORATION"
+                pattern_description = (
+                    "Market fear and foreign outflows "
+                    "moving together. Domestic liquidity "
+                    "conditions remain supportive but "
+                    "external sentiment is souring."
+                )
+                severity = "MEDIUM"
+            elif "fii_selling" in sig and "fii_persistent" in sig:
+                pattern = "SUSTAINED_FOREIGN_EXIT"
+                pattern_description = (
+                    "FII selling is not a one-day event — "
+                    "consecutive sessions of outflows signal "
+                    "a structural positioning shift, not "
+                    "just daily noise."
+                )
+                severity = "MEDIUM"
+
+        elif support_count >= 2:
+            pattern = "COORDINATED_RISK_ON"
+            pattern_description = (
+                "Multiple support signals aligning — "
+                "benign commodity prices, contained "
+                "fear, and foreign inflows together. "
+                "Conditions actively support the "
+                "current positive regime."
+            )
+            severity = "POSITIVE"
+
+        elif support_count == 1 and stress_count == 0:
+            pattern = "BROADLY_SUPPORTIVE"
+            pattern_description = (
+                "No active stress signals. Macro "
+                "environment is broadly supportive "
+                "of current positioning."
+            )
+            severity = "LOW"
+
+        print(
+            f"[CORRELATION] pattern={pattern} severity={severity} "
+            f"stress={stress_count} support={support_count}",
+            flush=True,
+        )
+        return {
+            "pattern":         pattern,
+            "description":     pattern_description,
+            "severity":        severity,
+            "stress_signals":  list(set(stress_signals)),
+            "support_signals": list(set(support_signals)),
+            "stress_count":    stress_count,
+            "support_count":   support_count,
+        }
+    except Exception as _ce:
+        print(f"[CORRELATION] detection error: {_ce}", flush=True)
+        return {
+            "pattern": None, "description": None, "severity": "NONE",
+            "stress_signals": [], "support_signals": [],
+            "stress_count": 0, "support_count": 0,
+        }
+
+
 def _build_narrative_delta(
     current_regime: str,
     current_confidence: float,
@@ -612,6 +756,8 @@ def _build_narrative_delta(
     prev_run,
     nse_snapshot: dict,
     intel: dict,
+    run_history: list | None = None,
+    stability: dict | None = None,
 ) -> dict:
     try:
         if not prev_run:
@@ -634,6 +780,22 @@ def _build_narrative_delta(
         changes    = []
         watch_next = []
         sentiment  = "NEUTRAL"
+
+        # Cross-signal correlation — pattern detection before individual signal checks
+        correlation = _detect_signal_correlation(
+            nse_snapshot=nse_snapshot,
+            regime_key  =current_regime,
+            run_history =run_history or [],
+        )
+        if (correlation["pattern"] and correlation["description"] and
+                correlation["severity"] not in ("NONE", "LOW")):
+            changes.insert(0, correlation["description"])
+            if correlation["severity"] == "HIGH":
+                sentiment = "SIGNIFICANT"
+            elif correlation["severity"] == "MEDIUM" and sentiment == "NEUTRAL":
+                sentiment = "CAUTION"
+            elif correlation["severity"] == "POSITIVE":
+                sentiment = "IMPROVING"
 
         # Regime change
         if current_regime != prev_regime:
@@ -756,6 +918,16 @@ def _build_narrative_delta(
                 f"Minor signal movement."
             )
 
+        # Stability warning in watch_next when regime is fragile
+        if stability and stability.get("score") == "LOW":
+            _consec = stability.get("consecutive", 0)
+            watch_next.append(
+                f"Regime stability is LOW — held for only "
+                f"{_consec} run{'s' if _consec != 1 else ''} with "
+                f"confidence declining. Exercise extra "
+                f"caution before new position entries."
+            )
+
         return {
             "has_delta":   True,
             "headline":    headline,
@@ -768,6 +940,101 @@ def _build_narrative_delta(
         }
     except Exception:
         return {"has_delta": False}
+
+
+def _compute_regime_stability(
+    current_regime: str,
+    run_history: list,
+    challenger_confidence: float | None,
+    current_confidence: float,
+) -> dict:
+    """
+    Computes how stable the current regime call is.
+    Based on consecutive runs, confidence trend, and challenger proximity.
+    """
+    try:
+        if not run_history:
+            return {
+                "score":           "UNKNOWN",
+                "consecutive":     0,
+                "conf_trend":      "STABLE",
+                "challenger_risk": "LOW",
+                "explanation":     "Insufficient history",
+            }
+
+        # Count consecutive runs in current regime
+        consecutive = 0
+        for r in run_history:
+            if r.get("regime") == current_regime:
+                consecutive += 1
+            else:
+                break
+
+        # Confidence trend over last 3 saved runs
+        recent_conf = [
+            r.get("confidence", 0)
+            for r in run_history[:3]
+            if r.get("confidence")
+        ]
+        conf_trend = "STABLE"
+        if len(recent_conf) >= 2:
+            delta = recent_conf[0] - recent_conf[-1]
+            if delta >= 0.05:
+                conf_trend = "BUILDING"
+            elif delta <= -0.05:
+                conf_trend = "DECLINING"
+
+        # Challenger proximity (alert threshold = 0.45)
+        challenger_risk = "LOW"
+        if challenger_confidence:
+            if challenger_confidence >= 0.42:
+                challenger_risk = "HIGH"
+            elif challenger_confidence >= 0.35:
+                challenger_risk = "MEDIUM"
+
+        # Stability score
+        if (consecutive >= 8 and conf_trend != "DECLINING"
+                and challenger_risk == "LOW"):
+            score = "HIGH"
+        elif consecutive >= 4 and conf_trend == "BUILDING":
+            score = "HIGH"
+        elif (consecutive <= 2 or challenger_risk == "HIGH" or
+              (conf_trend == "DECLINING" and current_confidence < 0.60)):
+            score = "LOW"
+        else:
+            score = "MEDIUM"
+
+        explanations = [f"Held for {consecutive} consecutive runs"]
+        if conf_trend == "BUILDING":
+            explanations.append("confidence building")
+        elif conf_trend == "DECLINING":
+            explanations.append("confidence declining")
+        if challenger_risk == "HIGH":
+            explanations.append("challenger approaching alert threshold")
+        elif challenger_risk == "LOW":
+            explanations.append("challenger well below alert")
+
+        print(
+            f"[STABILITY] score={score} consecutive={consecutive} "
+            f"conf_trend={conf_trend} challenger_risk={challenger_risk}",
+            flush=True,
+        )
+        return {
+            "score":           score,
+            "consecutive":     consecutive,
+            "conf_trend":      conf_trend,
+            "challenger_risk": challenger_risk,
+            "explanation":     " · ".join(explanations),
+        }
+    except Exception as _se:
+        print(f"[STABILITY] computation error: {_se}", flush=True)
+        return {
+            "score":           "UNKNOWN",
+            "consecutive":     0,
+            "conf_trend":      "STABLE",
+            "challenger_risk": "LOW",
+            "explanation":     "Error computing stability",
+        }
 
 
 def _apply_market_stress_overlay(
@@ -1001,15 +1268,47 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         final_intel = eng["aggregator"].build_intel_packet(regime_output=regime, scenario_output=scenarios, asset_output=asset_out.get("assets", {}), triggers=triggers, positioning_output=pos, cause_effect_output=cause, decision_output=dec, strategy_output=strat)
         report = eng["report"].generate_report(final_intel)
 
-        # Fetch previous run for narrative delta — never crashes
-        narrative_delta = {"has_delta": False}
+        # Fetch last 5 runs for correlation detection, stability, and narrative delta
+        run_history = []
+        _prev_run   = None
         try:
-            _prev_result = _supabase.table("runs") \
-                .select("regime, confidence, conviction, run_at, crude_price") \
+            _hist_result = _supabase.table("runs") \
+                .select("regime, confidence, conviction, run_at, crude_price, fii_net_crore") \
                 .eq("user_id", user_id) \
                 .order("run_at", desc=True) \
-                .limit(1).execute()
-            _prev_run = _prev_result.data[0] if _prev_result.data else None
+                .limit(5).execute()
+            run_history = _hist_result.data or []
+            _prev_run   = run_history[0] if run_history else None
+        except Exception:
+            pass
+
+        # Compute regime stability (needed as input to narrative_delta)
+        stability = {
+            "score": "UNKNOWN", "consecutive": 0,
+            "conf_trend": "STABLE", "challenger_risk": "LOW",
+            "explanation": "",
+        }
+        try:
+            _challenger_conf = None
+            try:
+                _challenger_conf = (
+                    scenarios.get("challenger_confidence") or
+                    (scenarios.get("challenger") or {}).get("confidence")
+                )
+            except Exception:
+                pass
+            stability = _compute_regime_stability(
+                current_regime        =regime.get("regime", ""),
+                run_history           =run_history,
+                challenger_confidence =_challenger_conf,
+                current_confidence    =regime.get("confidence", 0),
+            )
+        except Exception:
+            pass
+
+        # Build narrative delta — never crashes
+        narrative_delta = {"has_delta": False}
+        try:
             narrative_delta = _build_narrative_delta(
                 current_regime    =regime.get("regime", ""),
                 current_confidence=regime.get("confidence", 0),
@@ -1017,6 +1316,8 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 prev_run          =_prev_run,
                 nse_snapshot      =nse_snapshot,
                 intel             =intel,
+                run_history       =run_history,
+                stability         =stability,
             )
         except Exception:
             pass
@@ -1052,7 +1353,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()

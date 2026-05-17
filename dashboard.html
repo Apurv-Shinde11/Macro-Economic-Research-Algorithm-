@@ -2597,6 +2597,9 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
+    .chip-green { color: var(--green); }
+    .chip-red   { color: var(--red);   }
+    .chip-amber { color: var(--amber); }
   </style>
 </head>
 
@@ -2994,6 +2997,7 @@
                 data-tip="equity-bias">ⓘ</span></span><span class="regime-pill-value" id="pillEquity">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">Conviction<span class="tip-icon"
                 data-tip="conviction">ⓘ</span></span><span class="regime-pill-value" id="pillConviction">—</span></div>
+          <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
               id="pillRBI">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
@@ -3378,6 +3382,19 @@
         const comp = regime?.components || {};
         document.getElementById('pillEquity').textContent = comp.equity_bias || '—';
         document.getElementById('pillConviction').textContent = conviction;
+        const stabData = data.regime_stability;
+        const sg = document.getElementById('stabilityPillGroup');
+        const sc = document.getElementById('stabilityChip');
+        if (sg && sc && stabData) {
+          sg.style.display = '';
+          sc.textContent   = stabData.score;
+          sc.className = 'regime-pill-value ' + (
+            stabData.score === 'HIGH'   ? 'chip-green' :
+            stabData.score === 'LOW'    ? 'chip-red'   :
+            stabData.score === 'MEDIUM' ? 'chip-amber'  : ''
+          );
+          sc.title = stabData.explanation || '';
+        }
         document.getElementById('pillRBI').textContent = comp.rbi_signal || regime?.rbi_data?.policy_direction || '—';
         document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime?.replace(/_/g, ' ') || '—';
       } else { document.getElementById('pillConviction').textContent = conviction; }
