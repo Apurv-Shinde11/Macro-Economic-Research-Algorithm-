@@ -2454,6 +2454,149 @@
         padding: 20px 16px 40px;
       }
     }
+
+    /* ── What Changed Delta Card ── */
+    .delta-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .delta-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--amber), var(--blue));
+    }
+    .delta-card.IMPROVING::before {
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+    }
+    .delta-card.DETERIORATING::before {
+      background: linear-gradient(90deg, var(--red), var(--amber));
+    }
+    .delta-card.SIGNIFICANT::before {
+      background: linear-gradient(90deg, var(--violet), var(--blue));
+    }
+    .delta-card.CAUTION::before {
+      background: var(--amber);
+    }
+    .delta-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .delta-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .delta-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      color: var(--text-3);
+      text-transform: uppercase;
+    }
+    .delta-headline {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .delta-sentiment-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .delta-sentiment-badge.IMPROVING {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(16, 212, 138, 0.25);
+    }
+    .delta-sentiment-badge.DETERIORATING {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+    .delta-sentiment-badge.SIGNIFICANT {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid rgba(79, 131, 255, 0.25);
+    }
+    .delta-sentiment-badge.CAUTION {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+    }
+    .delta-sentiment-badge.NEUTRAL {
+      background: var(--bg-3);
+      color: var(--text-3);
+      border: 1px solid var(--border);
+    }
+    .delta-changes {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .delta-change-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.55;
+    }
+    .delta-change-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--blue);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .delta-watch {
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .delta-watch-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-3);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .delta-watch-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .delta-watch-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.55;
+    }
+    .delta-watch-icon {
+      font-size: 11px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
   </style>
 </head>
 
@@ -2473,7 +2616,10 @@
       <span class="nav-firm" id="navFirm">Loading...</span>
     </div>
     <div class="nav-right">
-      <a href="/pe" style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);text-decoration:none;padding:6px 10px;border:1px solid var(--border);border-radius:6px;letter-spacing:0.06em;transition:color 0.2s,border-color 0.2s;" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue-light)';" onmouseout="this.style.color='var(--text-2)';this.style.borderColor='var(--border)';">PE Intelligence →</a>
+      <a href="/pe"
+        style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);text-decoration:none;padding:6px 10px;border:1px solid var(--border);border-radius:6px;letter-spacing:0.06em;transition:color 0.2s,border-color 0.2s;"
+        onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue-light)';"
+        onmouseout="this.style.color='var(--text-2)';this.style.borderColor='var(--border)';">PE Intelligence →</a>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
         <span class="icon-moon">🌙</span>
         <span class="icon-sun">☀️</span>
@@ -2667,7 +2813,8 @@
 
         <div class="admin-section-title">Outcome Evaluation</div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <button class="admin-action-btn" style="padding:8px 16px;font-size:11px;" onclick="triggerOutcomeEvaluation()">
+          <button class="admin-action-btn" style="padding:8px 16px;font-size:11px;"
+            onclick="triggerOutcomeEvaluation()">
             ▶ Evaluate Outcomes Now
           </button>
           <span id="outcomeEvalStatus" style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">
@@ -2749,6 +2896,22 @@
               id="dpRationale">—</span></div>
           <div class="decision-prompt-row"><span class="dp-label">Watchpoint</span><span class="dp-value"
               id="dpWatchpoint">—</span></div>
+        </div>
+      </div>
+
+      <!-- What Changed Delta Card -->
+      <div class="delta-card" id="deltaCard" style="display:none;">
+        <div class="delta-header">
+          <div class="delta-header-left">
+            <span class="delta-eyebrow">What Changed</span>
+            <span class="delta-headline" id="deltaHeadline">—</span>
+          </div>
+          <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
+        </div>
+        <div class="delta-changes" id="deltaChanges"></div>
+        <div class="delta-watch" id="deltaWatch" style="display:none;">
+          <div class="delta-watch-title">Watch Next</div>
+          <div class="delta-watch-items" id="deltaWatchItems"></div>
         </div>
       </div>
 
@@ -3150,6 +3313,39 @@
       btn.innerHTML = '<span>▶</span> Run Intelligence Engine';
     }
 
+    function renderDelta(delta) {
+      const card      = document.getElementById('deltaCard');
+      const headline  = document.getElementById('deltaHeadline');
+      const badge     = document.getElementById('deltaSentimentBadge');
+      const changes   = document.getElementById('deltaChanges');
+      const watch     = document.getElementById('deltaWatch');
+      const watchItems= document.getElementById('deltaWatchItems');
+
+      if (!delta || !delta.has_delta) { card.style.display = 'none'; return; }
+
+      const sentiment = delta.sentiment || 'NEUTRAL';
+      card.className  = `delta-card ${sentiment}`;
+      card.style.display = 'block';
+
+      headline.textContent = delta.headline || '—';
+      badge.textContent    = sentiment;
+      badge.className      = `delta-sentiment-badge ${sentiment}`;
+
+      changes.innerHTML = (delta.changes || [])
+        .map(c => `<div class="delta-change-item"><div class="delta-change-dot"></div><span>${c}</span></div>`)
+        .join('');
+
+      const watchArr = delta.watch_next || [];
+      if (watchArr.length) {
+        watch.style.display  = 'block';
+        watchItems.innerHTML = watchArr
+          .map(w => `<div class="delta-watch-item"><span class="delta-watch-icon">→</span><span>${w}</span></div>`)
+          .join('');
+      } else {
+        watch.style.display = 'none';
+      }
+    }
+
     function renderRunResult(data, fromHistory) {
       const regime = fromHistory ? { regime: data.regime, confidence: data.confidence } : data.regime;
       const strategy = fromHistory ? { conviction: data.conviction } : data.strategy;
@@ -3212,6 +3408,9 @@
         });
       } else if (fromHistory) {
         renderFlows({ fii_dii_source: 'unavailable' });
+      }
+      if (!fromHistory && data.narrative_delta) {
+        renderDelta(data.narrative_delta);
       }
     }
 
@@ -3382,33 +3581,33 @@
         return;
       }
 
-      const fiiEl         = document.getElementById('fiiNet');
-      const diiEl         = document.getElementById('diiNet');
-      const fiiSigEl      = document.getElementById('fiiSignal');
-      const diiSigEl      = document.getElementById('diiSignal');
-      const flowDateEl    = document.getElementById('flowDate');
-      const flowNarrEl    = document.getElementById('flowNarrative');
+      const fiiEl = document.getElementById('fiiNet');
+      const diiEl = document.getElementById('diiNet');
+      const fiiSigEl = document.getElementById('fiiSignal');
+      const diiSigEl = document.getElementById('diiSignal');
+      const flowDateEl = document.getElementById('flowDate');
+      const flowNarrEl = document.getElementById('flowNarrative');
 
       const fmtFlow = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(v).toLocaleString('en-IN')} Cr`;
       const periodLabels = { '1W': 'past 7 days', '1M': 'past 30 days', '3M': 'past 90 days' };
 
       fiiEl.textContent = fmtFlow(tf.fii_total);
-      fiiEl.className   = 'flow-amount ' + (tf.fii_total >= 0 ? 'positive' : 'negative');
+      fiiEl.className = 'flow-amount ' + (tf.fii_total >= 0 ? 'positive' : 'negative');
       diiEl.textContent = fmtFlow(tf.dii_total);
-      diiEl.className   = 'flow-amount ' + (tf.dii_total >= 0 ? 'positive' : 'negative');
+      diiEl.className = 'flow-amount ' + (tf.dii_total >= 0 ? 'positive' : 'negative');
 
       if (flowDateEl) flowDateEl.textContent = `Cumulative — ${periodLabels[period]} (${tf.data_points} sessions)`;
 
       fiiSigEl.textContent = tf.fii_signal;
-      fiiSigEl.className   = 'flow-signal ' + (tf.fii_signal === 'BUYING' ? 'risk-on' : tf.fii_signal === 'SELLING' ? 'risk-off' : 'neutral');
+      fiiSigEl.className = 'flow-signal ' + (tf.fii_signal === 'BUYING' ? 'risk-on' : tf.fii_signal === 'SELLING' ? 'risk-off' : 'neutral');
       diiSigEl.textContent = tf.dii_signal;
-      diiSigEl.className   = 'flow-signal ' + (tf.dii_signal === 'BUYING' ? 'risk-on' : tf.dii_signal === 'SELLING' ? 'risk-off' : 'neutral');
+      diiSigEl.className = 'flow-signal ' + (tf.dii_signal === 'BUYING' ? 'risk-on' : tf.dii_signal === 'SELLING' ? 'risk-off' : 'neutral');
 
       const fiiAbs = Math.abs(tf.fii_total).toLocaleString('en-IN');
       const diiAbs = Math.abs(tf.dii_total).toLocaleString('en-IN');
       const fiiDir = tf.fii_total >= 0 ? 'bought' : 'sold';
       const diiDir = tf.dii_total >= 0 ? 'bought' : 'sold';
-      const label  = periodLabels[period];
+      const label = periodLabels[period];
       const capLabel = label.charAt(0).toUpperCase() + label.slice(1);
       if (flowNarrEl) flowNarrEl.textContent =
         `${capLabel}: FII net ${fiiDir} ₹${fiiAbs} Cr. DII net ${diiDir} ₹${diiAbs} Cr. ` +
@@ -3430,7 +3629,7 @@
       const dataSource = _fiiHistory?.data_source === 'runs_fallback' ? 'Derived from run history' : 'BSE daily data';
       const sign = tf.net_combined >= 0 ? '+' : '';
       el.style.display = 'block';
-      el.textContent   = `${tf.data_points} trading sessions · ${dataSource} · Net combined: ${sign}₹${Math.abs(tf.net_combined).toLocaleString('en-IN')} Cr`;
+      el.textContent = `${tf.data_points} trading sessions · ${dataSource} · Net combined: ${sign}₹${Math.abs(tf.net_combined).toLocaleString('en-IN')} Cr`;
     }
 
     function renderFlows(nse) {
@@ -3502,16 +3701,16 @@
         const isOldEnough = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = r.outcome || (isOldEnough ? 'Awaiting eval' : 'Pending');
         const outcomeCls =
-          outcome.includes('Confirmed ✓')    ? 'color:var(--green);font-weight:600;' :
-          outcome.includes('Not Confirmed')  ? 'color:var(--red);' :
-          outcome === 'Awaiting eval'        ? 'color:var(--amber);' :
-                                               'color:var(--text-3);';
+          outcome.includes('Confirmed ✓') ? 'color:var(--green);font-weight:600;' :
+            outcome.includes('Not Confirmed') ? 'color:var(--red);' :
+              outcome === 'Awaiting eval' ? 'color:var(--amber);' :
+                'color:var(--text-3);';
         return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;color:var(--text-2);">${impliedAction}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
       }).join('');
     }
 
     async function triggerOutcomeEvaluation() {
-      const btn    = document.querySelector('[onclick="triggerOutcomeEvaluation()"]');
+      const btn = document.querySelector('[onclick="triggerOutcomeEvaluation()"]');
       const status = document.getElementById('outcomeEvalStatus');
       if (!btn || !status) return;
       btn.disabled = true;
@@ -4377,8 +4576,8 @@
         `<div class="heatmap-col ${s.cls}">` +
         `<div class="heatmap-col-title">${s.label}</div>` +
         (heatmap[s.key] || []).map(sector => {
-          const name   = typeof sector === 'string' ? sector : sector.sector;
-          const reason = typeof sector === 'string' ? null   : sector.reason;
+          const name = typeof sector === 'string' ? sector : sector.sector;
+          const reason = typeof sector === 'string' ? null : sector.reason;
           return `<div class="heatmap-sector"><div class="heatmap-dot"></div><div class="heatmap-sector-content"><span class="heatmap-sector-name">${name}</span>${reason ? `<span class="heatmap-sector-reason">${reason}</span>` : ''}</div></div>`;
         }).join('') +
         `</div>`

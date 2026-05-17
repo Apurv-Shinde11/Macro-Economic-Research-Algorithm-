@@ -605,6 +605,171 @@ def _derive_implied_action(regime_key: str, conviction: str) -> str:
     return "Monitor and hold"
 
 
+def _build_narrative_delta(
+    current_regime: str,
+    current_confidence: float,
+    current_conviction: str,
+    prev_run,
+    nse_snapshot: dict,
+    intel: dict,
+) -> dict:
+    try:
+        if not prev_run:
+            return {
+                "has_delta": False,
+                "headline": "First run — baseline established.",
+                "changes": [],
+                "watch_next": [],
+                "sentiment": "NEUTRAL",
+            }
+
+        prev_confidence = prev_run.get("confidence", 0)
+        prev_conviction = prev_run.get("conviction", "")
+        prev_regime     = prev_run.get("regime", "")
+
+        conf_pct_now  = round(current_confidence * 100, 1)
+        conf_pct_prev = round(prev_confidence * 100, 1)
+        conf_delta    = round(conf_pct_now - conf_pct_prev, 1)
+
+        changes    = []
+        watch_next = []
+        sentiment  = "NEUTRAL"
+
+        # Regime change
+        if current_regime != prev_regime:
+            prev_label = prev_regime.replace("_", " ").title()
+            curr_label = current_regime.replace("_", " ").title()
+            changes.append(
+                f"Regime shifted from {prev_label} to "
+                f"{curr_label} — a significant macro transition."
+            )
+            sentiment = "SIGNIFICANT"
+
+        # Confidence movement
+        if abs(conf_delta) >= 3:
+            direction = "built" if conf_delta > 0 else "deteriorated"
+            changes.append(
+                f"Confidence {direction} {abs(conf_delta)}pts "
+                f"({conf_pct_prev}% → {conf_pct_now}%)."
+            )
+            if conf_delta <= -5:
+                sentiment = "DETERIORATING"
+            elif conf_delta >= 5 and sentiment == "NEUTRAL":
+                sentiment = "IMPROVING"
+
+        # Conviction change
+        conv_rank = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+        curr_rank = conv_rank.get((current_conviction or "").upper(), 2)
+        prev_rank = conv_rank.get((prev_conviction or "").upper(),  2)
+        if curr_rank != prev_rank:
+            direction = "upgraded" if curr_rank > prev_rank else "downgraded"
+            changes.append(
+                f"Conviction {direction} from "
+                f"{prev_conviction} to {current_conviction}."
+            )
+            if curr_rank < prev_rank and sentiment == "NEUTRAL":
+                sentiment = "DETERIORATING"
+
+        # Market stress signals
+        crude = nse_snapshot.get("crude_price")
+        vix   = nse_snapshot.get("india_vix", 0)
+        fii   = nse_snapshot.get("fii_net_crore")
+
+        if crude and crude >= 100:
+            changes.append(
+                f"Crude at ${crude} — above the $95 External "
+                f"Shock threshold. Imported inflation risk elevated."
+            )
+            watch_next.append(
+                "Watch crude — sustained above $100 may force "
+                "RBI response and regime transition."
+            )
+            if sentiment == "NEUTRAL":
+                sentiment = "CAUTION"
+
+        if vix and vix >= 20:
+            changes.append(
+                f"India VIX at {vix} — elevated fear gauge "
+                f"signals market stress."
+            )
+            if sentiment == "NEUTRAL":
+                sentiment = "CAUTION"
+
+        if fii is not None and fii < -3000:
+            changes.append(
+                f"FII sold ₹{abs(int(fii)):,} Cr — "
+                f"significant foreign outflow pressure."
+            )
+            watch_next.append(
+                "Sustained FII selling for 3+ sessions would "
+                "pressure INR and challenge liquidity regime."
+            )
+        elif fii is not None and fii > 3000:
+            changes.append(
+                f"FII bought ₹{int(fii):,} Cr — "
+                f"strong foreign inflow supporting the regime."
+            )
+
+        # Leading indicator watch items
+        hard = intel.get("hard_data", {}) if isinstance(intel, dict) else {}
+        gdp  = hard.get("gdp_growth", 0)
+
+        if gdp and gdp < 6.0:
+            watch_next.append(
+                f"GDP tracking at {gdp}% — below the 7%+ "
+                f"threshold that anchors the current regime. "
+                f"Watch Q4 GDP advance print on 29 May."
+            )
+
+        watch_next.append(
+            "Next key event: GDP Growth Q4 FY26 (Advance) "
+            "on 29 May — this single print could materially "
+            "shift regime confidence in either direction."
+        )
+
+        # Headline
+        if not changes:
+            headline = (
+                f"Regime stable at {conf_pct_now}% confidence. "
+                f"No material signal change since last run."
+            )
+        elif sentiment == "SIGNIFICANT":
+            headline = "Regime transition detected — review positioning."
+        elif sentiment == "DETERIORATING":
+            headline = (
+                f"Signals weakening — confidence down "
+                f"{abs(conf_delta)}pts. Exercise caution."
+            )
+        elif sentiment == "IMPROVING":
+            headline = (
+                f"Signals strengthening — confidence up "
+                f"{abs(conf_delta)}pts. Conviction building."
+            )
+        elif sentiment == "CAUTION":
+            headline = (
+                "Market stress signals elevated — "
+                "monitor closely before acting."
+            )
+        else:
+            headline = (
+                f"Regime intact at {conf_pct_now}% confidence. "
+                f"Minor signal movement."
+            )
+
+        return {
+            "has_delta":   True,
+            "headline":    headline,
+            "changes":     changes,
+            "watch_next":  watch_next[:3],
+            "sentiment":   sentiment,
+            "conf_delta":  conf_delta,
+            "prev_regime": prev_regime,
+            "curr_regime": current_regime,
+        }
+    except Exception:
+        return {"has_delta": False}
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -707,6 +872,27 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         dec   = ensure_dict(eng["decision"].generate(regime_output=regime, scenario_output=scenarios, asset_output=asset_out, positioning_output=pos, strategy_output=strat, trigger_output=triggers))
         final_intel = eng["aggregator"].build_intel_packet(regime_output=regime, scenario_output=scenarios, asset_output=asset_out.get("assets", {}), triggers=triggers, positioning_output=pos, cause_effect_output=cause, decision_output=dec, strategy_output=strat)
         report = eng["report"].generate_report(final_intel)
+
+        # Fetch previous run for narrative delta — never crashes
+        narrative_delta = {"has_delta": False}
+        try:
+            _prev_result = _supabase.table("runs") \
+                .select("regime, confidence, conviction, run_at, crude_price") \
+                .eq("user_id", user_id) \
+                .order("run_at", desc=True) \
+                .limit(1).execute()
+            _prev_run = _prev_result.data[0] if _prev_result.data else None
+            narrative_delta = _build_narrative_delta(
+                current_regime    =regime.get("regime", ""),
+                current_confidence=regime.get("confidence", 0),
+                current_conviction=strat.get("conviction", ""),
+                prev_run          =_prev_run,
+                nse_snapshot      =nse_snapshot,
+                intel             =intel,
+            )
+        except Exception:
+            pass
+
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
@@ -738,7 +924,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []})}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
