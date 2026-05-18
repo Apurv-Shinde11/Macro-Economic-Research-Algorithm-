@@ -30,12 +30,14 @@ NEUTRAL_KEYWORDS = [
     "sideways", "flat", "unchanged", "neutral", "consolidation"
 ]
 
-# Gemini models tried in order — first working one wins
+# Gemini models tried in order — first working one wins.
+# gemini-2.0-flash / gemini-2.0-flash-lite hit 429 on free tier;
+# upgrade to a paid Gemini API key to resolve rate limits.
+# gemini-1.5-flash / gemini-1.5-flash-8b return 404 (deprecated).
 GEMINI_MODELS = [
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash-latest",
 ]
 
 

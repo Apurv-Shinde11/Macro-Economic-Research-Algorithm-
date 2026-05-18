@@ -1358,6 +1358,22 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
+        # Patch india_vix from ticker cache if NSE failed or returned placeholder default
+        try:
+            _cached_vix = _ticker_cache.get("data", {}).get("India VIX", {}).get("price")
+            _current_vix = nse_snapshot.get("india_vix")
+            if _cached_vix and (
+                not _current_vix or
+                _current_vix == 15 or
+                _current_vix == 15.0
+            ):
+                nse_snapshot["india_vix"] = float(_cached_vix)
+                print(
+                    f"[VIX] Patched from ticker cache: {_cached_vix}",
+                    flush=True
+                )
+        except Exception as _vix_err:
+            print(f"[VIX] Patch failed: {_vix_err}", flush=True)
         # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase fallback)
         # dii_net_crore defaults to None, never 0 — 0 is indistinguishable from missing data
         try:
@@ -1375,7 +1391,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 # ── Persist daily snapshot for multi-timeframe aggregation ─────────────
                 try:
                     from datetime import date as _date
-                    _trade_date = str(nse_snapshot.get("fii_trade_date") or _date.today())[:10]
+                    import re as _re
+                    _raw_date = nse_snapshot.get("fii_trade_date")
+                    if _raw_date:
+                        _trade_date = str(_raw_date)[:10]
+                    else:
+                        _trade_date = _date.today().isoformat()
+                    if not _re.match(r'^\d{4}-\d{2}-\d{2}$', _trade_date):
+                        _trade_date = _date.today().isoformat()
+                        print(
+                            f"[FII_DAILY] Invalid date format, using today: {_trade_date}",
+                            flush=True
+                        )
                     _supabase.table("fii_dii_daily").upsert(
                         {
                             "trade_date":    _trade_date,
