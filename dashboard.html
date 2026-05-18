@@ -2648,6 +2648,82 @@
       color: var(--text-3);
       letter-spacing: 0.06em;
     }
+
+    /* ══ INDIA ACTIVITY STRIP ══ */
+    .activity-strip {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      margin-top: 12px;
+      display: none;
+    }
+    .activity-strip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .activity-strip-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .activity-composite {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+    .activity-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 600px) {
+      .activity-cards { grid-template-columns: 1fr; }
+    }
+    .activity-card {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .activity-card-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .activity-card-period {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+    .activity-card-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 2px;
+    }
+    .activity-card-yoy {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-2);
+      margin-bottom: 6px;
+    }
+    .activity-card-signal {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 
@@ -3077,6 +3153,37 @@
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Loading market data...</span>
       </div>
 
+      <!-- India Activity Signals Strip -->
+      <div class="activity-strip" id="activityStrip">
+        <div class="activity-strip-header">
+          <span class="activity-strip-title">India Activity Signals</span>
+          <span class="activity-composite" id="activityComposite">—</span>
+        </div>
+        <div class="activity-cards">
+          <div class="activity-card">
+            <div class="activity-card-label">GST Collections</div>
+            <div class="activity-card-period" id="actGstPeriod">—</div>
+            <div class="activity-card-value" id="actGstValue">—</div>
+            <div class="activity-card-yoy" id="actGstYoy">—</div>
+            <div class="activity-card-signal" id="actGstSignal">—</div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-card-label">Auto Sales</div>
+            <div class="activity-card-period" id="actAutoPeriod">—</div>
+            <div class="activity-card-value" id="actAutoValue">—</div>
+            <div class="activity-card-yoy" id="actAutoYoy">—</div>
+            <div class="activity-card-signal" id="actAutoSignal">—</div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-card-label">Bank Credit</div>
+            <div class="activity-card-period" id="actCreditPeriod">—</div>
+            <div class="activity-card-value" id="actCreditValue">—</div>
+            <div class="activity-card-yoy" id="actCreditYoy">—</div>
+            <div class="activity-card-signal" id="actCreditSignal">—</div>
+          </div>
+        </div>
+      </div>
+
       <div class="divider"></div>
 
       <div class="section-header">
@@ -3267,6 +3374,7 @@
       if (!session) { window.location.href = 'login.html'; return; }
       _session = session; _token = session.access_token;
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
+      loadActivitySignals();
       initNav(); initSidebar();
     }
 
@@ -3395,6 +3503,51 @@
       pctEl.textContent   = `${pct}%`;
       pctEl.style.color   = pctColor;
       nextEl.textContent  = nextLabel ? `→ ${nextLabel} if transition` : riskLabel;
+    }
+
+    function renderActivity(act) {
+      if (!act) return;
+      const gst    = act.gst          || {};
+      const auto   = act.auto_sales   || {};
+      const credit = act.bank_credit  || {};
+      const comp   = act.composite    || {};
+
+      const sigColor = s => s === 'STRONG' ? 'var(--green)' : s === 'MODERATE' ? 'var(--amber)' : s === 'WEAK' ? 'var(--red)' : 'var(--text-3)';
+
+      // Composite summary line
+      const compEl = document.getElementById('activityComposite');
+      if (compEl) {
+        compEl.textContent = comp.summary || comp.score || '—';
+        compEl.style.color = sigColor(comp.score);
+      }
+
+      // GST
+      const fmtCr = v => v ? '₹' + (v / 1000).toFixed(0) + 'k Cr' : '—';
+      document.getElementById('actGstPeriod').textContent  = gst.month || '—';
+      document.getElementById('actGstValue').textContent   = fmtCr(gst.collection_cr);
+      document.getElementById('actGstYoy').textContent     = gst.yoy_growth_pct != null ? (gst.yoy_growth_pct >= 0 ? '+' : '') + gst.yoy_growth_pct.toFixed(1) + '% YoY' : '—';
+      const gstSig = document.getElementById('actGstSignal');
+      gstSig.textContent = gst.signal || '—';
+      gstSig.style.color = sigColor(gst.signal);
+
+      // Auto Sales
+      const fmtUnits = v => v ? (v / 100000).toFixed(1) + 'L units' : '—';
+      document.getElementById('actAutoPeriod').textContent = auto.month || '—';
+      document.getElementById('actAutoValue').textContent  = fmtUnits(auto.total_units);
+      document.getElementById('actAutoYoy').textContent    = auto.yoy_growth_pct != null ? (auto.yoy_growth_pct >= 0 ? '+' : '') + auto.yoy_growth_pct.toFixed(1) + '% YoY' : '—';
+      const autoSig = document.getElementById('actAutoSignal');
+      autoSig.textContent = auto.signal || '—';
+      autoSig.style.color = sigColor(auto.signal);
+
+      // Bank Credit
+      document.getElementById('actCreditPeriod').textContent = credit.period || '—';
+      document.getElementById('actCreditValue').textContent  = credit.yoy_growth_pct != null ? credit.yoy_growth_pct.toFixed(1) + '% YoY' : '—';
+      document.getElementById('actCreditYoy').textContent    = credit.retail_credit != null ? 'Retail: +' + credit.retail_credit.toFixed(1) + '%' : '—';
+      const creditSig = document.getElementById('actCreditSignal');
+      creditSig.textContent = credit.signal || '—';
+      creditSig.style.color = sigColor(credit.signal);
+
+      document.getElementById('activityStrip').style.display = 'block';
     }
 
     function renderDelta(delta) {
@@ -3879,6 +4032,15 @@
         const cs = analysis.carry_signal || '';
         document.getElementById('carrySignal').textContent = cs === 'STRONG_FII_MAGNET' ? 'FII Magnet 🟢' : cs === 'FII_OUTFLOW_RISK' ? 'FII Risk 🔴' : 'Neutral';
       } catch (e) { console.error('Yield curve failed:', e); }
+    }
+
+    async function loadActivitySignals() {
+      try {
+        const RAILWAY_URL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+        const res = await fetch(RAILWAY_URL + '/api/india-activity');
+        const data = await res.json();
+        if (data.activity) renderActivity(data.activity);
+      } catch (e) { console.error('Activity load failed:', e); }
     }
 
     async function loadCalendar() {

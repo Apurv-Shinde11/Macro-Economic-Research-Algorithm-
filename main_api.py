@@ -2603,3 +2603,45 @@ async def generate_pdf(job_id: str, profile: dict = Depends(require_access)):
         return Response(content=pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+
+
+@app.get("/api/india-activity")
+async def get_india_activity():
+    """
+    Public endpoint — no auth required.
+    Returns India activity signals.
+    Hardcoded monthly data updated manually.
+    """
+    try:
+        ingestor = _engines.get("ingestor")
+        if ingestor and hasattr(ingestor, "fetch_india_activity_signals"):
+            data = ingestor.fetch_india_activity_signals()
+        else:
+            data = {
+                "gst": {
+                    "month": "April 2026",
+                    "collection_cr": 237000,
+                    "yoy_growth_pct": 12.6,
+                    "signal": "STRONG",
+                },
+                "auto_sales": {
+                    "month": "April 2026",
+                    "total_units": 2252000,
+                    "yoy_growth_pct": 8.4,
+                    "signal": "MODERATE",
+                },
+                "bank_credit": {
+                    "period": "May 2026",
+                    "yoy_growth_pct": 12.8,
+                    "retail_credit": 15.2,
+                    "signal": "STRONG",
+                },
+                "composite": {
+                    "score": "STRONG",
+                    "numeric": 2.67,
+                    "summary": "GST STRONG · Auto Sales MODERATE · Credit STRONG",
+                },
+            }
+        return {"activity": data}
+    except Exception as e:
+        return {"activity": None, "error": str(e)}
