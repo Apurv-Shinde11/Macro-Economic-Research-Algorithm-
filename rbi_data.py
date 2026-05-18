@@ -19,6 +19,8 @@ DBIE API base: https://dbie.rbi.org.in/DBIE/dbie.rbi?site=api
 import requests
 import json
 import datetime
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # =========================
@@ -71,7 +73,7 @@ class RBIDataFetcher:
         """
         try:
             url    = f"{DBIE_BASE}&seriesId={series_id}&noOfPeriods={periods}"
-            resp   = requests.get(url, headers=HEADERS, timeout=15)
+            resp   = requests.get(url, headers=HEADERS, timeout=15, verify=False)
             if resp.status_code != 200:
                 return []
             data   = resp.json()
