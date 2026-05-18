@@ -65,8 +65,8 @@ class MacroRegimeEngine:
         self.repo_neutral     = 6.0
         self.inflation_target = 4.0
         self.inflation_upper  = 6.0
-        self.oil_risk_level   = 85
-        self.inr_risk_level   = 83
+        self.oil_risk_level   = 95
+        self.inr_risk_level   = 90
         self._rbi_fetcher     = RBIDataFetcher()
 
         # Load Supabase credentials once at init.
@@ -282,7 +282,8 @@ class MacroRegimeEngine:
     def _compute_signal_alignment(
         self, regime, policy_stance, liquidity_score,
         growth, inflation, sentiment, equity_bias,
-        nlp_regime, rbi_signal, fiscal_supportive
+        nlp_regime, rbi_signal, fiscal_supportive,
+        crude_live=0, vix_live=15, fii_live=None,
     ):
         """
         Returns (alignment: float [0,1], details: list[dict]).
@@ -319,14 +320,43 @@ class MacroRegimeEngine:
         sent_neg   = (S if sentiment < -0.3  else N if sentiment < 0.0  else W)
         sent_calm  = (S if abs(sentiment) < 0.1 else N if abs(sentiment) < 0.3 else W)
 
+        # Live market signal states
+        crude_stress  = self._sig(crude_live, 105, 95)
+        crude_support = self._sig(crude_live, 70, 80, "below")
+        vix_stress    = self._sig(vix_live, 25, 20)
+        vix_calm      = self._sig(vix_live, 12, 16, "below")
+
+        fii_buying  = 0.0
+        fii_selling = 0.0
+        if fii_live is not None:
+            fii_buying  = (
+                1.0 if fii_live > 3000 else
+                0.3 if fii_live > 500  else
+                0.0
+            )
+            fii_selling = (
+                1.0 if fii_live < -3000 else
+                0.3 if fii_live < -500  else
+                0.0
+            )
+
         # ── per-regime signal tables: (label, weight, state) ──────────────
         tables = {
             "LIQUIDITY_DRIVEN_EXPANSION": [
-                ("System Liquidity",       0.30, liq_expan),
-                ("GDP Growth",             0.25, gdp_str),
-                ("Market Bias (RISK_ON)",  0.20, eq_on),
-                ("NLP Tone (Dovish)",      0.15, nlp_dov),
-                ("Fiscal Support",         0.10, fiscal),
+                ("System Liquidity",       0.25, liq_expan),
+                ("GDP Growth",             0.20, gdp_str),
+                ("Market Bias (RISK_ON)",  0.15, eq_on),
+                ("NLP Tone (Dovish)",      0.12, nlp_dov),
+                ("Fiscal Support",         0.08, fiscal),
+                ("Crude Contained",        0.10, crude_support),
+                ("VIX Calm",               0.05, vix_calm),
+                ("FII Buying",             0.05, fii_buying),
+            ],
+            "EXTERNAL_SHOCK": [
+                ("Crude Spike",            0.35, crude_stress),
+                ("VIX Stress",             0.25, vix_stress),
+                ("FII Selling",            0.20, fii_selling),
+                ("Market Bias (RISK_OFF)", 0.20, eq_off),
             ],
             "LIQUIDITY_TIGHTENING": [
                 ("Liquidity Drain",        0.35, liq_tight),
@@ -359,10 +389,12 @@ class MacroRegimeEngine:
                 ("Negative Sentiment",     0.10, sent_neg),
             ],
             "STABLE_GROWTH": [
-                ("Policy Neutral",         0.30, pol_neu),
-                ("GDP Above Trend",        0.25, self._sig(growth, 6.5, 5.5)),
-                ("Inflation Contained",    0.25, infl_ok),
-                ("Subdued Sentiment",      0.20, sent_calm),
+                ("Policy Neutral",         0.25, pol_neu),
+                ("GDP Above Trend",        0.20, self._sig(growth, 6.5, 5.5)),
+                ("Inflation Contained",    0.20, infl_ok),
+                ("Subdued Sentiment",      0.15, sent_calm),
+                ("Crude Contained",        0.10, crude_support),
+                ("VIX Calm",               0.10, vix_calm),
             ],
             "STAGFLATION_RISK": [
                 ("Inflation Elevated",     0.40, infl_hot),
@@ -455,7 +487,10 @@ class MacroRegimeEngine:
         equity_bias,
         nlp_regime,
         rbi_signal,
-        fiscal_supportive
+        fiscal_supportive,
+        crude_live=0,
+        vix_live=15,
+        fii_live=None,
     ):
         scores = {
             "LIQUIDITY_TIGHTENING":                  0.0,
@@ -548,6 +583,65 @@ class MacroRegimeEngine:
             scores["STAGFLATION_RISK"] += 1.5
         if equity_bias == "RISK_OFF" and sentiment > 0.2:
             scores["STAGFLATION_RISK"] += 1.0
+
+        # ── Live crude signal adjustments ────────────
+        if crude_live >= 105:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 1.5
+            scores["STABLE_GROWTH"]              -= 1.0
+            scores["EXTERNAL_SHOCK"] = scores.get("EXTERNAL_SHOCK", 0) + 2.0
+            scores["STAGFLATION_RISK"]           += 1.5
+            scores["INFLATION_PRESSURE_WITH_EXTERNAL_RISK"] += 1.5
+        elif crude_live >= 95:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 0.8
+            scores["STABLE_GROWTH"]              -= 0.5
+            scores["EXTERNAL_SHOCK"] = scores.get("EXTERNAL_SHOCK", 0) + 1.0
+            scores["INFLATION_PRESSURE_WITH_EXTERNAL_RISK"] += 0.8
+        elif 0 < crude_live <= 75:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] += 0.5
+            scores["STABLE_GROWTH"]              += 0.5
+            scores["EARLY_CYCLE_RECOVERY"]       += 0.3
+
+        # ── Live VIX signal adjustments ──────────────
+        if vix_live >= 25:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 1.5
+            scores["STABLE_GROWTH"]              -= 1.0
+            scores["EXTERNAL_SHOCK"] = scores.get("EXTERNAL_SHOCK", 0) + 1.5
+            scores["GROWTH_SLOWDOWN_SUPPORT"]    += 1.0
+        elif vix_live >= 20:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 0.8
+            scores["STABLE_GROWTH"]              -= 0.5
+            scores["EXTERNAL_SHOCK"] = scores.get("EXTERNAL_SHOCK", 0) + 0.8
+        elif vix_live <= 12:
+            scores["LIQUIDITY_DRIVEN_EXPANSION"] += 0.5
+            scores["STABLE_GROWTH"]              += 0.5
+
+        # ── Live FII signal adjustments ──────────────
+        if fii_live is not None:
+            if fii_live < -3000:
+                scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 1.2
+                scores["STABLE_GROWTH"]              -= 0.8
+                scores["GROWTH_SLOWDOWN_SUPPORT"]    += 0.8
+                scores["EXTERNAL_SHOCK"] = scores.get("EXTERNAL_SHOCK", 0) + 0.5
+            elif fii_live < -1000:
+                scores["LIQUIDITY_DRIVEN_EXPANSION"] -= 0.5
+                scores["STABLE_GROWTH"]              -= 0.3
+            elif fii_live > 3000:
+                scores["LIQUIDITY_DRIVEN_EXPANSION"] += 0.8
+                scores["STABLE_GROWTH"]              += 0.5
+                scores["EARLY_CYCLE_RECOVERY"]       += 0.3
+            elif fii_live > 1000:
+                scores["LIQUIDITY_DRIVEN_EXPANSION"] += 0.3
+                scores["STABLE_GROWTH"]              += 0.2
+
+        # Clamp all scores to valid range
+        for k in scores:
+            scores[k] = max(0.0, min(10.0, scores[k]))
+
+        print(
+            f"  [Regime] Live signal adjustments applied: "
+            f"crude={crude_live} vix={vix_live} fii={fii_live}",
+            flush=True
+        )
 
         return scores
 
@@ -702,7 +796,8 @@ class MacroRegimeEngine:
     # =========================
     # 🚦 MAIN ENTRY POINT
     # =========================
-    def detect_regime(self, intel, liquidity_output=None):
+    def detect_regime(self, intel, liquidity_output=None,
+                      nse_snapshot=None):
         intel = intel if isinstance(intel, dict) else {}
 
         hard_data      = intel.get("hard_data",              {})
@@ -725,6 +820,23 @@ class MacroRegimeEngine:
         deficit   = self._safe_float(hard_data.get("fiscal_deficit", 4.3),  4.3)
         capex     = self._safe_float(hard_data.get("capex_lakh_cr",  12.2), 12.2)
 
+        # ── Live market signals from nse_snapshot ────
+        nse         = nse_snapshot or {}
+        crude_live  = float(nse.get("crude_price") or 0)
+        vix_live    = float(nse.get("india_vix")   or 15)
+        fii_live    = (
+            float(nse.get("fii_net_crore"))
+            if nse.get("fii_net_crore") is not None
+            else None
+        )
+        usd_inr     = float(nse.get("usd_inr")    or 0)
+
+        print(
+            f"  [Regime] Live signals: crude={crude_live} "
+            f"vix={vix_live} fii={fii_live} inr={usd_inr}",
+            flush=True
+        )
+
         liquidity_regime = "UNKNOWN"
         liquidity_score  = 0.0
         if isinstance(liquidity_output, dict):
@@ -738,9 +850,12 @@ class MacroRegimeEngine:
         policy_stance     = self._rbi_policy_stance(
             inflation, growth, rbi_signal
         )
-        inflation_type    = self._inflation_driver(inflation, None)
+        inflation_type    = self._inflation_driver(inflation, crude_live or None)
         external_risk     = self._external_risk(
-            None, None, india_risks, global_factors
+            usd_inr or None,
+            crude_live or None,
+            india_risks,
+            global_factors
         )
         fiscal_supportive = deficit > 4.0 or capex > 10.0
 
@@ -753,7 +868,10 @@ class MacroRegimeEngine:
             equity_bias       = equity_bias,
             nlp_regime        = nlp_regime,
             rbi_signal        = rbi_signal,
-            fiscal_supportive = fiscal_supportive
+            fiscal_supportive = fiscal_supportive,
+            crude_live        = crude_live,
+            vix_live          = vix_live,
+            fii_live          = fii_live,
         )
 
         # -------------------------
@@ -828,6 +946,9 @@ class MacroRegimeEngine:
             nlp_regime        = nlp_regime,
             rbi_signal        = rbi_signal,
             fiscal_supportive = fiscal_supportive,
+            crude_live        = crude_live,
+            vix_live          = vix_live,
+            fii_live          = fii_live,
         )
         base_conf = 0.40 + alignment * 0.52
 

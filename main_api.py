@@ -1436,7 +1436,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
-        regime = ensure_dict(eng["regime"].detect_regime(intel, liq))
+        regime = ensure_dict(
+            eng["regime"].detect_regime(intel, liq, nse_snapshot)
+        )
         regime = rep.repair(regime, REGIME_SCHEMA)
         # Market stress overlay — adjusts confidence based on live crude/VIX/FII
         _base_conf = regime.get("confidence", 0)
