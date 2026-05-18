@@ -2600,6 +2600,54 @@
     .chip-green { color: var(--green); }
     .chip-red   { color: var(--red);   }
     .chip-amber { color: var(--amber); }
+    .transition-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      margin-top: 4px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .transition-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+      text-transform: uppercase;
+      flex-shrink: 0;
+      width: 90px;
+    }
+    .transition-bar-container {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-3);
+      border-radius: 2px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    .transition-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .transition-bar.low      { background: var(--green); }
+    .transition-bar.moderate { background: var(--blue);  }
+    .transition-bar.elevated { background: var(--amber); }
+    .transition-bar.high     { background: var(--red);   }
+    .transition-pct {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+      min-width: 36px;
+    }
+    .transition-next {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+    }
   </style>
 </head>
 
@@ -3014,6 +3062,14 @@
           <div style="font-size:11px;">🔔 WhatsApp + email alert will fire automatically if this regime is confirmed
           </div>
         </div>
+        <div class="transition-indicator" id="transitionIndicator" style="display:none;">
+          <span class="transition-label">Transition Risk</span>
+          <div class="transition-bar-container">
+            <div class="transition-bar" id="transitionBar"></div>
+          </div>
+          <span class="transition-pct" id="transitionPct">—</span>
+          <span class="transition-next" id="transitionNext"></span>
+        </div>
       </div>
 
       <div class="ticker-strip" id="tickerStrip">
@@ -3318,6 +3374,29 @@
       btn.innerHTML = '<span>▶</span> Run Intelligence Engine';
     }
 
+    function renderTransition(transition) {
+      const el     = document.getElementById('transitionIndicator');
+      const bar    = document.getElementById('transitionBar');
+      const pctEl  = document.getElementById('transitionPct');
+      const nextEl = document.getElementById('transitionNext');
+      if (!el || !transition) return;
+      el.style.display = 'flex';
+      const pct       = transition.probability_pct || 0;
+      const riskLevel = (transition.risk_level || 'LOW').toLowerCase();
+      const riskLabel = transition.risk_label || '';
+      const nextLabel = transition.most_likely_label;
+      const pctColor  =
+        pct >= 60 ? 'var(--red)'   :
+        pct >= 40 ? 'var(--amber)' :
+        pct >= 25 ? 'var(--blue)'  :
+        'var(--green)';
+      bar.style.width     = `${Math.min(pct, 100)}%`;
+      bar.className       = `transition-bar ${riskLevel}`;
+      pctEl.textContent   = `${pct}%`;
+      pctEl.style.color   = pctColor;
+      nextEl.textContent  = nextLabel ? `→ ${nextLabel} if transition` : riskLabel;
+    }
+
     function renderDelta(delta) {
       const card      = document.getElementById('deltaCard');
       const headline  = document.getElementById('deltaHeadline');
@@ -3440,6 +3519,9 @@
       }
       if (!fromHistory && data.narrative_delta) {
         renderDelta(data.narrative_delta);
+      }
+      if (!fromHistory && data.transition) {
+        renderTransition(data.transition);
       }
     }
 

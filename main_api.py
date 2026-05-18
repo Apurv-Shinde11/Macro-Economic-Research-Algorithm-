@@ -757,7 +757,8 @@ def _build_narrative_delta(
     nse_snapshot: dict,
     intel: dict,
     run_history: list | None = None,
-    stability: dict | None = None,
+    stability:   dict | None = None,
+    transition:  dict | None = None,
 ) -> dict:
     try:
         if not prev_run:
@@ -918,6 +919,18 @@ def _build_narrative_delta(
                 f"Minor signal movement."
             )
 
+        # Transition risk warning — only when ELEVATED or HIGH
+        if transition and transition.get("risk_level") in ("ELEVATED", "HIGH"):
+            _prob   = transition.get("probability_pct", 0)
+            _next_r = transition.get("most_likely_label", "Unknown")
+            watch_next.append(
+                f"Regime transition probability: {_prob}%. "
+                f"Most likely shift toward {_next_r} "
+                f"if current stress persists. "
+                f"Reduce new position sizing until "
+                f"probability falls below 30%."
+            )
+
         # Stability warning in watch_next when regime is fragile
         if stability and stability.get("score") == "LOW":
             _consec = stability.get("consecutive", 0)
@@ -1034,6 +1047,192 @@ def _compute_regime_stability(
             "conf_trend":      "STABLE",
             "challenger_risk": "LOW",
             "explanation":     "Error computing stability",
+        }
+
+
+def _compute_transition_probability(
+    current_regime:     str,
+    current_confidence: float,
+    run_history:        list,
+    nse_snapshot:       dict,
+    challenger_regime:  str | None,
+    activity:           dict | None,
+) -> dict:
+    """
+    Computes the probability of a regime transition in the next 2-4 weeks.
+    Based on confidence trend, challenger proximity, market stress, and regime duration.
+    Never crashes — wrapped in try/except with safe fallback.
+    """
+    try:
+        base_prob = 0.15  # regimes are sticky
+
+        # Confidence trend over last 5 runs
+        recent_conf = [
+            r.get("confidence", 0)
+            for r in run_history[:5]
+            if r.get("confidence")
+        ]
+        conf_velocity = 0.0
+        if len(recent_conf) >= 3:
+            conf_velocity = (recent_conf[0] - recent_conf[-1]) / len(recent_conf)
+
+        if conf_velocity < -0.02:
+            base_prob += min(abs(conf_velocity) * 5, 0.20)
+        elif conf_velocity > 0.02:
+            base_prob -= min(conf_velocity * 3, 0.08)
+
+        # Challenger proximity (alert threshold = 0.45)
+        challenger_conf = 0.0
+        for r in run_history[:3]:
+            try:
+                _scen = r.get("scenarios", {})
+                if isinstance(_scen, dict):
+                    _cc = _scen.get("challenger_confidence")
+                    if _cc:
+                        challenger_conf = max(challenger_conf, float(_cc))
+            except Exception:
+                pass
+
+        if challenger_conf >= 0.42:
+            base_prob += 0.25
+        elif challenger_conf >= 0.38:
+            base_prob += 0.15
+        elif challenger_conf >= 0.32:
+            base_prob += 0.08
+
+        # Market stress signal count
+        crude = nse_snapshot.get("crude_price") or 0
+        vix   = nse_snapshot.get("india_vix",   0)
+        fii   = nse_snapshot.get("fii_net_crore")
+
+        stress_count = 0
+        if crude >= 100:  stress_count += 1
+        if crude >= 110:  stress_count += 1
+        if vix   >= 20:   stress_count += 1
+        if vix   >= 25:   stress_count += 1
+        if fii is not None and fii < -3000: stress_count += 1
+
+        is_positive = current_regime in {
+            "LIQUIDITY_DRIVEN_EXPANSION",
+            "STABLE_GROWTH",
+            "EARLY_CYCLE_RECOVERY",
+        }
+        if is_positive and stress_count >= 3:
+            base_prob += 0.20
+        elif is_positive and stress_count == 2:
+            base_prob += 0.10
+        elif is_positive and stress_count == 1:
+            base_prob += 0.05
+
+        # Current confidence level
+        if current_confidence < 0.55:
+            base_prob += 0.10
+        elif current_confidence < 0.60:
+            base_prob += 0.05
+        elif current_confidence > 0.75:
+            base_prob -= 0.08
+
+        # Activity momentum
+        if activity:
+            composite = activity.get("composite", {}).get("score", "MODERATE")
+            if composite == "STRONG" and is_positive:
+                base_prob -= 0.05
+            elif composite in ("WEAK", "CONTRACTION"):
+                base_prob += 0.08
+
+        final_prob = max(0.05, min(0.85, base_prob))
+        final_pct  = round(final_prob * 100)
+
+        if final_pct <= 20:
+            risk_level, risk_label = "LOW",      "Regime stable"
+        elif final_pct <= 40:
+            risk_level, risk_label = "MODERATE", "Monitor conditions"
+        elif final_pct <= 60:
+            risk_level, risk_label = "ELEVATED", "Transition risk building"
+        else:
+            risk_level, risk_label = "HIGH",     "Transition likely"
+
+        TRANSITION_MAP = {
+            "LIQUIDITY_DRIVEN_EXPANSION": [
+                ("STABLE_GROWTH", 0.40), ("MONETARY_TIGHTENING", 0.25),
+                ("EXTERNAL_SHOCK", 0.20), ("GROWTH_SLOWDOWN_SUPPORT", 0.15),
+            ],
+            "STABLE_GROWTH": [
+                ("LIQUIDITY_DRIVEN_EXPANSION", 0.30), ("MONETARY_TIGHTENING", 0.30),
+                ("GROWTH_SLOWDOWN_SUPPORT", 0.25), ("EXTERNAL_SHOCK", 0.15),
+            ],
+            "EARLY_CYCLE_RECOVERY": [
+                ("STABLE_GROWTH", 0.45), ("LIQUIDITY_DRIVEN_EXPANSION", 0.35),
+                ("MONETARY_TIGHTENING", 0.20),
+            ],
+            "MONETARY_TIGHTENING": [
+                ("STABLE_GROWTH", 0.40), ("GROWTH_SLOWDOWN_SUPPORT", 0.35),
+                ("STAGFLATION_RISK", 0.25),
+            ],
+            "EXTERNAL_SHOCK": [
+                ("EARLY_CYCLE_RECOVERY", 0.45), ("GROWTH_SLOWDOWN_SUPPORT", 0.30),
+                ("STAGFLATION_RISK", 0.25),
+            ],
+            "GROWTH_SLOWDOWN_SUPPORT": [
+                ("EARLY_CYCLE_RECOVERY", 0.40), ("STABLE_GROWTH", 0.35),
+                ("STAGFLATION_RISK", 0.25),
+            ],
+        }
+
+        next_regimes = list(TRANSITION_MAP.get(current_regime, []))
+        if challenger_regime and next_regimes:
+            for i, (r, p) in enumerate(next_regimes):
+                if r == challenger_regime:
+                    next_regimes[i] = (r, min(p + 0.15, 0.60))
+                    break
+
+        most_likely_next  = next_regimes[0][0] if next_regimes else None
+        most_likely_label = (
+            most_likely_next.replace("_", " ").title()
+            if most_likely_next else "Unknown"
+        )
+
+        factors = []
+        if conf_velocity < -0.02:
+            factors.append(f"confidence declining ({abs(conf_velocity)*100:.1f}pts/run)")
+        if challenger_conf >= 0.38:
+            factors.append(f"challenger at {round(challenger_conf*100)}%")
+        if stress_count >= 2:
+            factors.append(f"{stress_count} stress signals active")
+        if current_confidence < 0.60:
+            factors.append("confidence below 60%")
+
+        explanation = (
+            " · ".join(factors) if factors
+            else "No significant transition triggers"
+        )
+
+        print(
+            f"[TRANSITION] prob={final_pct}% risk={risk_level} "
+            f"next={most_likely_next} factors={explanation}",
+            flush=True,
+        )
+        return {
+            "probability_pct":   final_pct,
+            "risk_level":        risk_level,
+            "risk_label":        risk_label,
+            "most_likely_next":  most_likely_next,
+            "most_likely_label": most_likely_label,
+            "explanation":       explanation,
+            "factors_count":     len(factors),
+            "conf_velocity":     round(conf_velocity * 100, 2),
+        }
+    except Exception as _te:
+        print(f"[TRANSITION] computation error: {_te}", flush=True)
+        return {
+            "probability_pct":   20,
+            "risk_level":        "LOW",
+            "risk_label":        "Regime stable",
+            "most_likely_next":  None,
+            "most_likely_label": "Unknown",
+            "explanation":       "Calculation unavailable",
+            "factors_count":     0,
+            "conf_velocity":     0.0,
         }
 
 
@@ -1306,6 +1505,25 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception:
             pass
 
+        # Regime transition probability
+        transition = {
+            "probability_pct": 20, "risk_level": "LOW",
+            "risk_label": "Regime stable",
+            "most_likely_next": None, "most_likely_label": "Unknown",
+            "explanation": "Calculation unavailable", "factors_count": 0, "conf_velocity": 0.0,
+        }
+        try:
+            transition = _compute_transition_probability(
+                current_regime    =regime.get("regime", ""),
+                current_confidence=regime.get("confidence", 0),
+                run_history       =run_history,
+                nse_snapshot      =nse_snapshot,
+                challenger_regime =regime.get("challenger_regime"),
+                activity          =None,
+            )
+        except Exception as _te:
+            print(f"[TRANSITION] Error: {_te}", flush=True)
+
         # Build narrative delta — never crashes
         narrative_delta = {"has_delta": False}
         try:
@@ -1318,6 +1536,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 intel             =intel,
                 run_history       =run_history,
                 stability         =stability,
+                transition        =transition,
             )
         except Exception:
             pass
@@ -1353,7 +1572,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
