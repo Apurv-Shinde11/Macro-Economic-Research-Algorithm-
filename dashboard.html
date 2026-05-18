@@ -2600,6 +2600,7 @@
     .chip-green { color: var(--green); }
     .chip-red   { color: var(--red);   }
     .chip-amber { color: var(--amber); }
+    .chip-blue  { color: var(--blue);  }
     .transition-indicator {
       display: flex;
       align-items: center;
@@ -3122,6 +3123,7 @@
           <div class="regime-pill"><span class="regime-pill-label">Conviction<span class="tip-icon"
                 data-tip="conviction">ⓘ</span></span><span class="regime-pill-value" id="pillConviction">—</span></div>
           <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
+          <div class="regime-pill" id="vixPillGroup"><span class="regime-pill-label">India VIX</span><span class="regime-pill-value" id="vixChip">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
               id="pillRBI">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
@@ -3367,7 +3369,7 @@
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
     let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [], _lastHistory = [];
-    let _fiiHistory = null, _lastNseData = null;
+    let _fiiHistory = null, _lastNseData = null, _tickerData = null;
 
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
@@ -3375,6 +3377,7 @@
       _session = session; _token = session.access_token;
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
       loadActivitySignals();
+      setInterval(loadTicker, 300000);
       initNav(); initSidebar();
     }
 
@@ -4004,6 +4007,28 @@
       }
     }
 
+    function updateVixPill() {
+      const chip = document.getElementById('vixChip');
+      if (!chip || !_tickerData) return;
+      const vixEntry = _tickerData['India VIX'];
+      if (!vixEntry || !vixEntry.price) return;
+      const vix = parseFloat(vixEntry.price);
+      chip.textContent = vix.toFixed(1);
+      if (vix < 14) {
+        chip.className = 'regime-pill-value chip-green';
+        chip.title = 'VIX < 14 — Market calm';
+      } else if (vix < 18) {
+        chip.className = 'regime-pill-value chip-blue';
+        chip.title = 'VIX 14–18 — Normal volatility';
+      } else if (vix < 22) {
+        chip.className = 'regime-pill-value chip-amber';
+        chip.title = 'VIX 18–22 — Elevated volatility';
+      } else {
+        chip.className = 'regime-pill-value chip-red';
+        chip.title = 'VIX > 22 — High market fear';
+      }
+    }
+
     async function loadTicker() {
       try {
         const res = await api('/api/ticker'); const strip = document.getElementById('tickerStrip');
@@ -4015,6 +4040,8 @@
           return `<div class="ticker-item"><span class="ticker-name">${label}</span><span class="ticker-price">${price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span><span class="ticker-chg ${cls}">${arrow} ${Math.abs(chg).toFixed(2)}%</span></div>`;
         }).join('');
         strip.innerHTML = `<span class="ticker-live-badge">LIVE</span>${items}<span style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);padding:0 12px;">${res.cached ? 'cached' : 'live'} · refreshes 5min</span>`;
+        _tickerData = res.ticker;
+        updateVixPill();
       } catch (e) { console.error('Ticker failed:', e); }
     }
 
