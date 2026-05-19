@@ -28,6 +28,7 @@ Weekly summary (add second Windows Task Scheduler job — Fridays 6pm IST):
 
 import sys
 import os
+import asyncio
 import datetime
 import argparse
 import smtplib
@@ -106,6 +107,84 @@ secrets = load_secrets()
 
 def get_secret(key, default=None):
     return secrets.get(key, default)
+
+
+# =========================
+# 🔄 DAILY DATA REFRESH
+# Runs at 6:00 AM IST (00:30 UTC) — separate Windows Task Scheduler entry:
+#   python scheduler.py --refresh-data
+# =========================
+_fred_rate_cache: dict = {"data": {}, "fetched_at": 0}
+
+
+async def _refresh_market_data():
+    """
+    Daily refresh of automated data sources:
+    - FRED policy rates cache clear
+    - FBIL yield cache warm-up
+    - Global macro Supabase cache clear (forces fresh World Bank + FRED
+      fetch on next request to /api/global-macro)
+    """
+    global _fred_rate_cache
+
+    try:
+        # Clear FRED cache to force fresh fetch
+        _fred_rate_cache = {"data": {}, "fetched_at": 0}
+
+        # Pre-fetch FRED rates via main_api's function
+        try:
+            from main_api import _fetch_fred_rates
+            _fetch_fred_rates()
+        except Exception as _e:
+            print(
+                f"[SCHEDULER] FRED pre-fetch skipped: {_e}",
+                flush=True
+            )
+
+        # Clear global macro Supabase cache via direct HTTP
+        # Forces fresh 50-economy fetch (World Bank + FRED) on next request
+        supabase_url = get_secret("SUPABASE_URL", "")
+        service_key  = get_secret("SUPABASE_SERVICE_KEY", "")
+        if supabase_url and service_key:
+            try:
+                url = (
+                    f"{supabase_url.rstrip('/')}"
+                    f"/rest/v1/global_macro_cache"
+                    f"?id=not.is.null"
+                )
+                r = requests.delete(
+                    url,
+                    headers=_sb_headers(service_key),
+                    timeout=10
+                )
+                if r.status_code in (200, 204):
+                    print(
+                        "[SCHEDULER] Global macro cache cleared "
+                        "for daily refresh",
+                        flush=True
+                    )
+                else:
+                    print(
+                        f"[SCHEDULER] Cache clear HTTP {r.status_code}: "
+                        f"{r.text[:200]}",
+                        flush=True
+                    )
+            except Exception as _e:
+                print(
+                    f"[SCHEDULER] Cache clear failed: {_e}",
+                    flush=True
+                )
+
+        print(
+            "[SCHEDULER] Daily data refresh complete",
+            flush=True
+        )
+
+    except Exception as e:
+        print(
+            f"[SCHEDULER] Daily refresh failed: {e}",
+            flush=True
+        )
 
 
 # =========================
@@ -1127,6 +1206,11 @@ def main():
         help="Send weekly digest instead of daily briefing "
              "(add as separate Friday 6pm Windows Task)"
     )
+    parser.add_argument(
+        "--refresh-data", action="store_true",
+        help="Clear and pre-warm FRED/macro caches — "
+             "run at 6:00 AM IST (00:30 UTC) via separate Task Scheduler entry"
+    )
     args    = parser.parse_args()
     dry_run = args.dry_run
 
@@ -1134,6 +1218,16 @@ def main():
         print("  [Mode] DRY RUN — no emails or WhatsApp will be sent\n")
     if args.weekly_summary:
         print("  [Mode] WEEKLY SUMMARY run\n")
+
+    # ── Data refresh mode — exits after cache clear ──────────────────────
+    if args.refresh_data:
+        print("  [Mode] DATA REFRESH — clearing and pre-warming caches\n")
+        asyncio.run(_refresh_market_data())
+        print(f"\n{'=' * 56}")
+        print(f"  Data refresh complete — "
+              f"{datetime.datetime.now().strftime('%d %b %Y, %H:%M:%S IST')}")
+        print(f"{'=' * 56}\n")
+        sys.exit(0)
 
     # -------------------------
     # Credentials

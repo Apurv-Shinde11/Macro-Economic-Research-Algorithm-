@@ -78,17 +78,88 @@ def _fetch_yield(ticker):
 
 def fetch_india_yields():
     """
-    Returns India G-Sec yields from hardcoded RBI data.
-    Source is 'hardcoded' — update INDIA_YIELDS_CURRENT
-    monthly from RBI / CCIL / fbil.org.in
+    Fetches India G-Sec benchmark yields from FBIL.
+    Source: fbil.org.in/benchmarks/
+    Falls back to hardcoded RBI data on failure.
     """
-    print(
-        "  [YieldCurve] India yields: hardcoded "
-        f"(10Y={INDIA_YIELDS_CURRENT['10Y']}% "
-        f"2Y={INDIA_YIELDS_CURRENT['2Y']}%)",
-        flush=True
-    )
-    return dict(INDIA_YIELDS_CURRENT), "hardcoded"
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+
+        url     = "https://www.fbil.org.in/benchmarks/"
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (compatible; "
+                "Sentinel/1.0)"
+            )
+        }
+        r = requests.get(url, headers=headers, timeout=10)
+
+        if r.status_code != 200:
+            raise Exception(
+                f"FBIL returned {r.status_code}"
+            )
+
+        soup   = BeautifulSoup(r.text, "html.parser")
+        result = {}
+
+        TENOR_MAP = {
+            "91 days":  "3M",
+            "182 days": "6M",
+            "364 days": "1Y",
+            "2 year":   "2Y",
+            "3 year":   "3Y",
+            "5 year":   "5Y",
+            "7 year":   "7Y",
+            "10 year":  "10Y",
+            "14 year":  "14Y",
+            "30 year":  "30Y",
+        }
+
+        for table in soup.find_all("table"):
+            for row in table.find_all("tr"):
+                cells = row.find_all(["td", "th"])
+                if len(cells) < 2:
+                    continue
+                tenor_text = cells[0].get_text(strip=True).lower()
+                yield_text = cells[1].get_text(strip=True)
+
+                for label, key in TENOR_MAP.items():
+                    if label in tenor_text:
+                        try:
+                            val = float(
+                                yield_text.replace("%", "").strip()
+                            )
+                            if 1.0 < val < 20.0:
+                                result[key] = round(val, 3)
+                        except Exception:
+                            pass
+
+        # Require 10Y to consider the fetch successful
+        if result.get("10Y"):
+            # Fill any missing tenors from hardcoded fallback
+            for tenor, val in INDIA_YIELDS_CURRENT.items():
+                if tenor not in result:
+                    result[tenor] = val
+
+            print(
+                f"  [YieldCurve] India yields: live from FBIL "
+                f"(10Y={result.get('10Y')}%)",
+                flush=True
+            )
+            return result, "fbil_live"
+
+        raise Exception(
+            "10Y yield not found in FBIL response"
+        )
+
+    except Exception as e:
+        print(
+            f"  [YieldCurve] FBIL fetch failed: {e} "
+            f"— using hardcoded fallback",
+            flush=True
+        )
+        return dict(INDIA_YIELDS_CURRENT), "hardcoded"
 
 
 def fetch_us_yields():

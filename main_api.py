@@ -2315,6 +2315,98 @@ _POLICY_RATES = {
     "HU": 6.50,   # Magyar Nemzeti Bank
 }
 
+# ── FRED series IDs for major central bank rates ──────────────────────────────
+# Free API — register at fred.stlouisfed.org/docs/api/api_key.html
+# Add FRED_API_KEY to Railway Variables for higher rate limits
+# Falls back to _POLICY_RATES hardcoded values when FRED is unavailable
+_FRED_RATE_SERIES = {
+    "US": "FEDFUNDS",     # Federal Funds Rate
+    "DE": "ECBDFR",       # ECB Deposit Facility Rate
+    "FR": "ECBDFR",       # ECB (same as DE)
+    "IT": "ECBDFR",       # ECB
+    "BE": "ECBDFR",       # ECB
+    "AT": "ECBDFR",       # ECB
+    "NL": "ECBDFR",       # ECB
+    "IE": "ECBDFR",       # ECB
+    "FI": "ECBDFR",       # ECB
+    "PT": "ECBDFR",       # ECB
+    "GR": "ECBDFR",       # ECB
+    "GB": "IUDSOIA",      # BoE SONIA rate
+    "CA": "IORB",         # Bank of Canada
+    "AU": "RBATCTR",      # RBA cash rate
+    "SE": "SECBRATE",     # Riksbank
+    "NO": "NORRATE",      # Norges Bank
+    "CH": "SZBPOFAINT",   # SNB policy rate
+    "DK": "DKRATE",       # Danmarks Nationalbank
+    "NZ": "NZOCR",        # RBNZ OCR
+    "ZA": "ZAREPORAT",    # SARB repo rate
+    "KR": "KORBASERATE",  # Bank of Korea
+}
+
+_fred_rate_cache: dict = {"data": {}, "fetched_at": 0}
+
+
+def _fetch_fred_rates() -> dict:
+    """
+    Fetches major central bank policy rates from FRED API.
+    Cached for 24 hours since rates change infrequently.
+    Returns dict of {country_code: rate_pct}.
+    Falls back to {} if FRED is unavailable or key is missing.
+    """
+    global _fred_rate_cache
+
+    # 24-hour cache
+    if (time.time() - _fred_rate_cache["fetched_at"] < 86400
+            and _fred_rate_cache["data"]):
+        return _fred_rate_cache["data"]
+
+    import requests as _req
+
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    base_url = "https://api.stlouisfed.org/fred/series/observations"
+
+    result = {}
+
+    for code, series_id in _FRED_RATE_SERIES.items():
+        try:
+            params = {
+                "series_id":         series_id,
+                "api_key":           fred_key if fred_key else "anonymoususer",
+                "file_type":         "json",
+                "sort_order":        "desc",
+                "observation_start": "2024-01-01",
+                "limit":             1,
+            }
+            r = _req.get(base_url, params=params, timeout=8)
+            if r.status_code != 200:
+                continue
+
+            data = r.json()
+            obs  = data.get("observations", [])
+            if obs and obs[0].get("value") != ".":
+                val           = float(obs[0]["value"])
+                result[code]  = round(val, 2)
+                print(
+                    f"  [FRED] {code}: {val}% ({series_id})",
+                    flush=True
+                )
+
+        except Exception as _e:
+            print(
+                f"  [FRED] {code} fetch failed: {_e}",
+                flush=True
+            )
+
+    if result:
+        _fred_rate_cache = {"data": result, "fetched_at": time.time()}
+        print(
+            f"[FRED] Fetched {len(result)} policy rates",
+            flush=True
+        )
+
+    return result
+
+
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
 # Last verified: May 2026 (source: S&P Global Manufacturing PMI releases)
 _PMI_VALUES = {
@@ -2630,13 +2722,25 @@ def _fetch_live_economy_data():
     return currency_map, yield_map
 
 
-def _build_economy_record(eco, gdp, inflation, unemployment, currency_map, yield_map):
+def _build_economy_record(
+    eco, gdp, inflation, unemployment,
+    currency_map, yield_map,
+    live_rates=None
+):
     code = eco["code"]
     raw_fx = currency_map.get(code)
     currency_vs_usd = 1.0 if code == "US" else (round(raw_fx, 4) if raw_fx else None)
     if not currency_vs_usd and code in _PEGGED_CURRENCIES:
         currency_vs_usd = _PEGGED_CURRENCIES[code]
     yield_10y = yield_map.get(code) or _YIELD_FALLBACKS.get(code)
+
+    # Use live FRED rate if available, fall back to hardcoded
+    policy_rate = (
+        live_rates.get(code)
+        if live_rates and live_rates.get(code)
+        else _POLICY_RATES.get(code)
+    )
+
     return {
         "code":                 code,
         "name":                 eco["name"],
@@ -2644,7 +2748,7 @@ def _build_economy_record(eco, gdp, inflation, unemployment, currency_map, yield
         "currency_label":       eco["currency_label"],
         "gdp_growth":           gdp,
         "inflation":            inflation,
-        "policy_rate":          _POLICY_RATES.get(code),
+        "policy_rate":          policy_rate,
         "pmi":                  _PMI_VALUES.get(code),
         "unemployment":         unemployment,
         "currency_vs_usd":      currency_vs_usd,
@@ -2706,6 +2810,13 @@ async def get_global_macro():
         print(f"[GLOBAL_MACRO] Live data fetch failed: {_e}", flush=True)
         currency_map, yield_map = {}, {}
 
+    # Fetch live policy rates from FRED
+    try:
+        live_rates = _fetch_fred_rates()
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] FRED rate fetch failed: {_e}", flush=True)
+        live_rates = {}
+
     async def _fetch_one(eco):
         loop = asyncio.get_event_loop()
         wb = eco["wb_code"]
@@ -2722,7 +2833,8 @@ async def get_global_macro():
     economies = []
     for eco, gdp, inflation, unemployment in wb_results:
         record = _build_economy_record(
-            eco, gdp, inflation, unemployment, currency_map, yield_map
+            eco, gdp, inflation, unemployment, currency_map, yield_map,
+            live_rates=live_rates
         )
         economies.append(record)
         try:
@@ -2731,7 +2843,7 @@ async def get_global_macro():
                     "economy":         eco["code"],
                     "gdp_growth":      gdp,
                     "inflation":       inflation,
-                    "policy_rate":     _POLICY_RATES.get(eco["code"]),
+                    "policy_rate":     record.get("policy_rate"),
                     "pmi":             _PMI_VALUES.get(eco["code"]),
                     "unemployment":    unemployment,
                     "currency_vs_usd": record.get("currency_vs_usd"),
@@ -2760,6 +2872,31 @@ async def get_global_macro():
     }
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     return result
+
+
+@app.get("/api/policy-rates")
+async def get_policy_rates():
+    """
+    Public endpoint — no auth required.
+    Returns latest central bank policy rates.
+    FRED-sourced where available, hardcoded fallback otherwise.
+    """
+    live_rates = _fetch_fred_rates()
+
+    # Merge live rates over hardcoded fallback
+    merged = dict(_POLICY_RATES)
+    for code, rate in live_rates.items():
+        merged[code] = rate
+
+    return {
+        "rates":      merged,
+        "live_count": len(live_rates),
+        "sources": {
+            "fred":      list(live_rates.keys()),
+            "hardcoded": [k for k in merged if k not in live_rates],
+        },
+        "cached": _fred_rate_cache["fetched_at"] > 0,
+    }
 
 
 @app.get("/api/currency-history")

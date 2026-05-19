@@ -760,6 +760,166 @@ class DataIngestor:
         return data
 
     # =========================
+    # 🏦 DBIE CREDIT GROWTH FETCHER
+    # =========================
+    def _fetch_dbie_credit_growth(self) -> dict | None:
+        """
+        Fetches bank credit growth from RBI DBIE API.
+        Series: RBIBS3MSCBY — Bank credit YoY growth
+        Returns dict with yoy_growth_pct and signal, or None on failure.
+        """
+        try:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            url = (
+                "https://dbie.rbi.org.in/DBIE/dbie.rbi"
+                "?site=api&seriesId=RBIBS3MSCBY"
+                "&noOfPeriods=2"
+            )
+            r = requests.get(
+                url, timeout=10, verify=False,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept":     "application/json",
+                    "Referer":    "https://dbie.rbi.org.in/",
+                }
+            )
+            if r.status_code != 200:
+                return None
+
+            data   = r.json()
+            # DBIE returns nested structure — handle both key variants
+            series = data.get("seriesData", data.get("data", []))
+            if not series:
+                return None
+
+            # Sort descending by date and take most recent
+            sorted_series = sorted(
+                series,
+                key=lambda x: x.get("period", x.get("date", "")),
+                reverse=True
+            )
+            latest = sorted_series[0] if sorted_series else None
+            if not latest:
+                return None
+
+            growth_pct = float(
+                latest.get("obs_value", latest.get("value", 0)) or 0
+            )
+
+            if growth_pct >= 12:
+                signal = "STRONG"
+            elif growth_pct >= 8:
+                signal = "MODERATE"
+            elif growth_pct >= 4:
+                signal = "WEAK"
+            else:
+                signal = "CONTRACTION"
+
+            period = latest.get("period", latest.get("date", "Latest"))
+
+            print(
+                f"[CREDIT] DBIE fetch: {growth_pct}% "
+                f"({signal}) period={period}",
+                flush=True
+            )
+
+            return {
+                "period":         period,
+                "yoy_growth_pct": round(growth_pct, 1),
+                "signal":         signal,
+                "source":         "RBI DBIE (live)",
+            }
+
+        except Exception as e:
+            print(
+                f"[CREDIT] DBIE fetch failed: {e}",
+                flush=True
+            )
+            return None
+
+    # =========================
+    # 📊 INDIA ACTIVITY SIGNALS
+    # Bank credit: live from RBI DBIE
+    # GST + Auto Sales: hardcoded monthly (no reliable free API)
+    # =========================
+    def fetch_india_activity_signals(self) -> dict:
+        """
+        Returns India activity signals.
+        Bank credit is live from DBIE; falls back to hardcoded on failure.
+        GST and Auto Sales are hardcoded — update monthly from official releases.
+        """
+        signals = {}
+
+        # ── GST Collections — hardcoded monthly ──────────────────────────
+        # Update source: GST Council press release (pib.gov.in)
+        # Last verified: April 2026
+        # Next update due: ~1st week of June 2026
+        signals["gst"] = {
+            "month":          "April 2026",
+            "collection_cr":  237000,
+            "yoy_growth_pct": 12.6,
+            "signal":         "STRONG",
+            "source":         "GST Council (hardcoded)",
+        }
+
+        # ── Auto Sales — hardcoded monthly ───────────────────────────────
+        # Update source: SIAM monthly report (siam.in)
+        # Last verified: April 2026
+        # Next update due: ~10th of June 2026
+        signals["auto_sales"] = {
+            "month":          "April 2026",
+            "total_units":    2252000,
+            "yoy_growth_pct": 8.4,
+            "signal":         "MODERATE",
+            "source":         "SIAM (hardcoded)",
+        }
+
+        # ── Bank Credit Growth — live from DBIE ──────────────────────────
+        _credit_live = self._fetch_dbie_credit_growth()
+        if _credit_live:
+            signals["bank_credit"] = _credit_live
+        else:
+            # Fallback to last known value
+            # Update this when DBIE is unavailable
+            # Last verified: May 2026
+            signals["bank_credit"] = {
+                "period":         "May 2026",
+                "yoy_growth_pct": 12.8,
+                "retail_credit":  15.2,
+                "signal":         "STRONG",
+                "source":         "hardcoded fallback",
+            }
+
+        # ── Composite Score ───────────────────────────────────────────────
+        _sig_score = {
+            "STRONG": 3, "MODERATE": 2, "WEAK": 1, "CONTRACTION": 0
+        }
+        scores = [
+            _sig_score.get(signals["gst"]["signal"],         0),
+            _sig_score.get(signals["auto_sales"]["signal"],  0),
+            _sig_score.get(signals["bank_credit"]["signal"], 0),
+        ]
+        avg      = sum(scores) / len(scores)
+        comp_sig = (
+            "STRONG"      if avg >= 2.33 else
+            "MODERATE"    if avg >= 1.33 else
+            "WEAK"        if avg >= 0.67 else
+            "CONTRACTION"
+        )
+        signals["composite"] = {
+            "score":   comp_sig,
+            "numeric": round(avg, 2),
+            "summary": (
+                f"GST {signals['gst']['signal']} · "
+                f"Auto Sales {signals['auto_sales']['signal']} · "
+                f"Credit {signals['bank_credit']['signal']}"
+            ),
+        }
+
+        return signals
+
+    # =========================
     # 🧠 MASTER — fetch everything
     # =========================
     def get_all_data(self):
