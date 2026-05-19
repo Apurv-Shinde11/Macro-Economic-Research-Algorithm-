@@ -509,6 +509,47 @@
       .cap-metrics { grid-template-columns: 1fr; }
       .env-grid    { grid-template-columns: 1fr; }
     }
+
+    /* ══ LIVE STRIP ══ */
+    .pe-live-strip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-3);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .pe-live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite; flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .pe-live-sep { color: var(--border-2); }
+
+    /* ══ REGIME BADGE (sector cards) ══ */
+    .pe-regime-badge {
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--blue); background: var(--blue-dim);
+      border: 1px solid rgba(79,131,255,0.20);
+      border-radius: 4px; padding: 3px 8px;
+      margin-top: 8px; line-height: 1.4; letter-spacing: 0.04em;
+    }
+
+    /* ══ DEAL FLOW META ══ */
+    .deal-flow-meta {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 14px;
+      background: var(--bg-3);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -602,6 +643,16 @@
       <span class="section-title">Cost of Capital Monitor</span>
       <span class="section-meta">Rate environment and IRR implications</span>
     </div>
+    <div class="pe-live-strip" id="coc-live-strip">
+      <span class="pe-live-dot"></span>
+      <span id="coc-regime-label">—</span>
+      <span class="pe-live-sep">·</span>
+      <span id="coc-confidence-label">—</span>
+      <span class="pe-live-sep">·</span>
+      <span id="coc-repo-label">—</span>
+      <span class="pe-live-sep">·</span>
+      <span id="coc-updated-label">—</span>
+    </div>
     <div class="cap-metrics" id="capMetrics">
       <div style="height:80px;" class="skeleton"></div>
       <div style="height:80px;" class="skeleton"></div>
@@ -619,6 +670,7 @@
       <span class="section-title">Recent PE Activity</span>
       <span class="section-meta">Public deal flow and sector signals — sourced from public filings and announcements</span>
     </div>
+    <div class="deal-flow-meta" id="dealFlowMeta"></div>
     <div class="deal-list" id="dealList">
       <div style="height:90px;" class="skeleton"></div>
       <div style="height:90px;" class="skeleton"></div>
@@ -701,6 +753,19 @@
       return res.json();
     }
 
+    /* ── Time-ago helper ── */
+    function _timeAgo(isoString) {
+      if (!isoString) return '—';
+      const diff  = Date.now() - new Date(isoString).getTime();
+      const mins  = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days  = Math.floor(diff / 86400000);
+      if (mins  <  2)  return 'just now';
+      if (mins  < 60)  return `${mins}m ago`;
+      if (hours < 24)  return `${hours}h ago`;
+      return `${days}d ago`;
+    }
+
     /* ── Main data load ── */
     async function loadPE() {
       let data;
@@ -717,7 +782,9 @@
       const costOfCapital  = data.cost_of_capital || {};
       const sectorCycles   = data.sector_cycles   || {};
       const dealFlow       = data.deal_flow       || [];
+      const dealFlowMeta   = data.deal_flow_meta  || null;
       const runAt          = data.run_at;
+      const repoRate       = data.repo_rate;
 
       // Meta labels
       const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -733,6 +800,33 @@
       renderSectors(sectorCycles);
       renderCapMetrics(costOfCapital);
       renderDeals(dealFlow);
+
+      // Live strip — cost of capital
+      const el = id => document.getElementById(id);
+      if (el('coc-regime-label'))
+        el('coc-regime-label').textContent = regime.replace(/_/g, ' ');
+      if (el('coc-confidence-label'))
+        el('coc-confidence-label').textContent =
+          confidence ? `${Math.round(confidence * 100)}% confidence` : '—';
+      if (el('coc-repo-label'))
+        el('coc-repo-label').textContent =
+          repoRate ? `Repo: ${repoRate}%` : '—';
+      if (el('coc-updated-label') && runAt)
+        el('coc-updated-label').textContent = `Engine: ${_timeAgo(runAt)}`;
+
+      // Deal flow meta bar
+      const metaEl = document.getElementById('dealFlowMeta');
+      if (metaEl && dealFlowMeta) {
+        metaEl.innerHTML = `
+          <span>Last updated: ${dealFlowMeta.last_updated}</span>
+          <span style="color:var(--border-2)">·</span>
+          <span>Next update: ${dealFlowMeta.next_update_due}</span>
+          <span style="color:var(--border-2)">·</span>
+          <span>${(dealFlowMeta.sources || []).slice(0, 2).join(' · ')}</span>
+          <span style="color:var(--border-2)">·</span>
+          <span style="color:var(--amber)">${dealFlowMeta.disclaimer || ''}</span>
+        `;
+      }
     }
 
     /* ── Environment card ── */
@@ -818,6 +912,7 @@
             ${_cycleBadge(s.cycle_stage)}
             ${_signalBadge(s.pe_signal)}
           </div>
+          ${s.regime_driven ? `<div class="pe-regime-badge">⚡ ${s.regime_note || 'Regime updated'}</div>` : ''}
           <div class="sector-wind-label">▲ TAILWIND</div>
           <div class="sector-wind">${s.macro_tailwind}</div>
           <div class="sector-wind-label" style="margin-top:8px;">▼ HEADWIND</div>
@@ -834,6 +929,7 @@
             ${_cycleBadge(s.cycle_stage)}
             ${_signalBadge(s.pe_signal)}
           </div>
+          ${s.regime_driven ? `<div class="pe-regime-badge">⚡ ${s.regime_note || 'Regime updated'}</div>` : ''}
           <div class="sector-wind-label">▲ Tailwind</div>
           <div class="sector-wind">${s.macro_tailwind}</div>
           <div class="sector-wind-label" style="margin-top:6px;">▼ Headwind</div>

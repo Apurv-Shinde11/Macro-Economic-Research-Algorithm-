@@ -1879,6 +1879,22 @@ PE_DEAL_FLOW = [
     },
 ]
 
+PE_DEAL_FLOW_META = {
+    "last_updated":      "May 2026",
+    "last_updated_iso":  "2026-05-01",
+    "next_update_due":   "June 2026",
+    "sources": [
+        "SEBI public filings",
+        "Company press releases",
+        "Market intelligence — public announcements",
+    ],
+    "update_frequency": "Monthly — first working day",
+    "disclaimer": (
+        "Deal flow sourced from public announcements "
+        "only. Not proprietary deal data."
+    ),
+}
+
 COST_OF_CAPITAL = {
     "LIQUIDITY_DRIVEN_EXPANSION": {
         "environment": "SUPPORTIVE",
@@ -1955,12 +1971,186 @@ COST_OF_CAPITAL = {
 }
 
 
+def _build_live_cost_of_capital(
+    regime: str,
+    confidence: float,
+    repo_rate: float,
+    conviction: str,
+    run_at: str | None,
+) -> dict:
+    """
+    Builds cost of capital intelligence dynamically from live regime engine output.
+    Uses actual repo rate from the latest run.
+    Falls back to hardcoded COST_OF_CAPITAL if anything fails.
+    """
+    try:
+        base = COST_OF_CAPITAL.get(regime, COST_OF_CAPITAL["STABLE_GROWTH"])
+        conf_pct = round(confidence * 100)
+
+        if repo_rate <= 5.0:
+            debt_read = (
+                f"Favourable — repo at {repo_rate}% "
+                f"supports leveraged structures. "
+                f"Credit markets open."
+            )
+        elif repo_rate <= 5.75:
+            debt_read = (
+                f"Neutral — repo at {repo_rate}%. "
+                f"Credit available at fair terms. "
+                f"Watch for rate direction at next MPC."
+            )
+        else:
+            debt_read = (
+                f"Elevated — repo at {repo_rate}%. "
+                f"Higher debt costs compress equity IRR. "
+                f"Stress test financing assumptions."
+            )
+
+        if regime in ("LIQUIDITY_DRIVEN_EXPANSION", "EARLY_CYCLE_RECOVERY") and repo_rate <= 5.5:
+            irr_read = (
+                f"Current environment supports 18-22% IRR "
+                f"assumptions on 5-7Y holds. "
+                f"Repo at {repo_rate}% and {regime.replace('_', ' ').title()} "
+                f"regime at {conf_pct}% confidence — "
+                f"optimal entry window."
+            )
+        elif regime in ("LIQUIDITY_DRIVEN_EXPANSION", "STABLE_GROWTH"):
+            irr_read = (
+                f"15-19% IRR assumptions appropriate. "
+                f"Repo at {repo_rate}%, regime supportive "
+                f"at {conf_pct}% confidence. "
+                f"Quality assets command premium."
+            )
+        elif regime in ("MONETARY_TIGHTENING", "STAGFLATION_RISK", "STAGFLATIONARY_RISK"):
+            irr_read = (
+                f"Adjust IRR targets upward 200-300bps. "
+                f"Repo at {repo_rate}% with {regime.replace('_', ' ').title()} "
+                f"compresses equity returns. "
+                f"Stress test debt structures."
+            )
+        else:
+            irr_read = base.get(
+                "irr_implication",
+                "Conservative 15-18% IRR assumptions appropriate."
+            )
+
+        if conviction == "HIGH" and regime in ("LIQUIDITY_DRIVEN_EXPANSION", "EARLY_CYCLE_RECOVERY"):
+            deploy_call = (
+                f"DEPLOY — HIGH conviction "
+                f"{regime.replace('_', ' ')}. "
+                f"Best deployment window in current cycle."
+            )
+        elif conviction == "LOW":
+            deploy_call = (
+                "PRESERVE DRY POWDER — LOW conviction. "
+                "Wait for regime confirmation before "
+                "committing capital."
+            )
+        else:
+            deploy_call = base.get(
+                "dry_powder_call",
+                "SELECTIVE DEPLOYMENT — regime supportive but conviction building."
+            )
+
+        return {
+            **base,
+            "repo_rate":      repo_rate,
+            "confidence_pct": conf_pct,
+            "conviction":     conviction,
+            "debt_financing": debt_read,
+            "irr_implication": irr_read,
+            "dry_powder_call": deploy_call,
+            "data_as_of":     run_at,
+            "is_live":        True,
+        }
+    except Exception as _e:
+        print(f"[PE] _build_live_cost_of_capital error: {_e}", flush=True)
+        return COST_OF_CAPITAL.get(regime, COST_OF_CAPITAL["STABLE_GROWTH"])
+
+
+def _build_live_sector_cycles(
+    regime: str,
+    confidence: float,
+) -> dict:
+    """
+    Adjusts PE sector signals based on live regime.
+    Returns PE_SECTOR_CYCLES unchanged if regime is unknown or anything fails.
+    """
+    try:
+        cycles = dict(PE_SECTOR_CYCLES)
+
+        REGIME_SECTOR_OVERRIDES = {
+            "LIQUIDITY_DRIVEN_EXPANSION": {
+                "Financial Services & Fintech": "FAVOURABLE",
+                "Consumer & Retail":            "FAVOURABLE",
+                "Infrastructure & Logistics":   "FAVOURABLE",
+                "Space & Deep Tech":            "HIGH_CONVICTION",
+                "Defence & Aerospace":          "HIGH_CONVICTION",
+            },
+            "MONETARY_TIGHTENING": {
+                "Financial Services & Fintech": "CAUTIOUS",
+                "Consumer & Retail":            "NEUTRAL",
+                "Infrastructure & Logistics":   "NEUTRAL",
+                "Healthcare & Pharma":          "FAVOURABLE",
+                "Technology & SaaS":            "FAVOURABLE",
+            },
+            "EXTERNAL_SHOCK": {
+                "Financial Services & Fintech": "CAUTIOUS",
+                "Consumer & Retail":            "CAUTIOUS",
+                "Infrastructure & Logistics":   "NEUTRAL",
+                "Healthcare & Pharma":          "FAVOURABLE",
+                "Space & Deep Tech":            "NEUTRAL",
+            },
+            "STAGFLATION_RISK": {
+                "Financial Services & Fintech": "CAUTIOUS",
+                "Consumer & Retail":            "CAUTIOUS",
+                "Infrastructure & Logistics":   "CAUTIOUS",
+                "Healthcare & Pharma":          "FAVOURABLE",
+                "Green Energy & Climate":       "NEUTRAL",
+            },
+            "STABLE_GROWTH": {
+                "Technology & SaaS":            "FAVOURABLE",
+                "Healthcare & Pharma":          "FAVOURABLE",
+                "Consumer & Retail":            "FAVOURABLE",
+                "Financial Services & Fintech": "NEUTRAL",
+            },
+            "EARLY_CYCLE_RECOVERY": {
+                "Financial Services & Fintech": "FAVOURABLE",
+                "Consumer & Retail":            "FAVOURABLE",
+                "Infrastructure & Logistics":   "FAVOURABLE",
+                "Space & Deep Tech":            "HIGH_CONVICTION",
+                "Defence & Aerospace":          "HIGH_CONVICTION",
+            },
+        }
+
+        overrides = REGIME_SECTOR_OVERRIDES.get(regime, {})
+        for sector, new_signal in overrides.items():
+            if sector in cycles:
+                old = dict(cycles[sector])
+                cycles[sector] = {
+                    **old,
+                    "pe_signal":    new_signal,
+                    "regime_driven": True,
+                    "regime_note":  (
+                        f"Signal updated for "
+                        f"{regime.replace('_', ' ').title()} "
+                        f"regime at "
+                        f"{round(confidence * 100)}% confidence"
+                    ),
+                }
+
+        return cycles
+    except Exception as _e:
+        print(f"[PE] _build_live_sector_cycles error: {_e}", flush=True)
+        return PE_SECTOR_CYCLES
+
+
 @app.get("/api/pe/overview")
 async def get_pe_overview(profile: dict = Depends(require_access)):
     try:
         latest_run = (
             _supabase.table("runs")
-            .select("regime,confidence,conviction,run_at")
+            .select("regime,confidence,conviction,run_at,repo_rate")
             .eq("user_id", profile["id"])
             .order("run_at", desc=True)
             .limit(1)
@@ -1970,21 +2160,36 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
         confidence     = 0.0
         conviction     = "MEDIUM"
         run_at         = None
+        repo_rate      = 5.25
         if latest_run.data:
             r              = latest_run.data[0]
             current_regime = r.get("regime", current_regime)
             confidence     = r.get("confidence", 0.0)
             conviction     = r.get("conviction", "MEDIUM")
             run_at         = r.get("run_at")
-        cost_of_capital = COST_OF_CAPITAL.get(current_regime, COST_OF_CAPITAL["STABLE_GROWTH"])
+            repo_rate      = float(r.get("repo_rate") or 5.25)
+
+        cost_of_capital = _build_live_cost_of_capital(
+            regime     = current_regime,
+            confidence = confidence,
+            repo_rate  = repo_rate,
+            conviction = conviction,
+            run_at     = run_at,
+        )
+        sector_cycles = _build_live_sector_cycles(
+            regime     = current_regime,
+            confidence = confidence,
+        )
         return {
             "regime":          current_regime,
             "confidence":      confidence,
             "conviction":      conviction,
             "run_at":          run_at,
+            "repo_rate":       repo_rate,
             "cost_of_capital": cost_of_capital,
-            "sector_cycles":   PE_SECTOR_CYCLES,
+            "sector_cycles":   sector_cycles,
             "deal_flow":       PE_DEAL_FLOW,
+            "deal_flow_meta":  PE_DEAL_FLOW_META,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PE overview failed: {e}")
