@@ -401,7 +401,7 @@
     /* Cards grid */
     .detail-primary {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 0;
       border-bottom: 1px solid var(--border);
     }
@@ -581,10 +581,10 @@
       .nav { padding: 0 16px; }
       .page-main { padding-top: calc(var(--nav-h) + 16px); }
       .map-section, .detail-panel, .cta-section { padding: 0 12px; }
-      .detail-primary { grid-template-columns: repeat(2, 1fr); }
-      .detail-primary .detail-card:nth-child(2) { border-right: none; }
-      .detail-primary .detail-card:nth-child(3),
-      .detail-primary .detail-card:nth-child(4) { border-top: 1px solid var(--border); }
+      .detail-primary { grid-template-columns: repeat(3, 1fr); }
+      .detail-primary .detail-card:nth-child(3) { border-right: none; }
+      .detail-primary .detail-card:nth-child(4),
+      .detail-primary .detail-card:nth-child(5) { border-top: 1px solid var(--border); }
       .detail-secondary { grid-template-columns: repeat(3, 1fr); }
       .card-value { font-size: 18px; }
       .card-value.mono-sm { font-size: 13px; }
@@ -594,6 +594,44 @@
       .detail-secondary { grid-template-columns: repeat(1, 1fr); }
       .detail-secondary .detail-card { border-right: none; border-top: 1px solid var(--border); }
       .detail-secondary .detail-card:first-child { border-top: none; }
+    }
+
+    /* ══ ECONOMY SIZE STANDALONE ══ */
+    .economy-size-standalone {
+      max-width: 1100px;
+      margin: 0 auto 32px;
+      padding: 0 20px;
+    }
+    .economy-size-standalone-inner {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      box-shadow: var(--card-shadow);
+    }
+    .economy-size-standalone-title {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .economy-size-standalone-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-bottom: 16px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+
+    /* ══ RESTRICTED / INFO CURRENCY CARD ══ */
+    .currency-chart-card.restricted {
+      border-color: rgba(251,191,36,0.30);
+      background: var(--amber-dim);
+    }
+    .currency-chart-card.info {
+      border-color: rgba(79,131,255,0.30);
+      background: var(--blue-dim);
     }
 
     /* ══ CURRENCY CHART CARD ══ */
@@ -706,6 +744,10 @@
       </div>
     </section>
 
+    <!-- ══ ECONOMY SIZE COMPARISON ══ -->
+    <section id="economy-size-section" class="economy-size-standalone">
+    </section>
+
     <!-- ══ DETAIL PANEL ══ -->
     <section class="detail-panel">
       <div id="detail-content">
@@ -738,26 +780,26 @@
     const GEO_URL_FB = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
     const ECONOMIES_META = {
-      US: { cb: 'Federal Reserve' },
-      CN: { cb: 'PBoC (People\'s Bank of China)' },
-      DE: { cb: 'ECB (European Central Bank)' },
-      IN: { cb: 'RBI (Reserve Bank of India)', home: true },
-      JP: { cb: 'Bank of Japan' },
-      GB: { cb: 'Bank of England' },
-      FR: { cb: 'ECB (European Central Bank)' },
-      IT: { cb: 'ECB (European Central Bank)' },
+      US: { cb: 'Federal Reserve (Fed)' },
+      CN: { cb: 'People\'s Bank of China (PBoC)' },
+      DE: { cb: 'European Central Bank (ECB)' },
+      IN: { cb: 'Reserve Bank of India (RBI)', home: true },
+      JP: { cb: 'Bank of Japan (BoJ)' },
+      GB: { cb: 'Bank of England (BoE)' },
+      FR: { cb: 'European Central Bank (ECB)' },
+      IT: { cb: 'European Central Bank (ECB)' },
       BR: { cb: 'Banco Central do Brasil' },
       CA: { cb: 'Bank of Canada' },
-      RU: { cb: 'Central Bank of Russia' },
-      KR: { cb: 'Bank of Korea' },
-      AU: { cb: 'Reserve Bank of Australia' },
-      MX: { cb: 'Banco de México' },
-      ID: { cb: 'Bank Indonesia' },
-      NL: { cb: 'ECB (European Central Bank)' },
+      RU: { cb: 'Central Bank of Russia (CBR)' },
+      KR: { cb: 'Bank of Korea (BoK)' },
+      AU: { cb: 'Reserve Bank of Australia (RBA)' },
+      MX: { cb: 'Banco de México (Banxico)' },
+      ID: { cb: 'Bank Indonesia (BI)' },
+      NL: { cb: 'European Central Bank (ECB)' },
       SA: { cb: 'Saudi Central Bank (SAMA)' },
-      TR: { cb: 'Central Bank of the Republic of Turkey' },
+      TR: { cb: 'Central Bank of Turkey (TCMB)' },
       CH: { cb: 'Swiss National Bank (SNB)' },
-      TW: { cb: 'Central Bank of the ROC (Taiwan)' },
+      TW: { cb: 'Central Bank of the Republic of China' },
     };
 
     // Manual flag label positions (centroid overrides for large/spread countries)
@@ -947,22 +989,31 @@
       const meta = ECONOMIES_META[eco.code];
       const cb   = meta ? meta.cb : 'The central bank';
       const nm   = eco.name;
-      const gdp  = eco.gdp_growth  != null ? eco.gdp_growth.toFixed(1)  + '%' : 'unknown';
-      const inf  = eco.inflation   != null ? eco.inflation.toFixed(1)   + '%' : 'unknown';
-      const rate = eco.policy_rate != null ? eco.policy_rate.toFixed(2) + '%' : 'unknown';
+      const gdp  = eco.gdp_growth  != null ? eco.gdp_growth.toFixed(1)  + '%' : 'n/a';
+      const inf  = eco.inflation   != null ? eco.inflation.toFixed(1)   + '%' : 'n/a';
+      const rate = eco.policy_rate != null ? eco.policy_rate.toFixed(2) + '%' : 'n/a';
+      const pmi  = eco.pmi         != null ? eco.pmi.toFixed(1)         : 'n/a';
+
+      if (eco.code === 'RU') {
+        return `Russia's economy shows resilience despite sanctions — GDP at ${gdp} supported by energy revenues and import substitution. Central Bank of Russia holds at ${rate} (highest since 2003) to contain inflation at ${inf}. Capital controls remain active; RUB convertibility suspended for non-residents. Key risk: energy price dependency and long-term technology access.`;
+      }
+
       switch (eco.macro_signal) {
         case 'EXPANDING':
-          return `${nm} is in a solid expansion phase. ${cb} maintains an accommodative-to-neutral stance as GDP growth of ${gdp} outpaces price pressures, with inflation contained at ${inf}.`;
+          if (eco.code === 'IN') {
+            return `India leads the G20 in growth momentum — GDP at ${gdp} with inflation contained at ${inf}. RBI's ${rate} rate signals measured accommodation supporting the credit cycle. PMI at ${pmi} — highest among major economies — confirms broad-based expansion. Key risk: crude oil above $95 threatens the imported inflation outlook.`;
+          }
+          return `${nm} leads regional growth — GDP at ${gdp} outpacing peers with inflation at ${inf} still below the danger zone. ${cb} holds at ${rate}, providing a neutral backdrop for credit expansion. PMI at ${pmi} signals broad-based manufacturing activity. Watch for capacity constraints as the expansion matures.`;
         case 'STABLE_GROWTH':
-          return `${nm} is growing steadily. ${cb} holds policy rates at ${rate} with inflation at ${inf} — a balanced macro setup that supports risk assets and investment flows.`;
-        case 'INFLATION_PRESSURE':
-          return `Inflation remains elevated in ${nm} at ${inf}, keeping ${cb} in a hawkish posture. GDP growth of ${gdp} provides a cushion but the rising cost of capital weighs on valuations.`;
+          return `${nm} maintains solid macro footing — GDP at ${gdp} with inflation at ${inf} tracking toward target. ${cb} at ${rate} reflects a cautious hold posture. PMI at ${pmi} signals stable but unexciting manufacturing activity. No near-term macro catalyst in either direction — fundamentals-driven positioning appropriate.`;
         case 'SLOWDOWN':
-          return `${nm} is showing signs of slowing with GDP growth at ${gdp}. ${cb} may face pressure to ease, but inflation at ${inf} constrains the pace and depth of any rate cuts.`;
+          return `${nm} faces a cyclical growth challenge — GDP at ${gdp} with domestic demand soft. ${cb} at ${rate} provides measured support but monetary transmission is slow. PMI at ${pmi} signals manufacturing contraction. Watch for fiscal stimulus response and leading indicators (PMI new orders, credit growth) for stabilisation signals.`;
         case 'CONTRACTION':
-          return `${nm} is in contraction with GDP growth at ${gdp}. ${cb} is under pressure to ease policy aggressively as economic activity deteriorates and recessionary risks mount.`;
+          return `${nm} is in contraction — GDP at ${gdp}, the weakest reading among major economies. ${cb} at ${rate} reflects an easing bias as policymakers respond to weakness. PMI at ${pmi} confirms the industrial sector is shrinking. Historical precedent suggests 6-12 months before stabilisation after this level of PMI contraction.`;
+        case 'INFLATION_PRESSURE':
+          return `${nm} faces an inflation challenge — CPI at ${inf}, well above target. ${cb} at ${rate} anchoring expectations but real rates remain challenging for leveraged positions. GDP at ${gdp} shows the economy is absorbing the tightening so far. Watch for consumer spending data as the leading indicator of demand destruction.`;
         default:
-          return `Current macro data for ${nm} is limited. ${cb} continues to monitor economic conditions and stands ready to act as data becomes available.`;
+          return `Macro data for ${nm} is partially unavailable or under revision. Available indicators: Policy Rate ${rate}, PMI ${pmi}. Exercise caution — incomplete data picture.`;
       }
     }
 
@@ -1166,11 +1217,13 @@
         el.classList.toggle('selected', el.getAttribute('data-code') === code);
       });
 
+      renderEconomySizeSection();
+
       const eco = economiesData[code];
       if (eco) renderDetail(eco);
     }
 
-    function buildSizeChart(currentCode) {
+    function buildSizeChart(currentCode, clickable) {
       const GDP_FALLBACK = {
         US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6,
         FR: 3.2,  IT: 2.3,  BR: 2.3, CA: 2.2, RU: 2.1, KR: 1.9,
@@ -1211,19 +1264,29 @@
         const tc      = isSel ? raw : (isLight ? '#4a5872' : '#7a8baa');
         const fw      = isSel ? '600' : '400';
         const cy      = y + rowH * 0.72;
-        return `
+        const rowContent = `
           <text x="${labelW - 6}" y="${cy}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">${e.code}</text>
           <rect x="${labelW}" y="${y + 2}" width="${barW}" height="${rowH - 4}" rx="2" fill="${raw}" opacity="${opacity}"/>
           <text x="${labelW + barW + 6}" y="${cy}" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">$${e.gdp}T</text>
         `;
+        return clickable
+          ? `<g onclick="selectEconomy('${e.code}')" style="cursor:pointer;">${rowContent}</g>`
+          : rowContent;
       }).join('');
 
-      return `
-        <div class="size-chart-section">
-          <div class="size-chart-label">Economy Size — Nominal GDP Comparison (IMF WEO Apr 2026)</div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW} ${totalH}" style="overflow:visible;max-width:460px;">
-            ${svgRows}
-          </svg>
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW} ${totalH}" style="overflow:visible;">${svgRows}</svg>`;
+    }
+
+    function renderEconomySizeSection() {
+      const container = document.getElementById('economy-size-section');
+      if (!container) return;
+      const svgHtml = buildSizeChart(selectedCode, true);
+      if (!svgHtml) return;
+      container.innerHTML = `
+        <div class="economy-size-standalone-inner">
+          <div class="economy-size-standalone-title">Economy Size — Top 20 by Nominal GDP</div>
+          <div class="economy-size-standalone-sub">IMF World Economic Outlook, April 2026</div>
+          ${svgHtml}
         </div>
       `;
     }
@@ -1254,7 +1317,6 @@
               ${gdpT != null ? `<span class="economy-size-badge">$${gdpT}T Economy</span>` : ''}
             </div>
           </div>
-          ${buildSizeChart(eco.code)}
           <div class="detail-primary">
             <div class="detail-card">
               <div class="card-label">GDP Growth</div>
@@ -1275,6 +1337,11 @@
               <div class="card-label">PMI</div>
               <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi,1)}</div>
               <div class="card-sub">Manufacturing</div>
+            </div>
+            <div class="detail-card">
+              <div class="card-label">Nominal GDP</div>
+              <div class="card-value" style="color:var(--blue)">${eco.gdp_nominal_trillion != null ? '$' + eco.gdp_nominal_trillion + 'T' : '—'}</div>
+              <div class="card-sub">IMF WEO 2026</div>
             </div>
           </div>
           <div class="detail-secondary">
@@ -1338,6 +1405,7 @@
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
         highlightEconomyCountries(economies);
+        renderEconomySizeSection();
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
@@ -1375,19 +1443,70 @@
       // SA — pegged currency note
       if (code === 'SA') {
         card.style.display = 'block';
-        titleEl.textContent    = 'SAR — Currency Performance';
-        subtitleEl.textContent = 'SAR is pegged to USD (3.75 fixed)';
-        if (stripEl) stripEl.innerHTML = '';
-        if (svgEl)   svgEl.innerHTML   = '';
+        card.className     = 'currency-chart-card info';
+        titleEl.textContent    = 'SAR — Saudi Riyal';
+        subtitleEl.textContent = 'USD Peg · Fixed at 3.75 SAR/USD';
+        const tabsSA = document.getElementById('currencyPerfTabs');
+        if (tabsSA) tabsSA.style.display = 'none';
+        const isLightSA = document.documentElement.classList.contains('light');
+        const tm3 = isLightSA ? '#9aaabb' : '#2e3d58';
+        const tv2 = isLightSA ? '#4a5872' : '#7a8baa';
+        const tbl = isLightSA ? '#2563eb' : '#4f83ff';
+        const tgn = isLightSA ? '#059669' : '#10d48a';
+        if (stripEl) {
+          stripEl.style.display = 'block';
+          stripEl.innerHTML = `
+            <p style="font-family:var(--font-mono);font-size:10px;color:${tv2};line-height:1.65;margin-bottom:12px;">
+              SAR is pegged to the US Dollar at a fixed rate of 3.75 SAR/USD since 1986.
+              The peg is maintained by Saudi Arabia's substantial foreign exchange reserves (~$450B).
+              No currency risk for USD-denominated investors.
+            </p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${tm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${tbl};">3.75 SAR/USD</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${tm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Status</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${tbl};">ACTIVE SINCE 1986</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${tm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">FX Reserves</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${tbl};">~$450B</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${tm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Currency Risk</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${tgn};">NIL (USD investors)</div></div>
+            </div>
+          `;
+        }
+        if (svgEl) svgEl.innerHTML = '';
+        const footerSA = document.getElementById('currencyChartFooter');
+        if (footerSA) footerSA.textContent = 'Source: Saudi Central Bank (SAMA). As of May 2026.';
         return;
       }
-      // RU — unavailable note
+      // RU — capital controls note
       if (code === 'RU') {
         card.style.display = 'block';
-        titleEl.textContent    = 'RUB — Currency Performance';
-        subtitleEl.textContent = 'RUB data unavailable on public feeds';
-        if (stripEl) stripEl.innerHTML = '';
-        if (svgEl)   svgEl.innerHTML   = '';
+        card.className     = 'currency-chart-card restricted';
+        titleEl.textContent    = 'RUB — Russian Ruble';
+        subtitleEl.textContent = 'Capital controls active · Not on international feeds';
+        const tabsRU = document.getElementById('currencyPerfTabs');
+        if (tabsRU) tabsRU.style.display = 'none';
+        const isLightRU = document.documentElement.classList.contains('light');
+        const rm3 = isLightRU ? '#9aaabb' : '#2e3d58';
+        const rv2 = isLightRU ? '#4a5872' : '#7a8baa';
+        const ram = isLightRU ? '#b45309' : '#fbbf24';
+        const rrd = isLightRU ? '#dc2626' : '#f87171';
+        if (stripEl) {
+          stripEl.style.display = 'block';
+          stripEl.innerHTML = `
+            <p style="font-family:var(--font-mono);font-size:10px;color:${rv2};line-height:1.65;margin-bottom:12px;">
+              RUB/USD market rate is not publicly available on international data feeds.
+              Russia imposed capital controls in February 2022 following sanctions.
+              The Central Bank of Russia sets the official rate; however free market
+              convertibility is suspended for non-residents.
+            </p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">CBR Official Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${ram};">~89 RUB/USD</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Status</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${ram};">CAPITAL CONTROLS</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Convertibility</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${ram};">SUSPENDED</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">CBR Policy Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${rrd};">21%</div></div>
+            </div>
+          `;
+        }
+        if (svgEl) svgEl.innerHTML = '';
+        const footerRU = document.getElementById('currencyChartFooter');
+        if (footerRU) footerRU.textContent = 'Source: Central Bank of Russia (CBR). Data as of May 2026.';
         return;
       }
 
