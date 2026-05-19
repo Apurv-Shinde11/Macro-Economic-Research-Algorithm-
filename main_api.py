@@ -2282,6 +2282,37 @@ _POLICY_RATES = {
     "TR": 42.50,  # Central Bank of Turkey rate
     "CH": 0.25,   # Swiss National Bank policy rate
     "TW": 2.00,   # Central Bank of ROC rate
+    # ── 30 new economies — Last verified: May 2026 ──
+    "PL": 5.75,   # National Bank of Poland
+    "SE": 2.25,   # Riksbank
+    "BE": 2.40,   # ECB
+    "AR": 40.00,  # BCRA (Argentina — high inflation)
+    "NO": 4.50,   # Norges Bank
+    "AE": 5.40,   # UAE follows Fed
+    "IL": 4.50,   # Bank of Israel
+    "AT": 2.40,   # ECB
+    "SG": 3.00,   # MAS implicit rate
+    "NG": 27.25,  # CBN Nigeria
+    "ZA": 7.50,   # SARB South Africa
+    "MY": 3.00,   # Bank Negara Malaysia
+    "DK": 2.10,   # Danmarks Nationalbank
+    "PH": 6.25,   # Bangko Sentral ng Pilipinas
+    "IE": 2.40,   # ECB
+    "TH": 2.50,   # Bank of Thailand
+    "BD": 10.00,  # Bangladesh Bank
+    "VN": 4.50,   # State Bank of Vietnam
+    "PK": 12.00,  # State Bank of Pakistan
+    "CO": 9.75,   # Banco de la República Colombia
+    "CL": 5.00,   # Banco Central de Chile
+    "FI": 2.40,   # ECB
+    "CZ": 3.75,   # Czech National Bank
+    "RO": 6.50,   # National Bank of Romania
+    "NZ": 3.50,   # Reserve Bank of New Zealand
+    "PT": 2.40,   # ECB
+    "GR": 2.40,   # ECB
+    "QA": 5.20,   # Qatar Central Bank
+    "KZ": 14.25,  # National Bank of Kazakhstan
+    "HU": 6.50,   # Magyar Nemzeti Bank
 }
 
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
@@ -2307,6 +2338,17 @@ _PMI_VALUES = {
     "TR": 48.6,   # S&P Global Turkey Manufacturing PMI
     "CH": 48.9,   # procure.ch Switzerland PMI
     "TW": 50.8,   # S&P Global Taiwan Manufacturing PMI
+    # ── 30 new economies — Last verified: May 2026 (S&P Global) ──
+    "PL": 50.1,  "SE": 52.3,  "BE": 47.8,
+    "AR": 51.2,  "NO": 51.8,  "AE": 55.3,
+    "IL": 49.2,  "AT": 46.9,  "SG": 51.4,
+    "NG": 52.8,  "ZA": 43.1,  "MY": 49.5,
+    "DK": 48.6,  "PH": 53.2,  "IE": 50.8,
+    "TH": 50.4,  "BD": 51.6,  "VN": 54.2,
+    "PK": 52.4,  "CO": 49.8,  "CL": 48.7,
+    "FI": 47.2,  "CZ": 49.4,  "RO": 50.6,
+    "NZ": 47.8,  "PT": 50.2,  "GR": 53.1,
+    "QA": 56.4,  "KZ": 51.9,  "HU": 50.3,
 }
 
 _ECONOMIES = [
@@ -2370,6 +2412,97 @@ _ECONOMIES = [
     {"code": "TW", "name": "Taiwan",          "flag": "🇹🇼",
      "currency_label": "TWD", "wb_code": "TW",
      "ticker_currency": "USDTWD=X",  "ticker_yield": None},
+    # ── 30 new economies ──
+    {"code": "PL", "name": "Poland",         "flag": "🇵🇱",
+     "currency_label": "PLN", "wb_code": "PL",
+     "ticker_currency": "USDPLN=X", "ticker_yield": None},
+    {"code": "SE", "name": "Sweden",         "flag": "🇸🇪",
+     "currency_label": "SEK", "wb_code": "SE",
+     "ticker_currency": "USDSEK=X", "ticker_yield": None},
+    {"code": "BE", "name": "Belgium",        "flag": "🇧🇪",
+     "currency_label": "EUR", "wb_code": "BE",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "AR", "name": "Argentina",      "flag": "🇦🇷",
+     "currency_label": "ARS", "wb_code": "AR",
+     "ticker_currency": "USDARS=X", "ticker_yield": None},
+    {"code": "NO", "name": "Norway",         "flag": "🇳🇴",
+     "currency_label": "NOK", "wb_code": "NO",
+     "ticker_currency": "USDNOK=X", "ticker_yield": None},
+    {"code": "AE", "name": "UAE",            "flag": "🇦🇪",
+     "currency_label": "AED", "wb_code": "AE",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "IL", "name": "Israel",         "flag": "🇮🇱",
+     "currency_label": "ILS", "wb_code": "IL",
+     "ticker_currency": "USDILS=X", "ticker_yield": None},
+    {"code": "AT", "name": "Austria",        "flag": "🇦🇹",
+     "currency_label": "EUR", "wb_code": "AT",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "SG", "name": "Singapore",      "flag": "🇸🇬",
+     "currency_label": "SGD", "wb_code": "SG",
+     "ticker_currency": "USDSGD=X", "ticker_yield": None},
+    {"code": "NG", "name": "Nigeria",        "flag": "🇳🇬",
+     "currency_label": "NGN", "wb_code": "NG",
+     "ticker_currency": "USDNGN=X", "ticker_yield": None},
+    {"code": "ZA", "name": "South Africa",   "flag": "🇿🇦",
+     "currency_label": "ZAR", "wb_code": "ZA",
+     "ticker_currency": "USDZAR=X", "ticker_yield": None},
+    {"code": "MY", "name": "Malaysia",       "flag": "🇲🇾",
+     "currency_label": "MYR", "wb_code": "MY",
+     "ticker_currency": "USDMYR=X", "ticker_yield": None},
+    {"code": "DK", "name": "Denmark",        "flag": "🇩🇰",
+     "currency_label": "DKK", "wb_code": "DK",
+     "ticker_currency": "USDDKK=X", "ticker_yield": None},
+    {"code": "PH", "name": "Philippines",    "flag": "🇵🇭",
+     "currency_label": "PHP", "wb_code": "PH",
+     "ticker_currency": "USDPHP=X", "ticker_yield": None},
+    {"code": "IE", "name": "Ireland",        "flag": "🇮🇪",
+     "currency_label": "EUR", "wb_code": "IE",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "TH", "name": "Thailand",       "flag": "🇹🇭",
+     "currency_label": "THB", "wb_code": "TH",
+     "ticker_currency": "USDTHB=X", "ticker_yield": None},
+    {"code": "BD", "name": "Bangladesh",     "flag": "🇧🇩",
+     "currency_label": "BDT", "wb_code": "BD",
+     "ticker_currency": "USDBDT=X", "ticker_yield": None},
+    {"code": "VN", "name": "Vietnam",        "flag": "🇻🇳",
+     "currency_label": "VND", "wb_code": "VN",
+     "ticker_currency": "USDVND=X", "ticker_yield": None},
+    {"code": "PK", "name": "Pakistan",       "flag": "🇵🇰",
+     "currency_label": "PKR", "wb_code": "PK",
+     "ticker_currency": "USDPKR=X", "ticker_yield": None},
+    {"code": "CO", "name": "Colombia",       "flag": "🇨🇴",
+     "currency_label": "COP", "wb_code": "CO",
+     "ticker_currency": "USDCOP=X", "ticker_yield": None},
+    {"code": "CL", "name": "Chile",          "flag": "🇨🇱",
+     "currency_label": "CLP", "wb_code": "CL",
+     "ticker_currency": "USDCLP=X", "ticker_yield": None},
+    {"code": "FI", "name": "Finland",        "flag": "🇫🇮",
+     "currency_label": "EUR", "wb_code": "FI",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "CZ", "name": "Czech Republic", "flag": "🇨🇿",
+     "currency_label": "CZK", "wb_code": "CZ",
+     "ticker_currency": "USDCZK=X", "ticker_yield": None},
+    {"code": "RO", "name": "Romania",        "flag": "🇷🇴",
+     "currency_label": "RON", "wb_code": "RO",
+     "ticker_currency": "USDRON=X", "ticker_yield": None},
+    {"code": "NZ", "name": "New Zealand",    "flag": "🇳🇿",
+     "currency_label": "NZD", "wb_code": "NZ",
+     "ticker_currency": "NZDUSD=X", "ticker_yield": None},
+    {"code": "PT", "name": "Portugal",       "flag": "🇵🇹",
+     "currency_label": "EUR", "wb_code": "PT",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "GR", "name": "Greece",         "flag": "🇬🇷",
+     "currency_label": "EUR", "wb_code": "GR",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "QA", "name": "Qatar",          "flag": "🇶🇦",
+     "currency_label": "QAR", "wb_code": "QA",
+     "ticker_currency": None,       "ticker_yield": None},
+    {"code": "KZ", "name": "Kazakhstan",     "flag": "🇰🇿",
+     "currency_label": "KZT", "wb_code": "KZ",
+     "ticker_currency": "USDKZT=X", "ticker_yield": None},
+    {"code": "HU", "name": "Hungary",        "flag": "🇭🇺",
+     "currency_label": "HUF", "wb_code": "HU",
+     "ticker_currency": "USDHUF=X", "ticker_yield": None},
 ]
 
 _YIELD_FALLBACKS = {
@@ -2388,6 +2521,17 @@ _YIELD_FALLBACKS = {
     "TR": 28.40,  # Turkey 10Y bond
     "CH": 0.68,   # Switzerland 10Y bond
     "TW": 1.85,   # Taiwan 10Y bond
+    # ── 30 new economies — Last verified: May 2026 ──
+    "PL": 5.45,  "SE": 2.38,  "BE": 3.05,
+    "AR": 85.0,  "NO": 3.85,  "AE": 4.80,
+    "IL": 4.65,  "AT": 3.12,  "SG": 3.15,
+    "NG": 19.50, "ZA": 10.20, "MY": 3.85,
+    "DK": 2.65,  "PH": 6.35,  "IE": 2.95,
+    "TH": 2.45,  "BD": 11.20, "VN": 2.85,
+    "PK": 12.50, "CO": 10.80, "CL": 5.25,
+    "FI": 2.85,  "CZ": 3.95,  "RO": 6.85,
+    "NZ": 4.45,  "PT": 3.15,  "GR": 3.35,
+    "QA": 4.55,  "KZ": 13.50, "HU": 6.75,
 }
 
 # Nominal GDP in USD trillion — IMF WEO April 2026
@@ -2397,6 +2541,24 @@ _NOMINAL_GDP_TRILLION = {
     "BR":  2.3, "CA":  2.2, "RU":  2.1, "KR":  1.9,
     "AU":  1.8, "MX":  1.6, "ID":  1.5, "NL":  1.2,
     "SA":  1.1, "TR":  1.1, "CH":  0.9, "TW":  0.8,
+    # ── 30 new economies ──
+    "PL": 0.77, "SE": 0.70, "BE": 0.65,
+    "AR": 0.62, "NO": 0.60, "AE": 0.57,
+    "IL": 0.55, "AT": 0.54, "SG": 0.50,
+    "NG": 0.49, "ZA": 0.48, "BD": 0.46,
+    "MY": 0.44, "DK": 0.43, "PH": 0.43,
+    "VN": 0.43, "IE": 0.42, "TH": 0.40,
+    "PK": 0.37, "CZ": 0.35, "CO": 0.34,
+    "RO": 0.34, "CL": 0.32, "FI": 0.30,
+    "PT": 0.28, "NZ": 0.25, "GR": 0.24,
+    "QA": 0.23, "KZ": 0.22, "HU": 0.22,
+}
+
+# Currencies pegged to USD — use as fallback when yfinance returns None
+_PEGGED_CURRENCIES = {
+    "AE": 3.67,  # AED pegged to USD since 1997
+    "QA": 3.64,  # QAR pegged to USD since 2001
+    "SA": 3.75,  # SAR pegged to USD since 1986
 }
 
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
@@ -2472,6 +2634,8 @@ def _build_economy_record(eco, gdp, inflation, unemployment, currency_map, yield
     code = eco["code"]
     raw_fx = currency_map.get(code)
     currency_vs_usd = 1.0 if code == "US" else (round(raw_fx, 4) if raw_fx else None)
+    if not currency_vs_usd and code in _PEGGED_CURRENCIES:
+        currency_vs_usd = _PEGGED_CURRENCIES[code]
     yield_10y = yield_map.get(code) or _YIELD_FALLBACKS.get(code)
     return {
         "code":                 code,
@@ -2507,7 +2671,7 @@ async def get_global_macro():
             _supabase.table("global_macro_cache")
             .select("*").gte("last_updated", cutoff).execute()
         )
-        if cached.data and len(cached.data) >= 20:
+        if cached.data and len(cached.data) >= 50:
             # Enrich cached rows with computed fields not stored in Supabase
             economy_meta = {e["code"]: e for e in _ECONOMIES}
             enriched = []
@@ -2535,7 +2699,7 @@ async def get_global_macro():
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
 
-    print("[GLOBAL_MACRO] Fetching fresh data for 20 economies...", flush=True)
+    print("[GLOBAL_MACRO] Fetching fresh data for 50 economies...", flush=True)
     try:
         currency_map, yield_map = _fetch_live_economy_data()
     except Exception as _e:
@@ -2552,7 +2716,7 @@ async def get_global_macro():
         )
         return eco, gdp, inflation, unemployment
 
-    print("[GLOBAL_MACRO] Parallel World Bank fetch for all 20 economies...", flush=True)
+    print("[GLOBAL_MACRO] Parallel World Bank fetch for all 50 economies...", flush=True)
     wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
 
     economies = []

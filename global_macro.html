@@ -624,6 +624,64 @@
       letter-spacing: 0.05em;
     }
 
+    /* ══ ECONOMY COMPARISON ROWS ══ */
+    .economy-comparison {
+      max-height: 600px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-2) transparent;
+    }
+    .eco-compare-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border-left: 2px solid transparent;
+    }
+    .eco-compare-row:hover { background: var(--bg-3); }
+    .eco-compare-row.selected {
+      border-left-color: var(--row-sig-color, var(--blue));
+      background: var(--bg-3);
+    }
+    .eco-compare-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 170px;
+      flex-shrink: 0;
+    }
+    .eco-compare-flag { font-size: 14px; line-height: 1; }
+    .eco-compare-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .eco-compare-row.selected .eco-compare-name { color: var(--text); font-weight: 600; }
+    .eco-compare-bar-wrap {
+      flex: 1;
+      height: 7px;
+      background: var(--bg-4);
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .eco-compare-bar { height: 100%; border-radius: 3px; }
+    .eco-compare-gdp {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      width: 52px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .eco-compare-row.selected .eco-compare-gdp { color: var(--text-2); }
+
     /* ══ RESTRICTED / INFO CURRENCY CARD ══ */
     .currency-chart-card.restricted {
       border-color: rgba(251,191,36,0.30);
@@ -744,10 +802,6 @@
       </div>
     </section>
 
-    <!-- ══ ECONOMY SIZE COMPARISON ══ -->
-    <section id="economy-size-section" class="economy-size-standalone">
-    </section>
-
     <!-- ══ DETAIL PANEL ══ -->
     <section class="detail-panel">
       <div id="detail-content">
@@ -756,6 +810,10 @@
           <span>Select an economy on the map to view macro details</span>
         </div>
       </div>
+    </section>
+
+    <!-- ══ ECONOMY SIZE COMPARISON ══ -->
+    <section id="economy-size-section" class="economy-size-standalone">
     </section>
 
     <!-- ══ CTA ══ -->
@@ -800,6 +858,36 @@
       TR: { cb: 'Central Bank of Turkey (TCMB)' },
       CH: { cb: 'Swiss National Bank (SNB)' },
       TW: { cb: 'Central Bank of the Republic of China' },
+      PL: { cb: 'National Bank of Poland (NBP)' },
+      SE: { cb: 'Riksbank' },
+      BE: { cb: 'European Central Bank (ECB)' },
+      AR: { cb: 'Banco Central de la República Argentina (BCRA)' },
+      NO: { cb: 'Norges Bank' },
+      AE: { cb: 'Central Bank of the UAE' },
+      IL: { cb: 'Bank of Israel' },
+      AT: { cb: 'European Central Bank (ECB)' },
+      SG: { cb: 'Monetary Authority of Singapore (MAS)' },
+      NG: { cb: 'Central Bank of Nigeria (CBN)' },
+      ZA: { cb: 'South African Reserve Bank (SARB)' },
+      MY: { cb: 'Bank Negara Malaysia' },
+      DK: { cb: 'Danmarks Nationalbank' },
+      PH: { cb: 'Bangko Sentral ng Pilipinas (BSP)' },
+      IE: { cb: 'European Central Bank (ECB)' },
+      TH: { cb: 'Bank of Thailand' },
+      BD: { cb: 'Bangladesh Bank' },
+      VN: { cb: 'State Bank of Vietnam (SBV)' },
+      PK: { cb: 'State Bank of Pakistan (SBP)' },
+      CO: { cb: 'Banco de la República Colombia' },
+      CL: { cb: 'Banco Central de Chile' },
+      FI: { cb: 'European Central Bank (ECB)' },
+      CZ: { cb: 'Czech National Bank (CNB)' },
+      RO: { cb: 'National Bank of Romania' },
+      NZ: { cb: 'Reserve Bank of New Zealand (RBNZ)' },
+      PT: { cb: 'European Central Bank (ECB)' },
+      GR: { cb: 'European Central Bank (ECB)' },
+      QA: { cb: 'Qatar Central Bank (QCB)' },
+      KZ: { cb: 'National Bank of Kazakhstan' },
+      HU: { cb: 'Magyar Nemzeti Bank (MNB)' },
     };
 
     // Manual flag label positions (centroid overrides for large/spread countries)
@@ -854,12 +942,49 @@
       'Switzerland':              'CH',
       'Taiwan':                   'TW',
       'Chinese Taipei':           'TW',
+      'Poland':                   'PL',
+      'Sweden':                   'SE',
+      'Belgium':                  'BE',
+      'Argentina':                'AR',
+      'Norway':                   'NO',
+      'United Arab Emirates':     'AE',
+      'Israel':                   'IL',
+      'Austria':                  'AT',
+      'Singapore':                'SG',
+      'Nigeria':                  'NG',
+      'South Africa':             'ZA',
+      'Malaysia':                 'MY',
+      'Denmark':                  'DK',
+      'Philippines':              'PH',
+      'Ireland':                  'IE',
+      'Thailand':                 'TH',
+      'Bangladesh':               'BD',
+      'Vietnam':                  'VN',
+      'Viet Nam':                 'VN',
+      'Pakistan':                 'PK',
+      'Colombia':                 'CO',
+      'Chile':                    'CL',
+      'Finland':                  'FI',
+      'Czech Republic':           'CZ',
+      'Czechia':                  'CZ',
+      'Romania':                  'RO',
+      'New Zealand':              'NZ',
+      'Portugal':                 'PT',
+      'Greece':                   'GR',
+      'Qatar':                    'QA',
+      'Kazakhstan':               'KZ',
+      'Hungary':                  'HU',
     };
     const ISO_A2_MAP = {
       US:'US', CN:'CN', DE:'DE', IN:'IN', JP:'JP', GB:'GB',
       FR:'FR', IT:'IT', BR:'BR', CA:'CA', RU:'RU', KR:'KR',
       AU:'AU', MX:'MX', ID:'ID', NL:'NL', SA:'SA', TR:'TR',
       CH:'CH', TW:'TW',
+      PL:'PL', SE:'SE', BE:'BE', AR:'AR', NO:'NO', AE:'AE',
+      IL:'IL', AT:'AT', SG:'SG', NG:'NG', ZA:'ZA', MY:'MY',
+      DK:'DK', PH:'PH', IE:'IE', TH:'TH', BD:'BD', VN:'VN',
+      PK:'PK', CO:'CO', CL:'CL', FI:'FI', CZ:'CZ', RO:'RO',
+      NZ:'NZ', PT:'PT', GR:'GR', QA:'QA', KZ:'KZ', HU:'HU',
     };
 
     function resolveEconomyCode(props) {
@@ -996,6 +1121,19 @@
 
       if (eco.code === 'RU') {
         return `Russia's economy shows resilience despite sanctions — GDP at ${gdp} supported by energy revenues and import substitution. Central Bank of Russia holds at ${rate} (highest since 2003) to contain inflation at ${inf}. Capital controls remain active; RUB convertibility suspended for non-residents. Key risk: energy price dependency and long-term technology access.`;
+      }
+      if (eco.code === 'AR') {
+        return `Argentina navigates a complex macro environment — GDP at ${gdp} with inflation at ${inf} among the highest globally. BCRA at ${rate} reflects emergency tightening. Dual exchange rate system and capital controls remain active. IMF programme provides an external anchor. Watch for peso stabilisation as the key leading indicator.`;
+      }
+      if (eco.code === 'NG') {
+        return `Nigeria's economy shows resilience driven by oil revenues — GDP at ${gdp} with inflation at ${inf} elevated. CBN at ${rate} in aggressive tightening mode. Naira unification post-2023 reform has improved FX transparency. Oil price sensitivity remains the dominant macro driver.`;
+      }
+      if (eco.code === 'AE') {
+        return `The UAE maintains robust growth — GDP at ${gdp} supported by diversification beyond oil and strong tourism and finance sectors. AED pegged to USD at 3.67 eliminates currency risk. Policy rate follows the Fed at ${rate}. Dubai's status as a global financial hub attracts sustained FDI.`;
+      }
+      if (eco.code === 'SG') {
+        const sigLabel = (eco.macro_signal || 'Stable').replace(/_/g,' ').toLowerCase();
+        return `Singapore's trade-dependent economy shows ${sigLabel} — GDP at ${gdp} with MAS managing monetary policy via exchange rate rather than interest rates. Inflation at ${inf} within MAS tolerance. PMI at ${pmi} reflects regional manufacturing demand. Watch US-China trade dynamics as the primary external risk.`;
       }
 
       switch (eco.macro_signal) {
@@ -1208,7 +1346,7 @@
     /* ── Select economy ── */
     let selectedCode = null;
 
-    function selectEconomy(code) {
+    function selectEconomy(code, scrollToDetail) {
       selectedCode = code;
       localStorage.setItem('econiq_selected_economy', code);
 
@@ -1220,73 +1358,80 @@
       renderEconomySizeSection();
 
       const eco = economiesData[code];
-      if (eco) renderDetail(eco);
+      if (eco) {
+        renderDetail(eco);
+        if (scrollToDetail) {
+          const panel = document.querySelector('.detail-panel');
+          if (panel) panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+      }
     }
 
-    function buildSizeChart(currentCode, clickable) {
+    function buildEconomyListHtml(currentCode) {
       const GDP_FALLBACK = {
-        US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6,
-        FR: 3.2,  IT: 2.3,  BR: 2.3, CA: 2.2, RU: 2.1, KR: 1.9,
-        AU: 1.8,  MX: 1.6,  ID: 1.5, NL: 1.2, SA: 1.1, TR: 1.1,
+        US: 29.2, CN: 18.6, DE: 4.6,  IN: 4.3,  JP: 4.1,  GB: 3.6,
+        FR: 3.2,  IT: 2.3,  BR: 2.3,  CA: 2.2,  RU: 2.1,  KR: 1.9,
+        AU: 1.8,  MX: 1.6,  ID: 1.5,  NL: 1.2,  SA: 1.1,  TR: 1.1,
         CH: 0.9,  TW: 0.8,
+        PL: 0.77, SE: 0.70, BE: 0.65, AR: 0.62, NO: 0.60,
+        AE: 0.57, IL: 0.55, AT: 0.54, SG: 0.50, NG: 0.49,
+        ZA: 0.48, BD: 0.46, MY: 0.44, DK: 0.43, PH: 0.43,
+        VN: 0.43, IE: 0.42, TH: 0.40, CO: 0.34, CZ: 0.35,
+        RO: 0.34, PK: 0.37, CL: 0.32, FI: 0.30, PT: 0.28,
+        NZ: 0.25, GR: 0.24, QA: 0.23, KZ: 0.22, HU: 0.22,
       };
       const ORDER = [
         'US','CN','DE','IN','JP','GB','FR','IT','BR','CA',
         'RU','KR','AU','MX','ID','NL','SA','TR','CH','TW',
+        'PL','SE','BE','AR','NO','AE','IL','AT','SG','NG',
+        'ZA','BD','MY','DK','PH','VN','IE','TH','PK','CZ',
+        'CO','RO','CL','FI','PT','NZ','GR','QA','KZ','HU',
       ];
       const isLight = document.documentElement.classList.contains('light');
 
       const rows = ORDER.map(code => {
-        const eco = economiesData[code];
-        const gdp = (eco && eco.gdp_nominal_trillion) || GDP_FALLBACK[code] || 0;
-        const sig = eco ? eco.macro_signal : 'MONITORING';
-        return { code, gdp, sig };
+        const eco  = economiesData[code];
+        const gdp  = (eco && eco.gdp_nominal_trillion) || GDP_FALLBACK[code] || 0;
+        const sig  = eco ? eco.macro_signal : 'MONITORING';
+        const flag = eco ? (eco.flag || '') : '';
+        const name = eco ? eco.name : code;
+        return { code, gdp, sig, flag, name };
       }).filter(e => e.gdp > 0).sort((a, b) => b.gdp - a.gdp);
 
       if (!rows.length) return '';
 
-      const maxGdp  = rows[0].gdp;
-      const labelW  = 32;
-      const barMaxW = 300;
-      const rowH    = 14;
-      const rowGap  = 4;
-      const totalH  = rows.length * (rowH + rowGap);
-      const totalW  = labelW + barMaxW + 70;
+      const maxGdp = rows[0].gdp;
 
-      const svgRows = rows.map((e, i) => {
-        const y       = i * (rowH + rowGap);
-        const barW    = Math.max(4, (e.gdp / maxGdp) * barMaxW);
-        const raw     = isLight
+      return rows.map(e => {
+        const raw    = isLight
           ? (SIG_COLOR_RAW_LIGHT[e.sig] || '#9aaabb')
           : (SIG_COLOR_RAW[e.sig]       || '#2e3d58');
-        const isSel   = e.code === currentCode;
-        const opacity = isSel ? '1' : '0.38';
-        const tc      = isSel ? raw : (isLight ? '#4a5872' : '#7a8baa');
-        const fw      = isSel ? '600' : '400';
-        const cy      = y + rowH * 0.72;
-        const rowContent = `
-          <text x="${labelW - 6}" y="${cy}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">${e.code}</text>
-          <rect x="${labelW}" y="${y + 2}" width="${barW}" height="${rowH - 4}" rx="2" fill="${raw}" opacity="${opacity}"/>
-          <text x="${labelW + barW + 6}" y="${cy}" font-family="JetBrains Mono,monospace" font-size="9" fill="${tc}" font-weight="${fw}">$${e.gdp}T</text>
-        `;
-        return clickable
-          ? `<g onclick="selectEconomy('${e.code}')" style="cursor:pointer;">${rowContent}</g>`
-          : rowContent;
+        const isSel  = e.code === currentCode;
+        const pct    = Math.max(0.8, (e.gdp / maxGdp) * 100).toFixed(1);
+        const opac   = isSel ? '1' : '0.35';
+        return `<div class="eco-compare-row${isSel ? ' selected' : ''}" onclick="selectEconomy('${e.code}',true)" style="--row-sig-color:${raw};">
+          <div class="eco-compare-label">
+            <span class="eco-compare-flag">${e.flag}</span>
+            <span class="eco-compare-name">${e.name}</span>
+          </div>
+          <div class="eco-compare-bar-wrap">
+            <div class="eco-compare-bar" style="width:${pct}%;background:${raw};opacity:${opac};"></div>
+          </div>
+          <div class="eco-compare-gdp">$${e.gdp}T</div>
+        </div>`;
       }).join('');
-
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW} ${totalH}" style="overflow:visible;">${svgRows}</svg>`;
     }
 
     function renderEconomySizeSection() {
       const container = document.getElementById('economy-size-section');
       if (!container) return;
-      const svgHtml = buildSizeChart(selectedCode, true);
-      if (!svgHtml) return;
+      const rowsHtml = buildEconomyListHtml(selectedCode);
+      if (!rowsHtml) return;
       container.innerHTML = `
         <div class="economy-size-standalone-inner">
-          <div class="economy-size-standalone-title">Economy Size — Top 20 by Nominal GDP</div>
-          <div class="economy-size-standalone-sub">IMF World Economic Outlook, April 2026</div>
-          ${svgHtml}
+          <div class="economy-size-standalone-title">Economy Size — Top 50 by Nominal GDP</div>
+          <div class="economy-size-standalone-sub">IMF World Economic Outlook, April 2026 · Click any row to view macro details</div>
+          <div class="economy-comparison">${rowsHtml}</div>
         </div>
       `;
     }
@@ -1395,7 +1540,7 @@
         document.getElementById('detail-content').innerHTML = `
           <div class="detail-empty">
             <span style="font-size:18px;">⏳</span>
-            <span>Fetching data for 20 economies — this may take up to 10 seconds on first load</span>
+            <span>Fetching data for 50 economies — this may take up to 15 seconds on first load</span>
           </div>
         `;
       }
@@ -1507,6 +1652,108 @@
         if (svgEl) svgEl.innerHTML = '';
         const footerRU = document.getElementById('currencyChartFooter');
         if (footerRU) footerRU.textContent = 'Source: Central Bank of Russia (CBR). Data as of May 2026.';
+        return;
+      }
+
+      // AE — pegged to USD at 3.67
+      if (code === 'AE') {
+        card.style.display = 'block';
+        card.className     = 'currency-chart-card info';
+        titleEl.textContent    = 'AED — UAE Dirham';
+        subtitleEl.textContent = 'USD Peg · Fixed at 3.67 AED/USD';
+        const tabsAE = document.getElementById('currencyPerfTabs');
+        if (tabsAE) tabsAE.style.display = 'none';
+        const isLightAE = document.documentElement.classList.contains('light');
+        const at3 = isLightAE ? '#9aaabb' : '#2e3d58';
+        const av2 = isLightAE ? '#4a5872' : '#7a8baa';
+        const abl = isLightAE ? '#2563eb' : '#4f83ff';
+        const agn = isLightAE ? '#059669' : '#10d48a';
+        if (stripEl) {
+          stripEl.style.display = 'block';
+          stripEl.innerHTML = `
+            <p style="font-family:var(--font-mono);font-size:10px;color:${av2};line-height:1.65;margin-bottom:12px;">
+              AED is pegged to the US Dollar at a fixed rate of 3.67 AED/USD since 1997.
+              The peg is maintained by the UAE Central Bank's substantial FX reserves.
+              No currency risk for USD-denominated investors.
+            </p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${at3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${abl};">3.67 AED/USD</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${at3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Status</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${abl};">ACTIVE SINCE 1997</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${at3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Rate Policy</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${abl};">FOLLOWS US FED</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${at3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Currency Risk</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${agn};">NIL (USD investors)</div></div>
+            </div>
+          `;
+        }
+        if (svgEl) svgEl.innerHTML = '';
+        const footerAE = document.getElementById('currencyChartFooter');
+        if (footerAE) footerAE.textContent = 'Source: Central Bank of UAE. As of May 2026.';
+        return;
+      }
+      // QA — pegged to USD at 3.64
+      if (code === 'QA') {
+        card.style.display = 'block';
+        card.className     = 'currency-chart-card info';
+        titleEl.textContent    = 'QAR — Qatari Riyal';
+        subtitleEl.textContent = 'USD Peg · Fixed at 3.64 QAR/USD';
+        const tabsQA = document.getElementById('currencyPerfTabs');
+        if (tabsQA) tabsQA.style.display = 'none';
+        const isLightQA = document.documentElement.classList.contains('light');
+        const qt3 = isLightQA ? '#9aaabb' : '#2e3d58';
+        const qv2 = isLightQA ? '#4a5872' : '#7a8baa';
+        const qbl = isLightQA ? '#2563eb' : '#4f83ff';
+        const qgn = isLightQA ? '#059669' : '#10d48a';
+        if (stripEl) {
+          stripEl.style.display = 'block';
+          stripEl.innerHTML = `
+            <p style="font-family:var(--font-mono);font-size:10px;color:${qv2};line-height:1.65;margin-bottom:12px;">
+              QAR is pegged to the US Dollar at a fixed rate of 3.64 QAR/USD since 2001.
+              Qatar's sovereign wealth fund (QIA, ~$450B AUM) provides a strong backstop.
+              No currency risk for USD-denominated investors.
+            </p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${qt3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${qbl};">3.64 QAR/USD</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${qt3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Peg Status</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${qbl};">ACTIVE SINCE 2001</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${qt3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">QIA AUM</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${qbl};">~$450B</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${qt3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Currency Risk</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${qgn};">NIL (USD investors)</div></div>
+            </div>
+          `;
+        }
+        if (svgEl) svgEl.innerHTML = '';
+        const footerQA = document.getElementById('currencyChartFooter');
+        if (footerQA) footerQA.textContent = 'Source: Qatar Central Bank (QCB). As of May 2026.';
+        return;
+      }
+      // AR — dual exchange rate / capital controls
+      if (code === 'AR') {
+        card.style.display = 'block';
+        card.className     = 'currency-chart-card restricted';
+        titleEl.textContent    = 'ARS — Argentine Peso';
+        subtitleEl.textContent = 'Dual exchange rate · Capital controls active';
+        const tabsAR = document.getElementById('currencyPerfTabs');
+        if (tabsAR) tabsAR.style.display = 'none';
+        const isLightAR = document.documentElement.classList.contains('light');
+        const rrm3 = isLightAR ? '#9aaabb' : '#2e3d58';
+        const rrv2 = isLightAR ? '#4a5872' : '#7a8baa';
+        const rram = isLightAR ? '#b45309' : '#fbbf24';
+        if (stripEl) {
+          stripEl.style.display = 'block';
+          stripEl.innerHTML = `
+            <p style="font-family:var(--font-mono);font-size:10px;color:${rrv2};line-height:1.65;margin-bottom:12px;">
+              Argentina operates a dual exchange rate system. The official rate (~1,000 ARS/USD) differs significantly
+              from the parallel 'blue dollar' rate. Capital controls active since 2019.
+              An IMF programme provides an external anchor but structural imbalances persist.
+            </p>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;">
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rrm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Official Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${rram};">~1,000 ARS/USD</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rrm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">FX System</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${rram};">DUAL RATE</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rrm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">Controls</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${rram};">ACTIVE</div></div>
+              <div><div style="font-family:var(--font-mono);font-size:9px;color:${rrm3};letter-spacing:0.10em;text-transform:uppercase;margin-bottom:3px;">BCRA Rate</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${rram};">40%</div></div>
+            </div>
+          `;
+        }
+        if (svgEl) svgEl.innerHTML = '';
+        const footerAR = document.getElementById('currencyChartFooter');
+        if (footerAR) footerAR.textContent = 'Source: BCRA (Banco Central de la República Argentina). Data as of May 2026.';
         return;
       }
 
