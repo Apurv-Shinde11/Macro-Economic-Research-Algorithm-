@@ -44,9 +44,11 @@ GEMINI_MODELS = [
 ]
 
 OPENROUTER_MODELS = [
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "meta-llama/llama-3.2-3b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
+    "meta-llama/llama-3.3-8b-instruct:free",
+    "google/gemma-3-4b-it:free",
+    "microsoft/phi-3-mini-128k-instruct:free",
+    "qwen/qwen-2.5-7b-instruct:free",
+    "meta-llama/llama-3.1-70b-instruct:free",
 ]
 
 
