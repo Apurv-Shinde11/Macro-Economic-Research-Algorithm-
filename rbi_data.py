@@ -197,7 +197,7 @@ class RBIDataFetcher:
             else:
                 policy_direction = "NEUTRAL"
         else:
-            policy_direction = "NEUTRAL"
+            policy_direction = "PAUSE"
 
         # -------------------------
         # Derive regime signals

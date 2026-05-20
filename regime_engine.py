@@ -1197,6 +1197,12 @@ class MacroRegimeEngine:
             print(f"  [Regime] RBI scoring skipped: {rbi_err}")
             rbi_data_out = {}
 
+        rbi_signal = (
+            rbi_data_out.get("policy_direction")
+            or intel.get("rbi_policy_implication")
+            or "PAUSE"
+        )
+
         # -------------------------
         # Pick winning regime
         # -------------------------
