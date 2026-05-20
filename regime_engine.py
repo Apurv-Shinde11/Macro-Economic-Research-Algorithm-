@@ -1283,59 +1283,67 @@ class MacroRegimeEngine:
                 self._sb_url, self._sb_key, limit=10
             )
 
-        # -------------------------
-        # ✅ LEADING INDICATOR SCORE
-        # Fast-moving signals (VIX, crude, FII, yield curve, PMI)
-        # scored independently of lagging regime data.
-        # Adjusts confidence by up to ±5%.
-        # -------------------------
-        _yield_spread = float(
-            intel.get("yield_spread_india", 0.25) or 0.25
-        )
-        _pmi = float(
-            hard_data.get("pmi", 0) or 0
-        )
-
-        leading_score, leading_signals, leading_trend = \
-            self._compute_leading_score(
-                regime             = regime,
-                crude_live         = crude_live,
-                vix_live           = vix_live,
-                fii_live           = fii_live,
-                liquidity_score    = liquidity_score,
-                yield_spread_india = _yield_spread,
-                pmi_level          = _pmi,
-                recent_runs        = recent_runs,
+        # ── Leading indicator score ──────────────
+        leading_score   = 0.5
+        leading_signals = []
+        leading_trend   = "STABLE"
+        anticipatory    = {
+            "type":               "STABLE",
+            "message":            "Leading signals unavailable.",
+            "supporting_signals": [],
+            "confidence_pct":     50,
+            "action":             "HOLD current allocation",
+        }
+        try:
+            _yield_spread = float(
+                intel.get("yield_spread_india", 0.25) or 0.25
             )
-
-        leading_adj = round(max(-0.05, min(0.05, (leading_score - 0.5) * 0.10)), 4)
-        confidence  = round(confidence + leading_adj, 4)
-        print(
-            f"  [Leading] Score={leading_score:.3f} "
-            f"adj={leading_adj:+.3f} "
-            f"new_conf={confidence:.3f}",
-            flush=True
-        )
-
-        # -------------------------
-        # ✅ ANTICIPATORY SIGNALS
-        # Detects forming patterns across consecutive runs.
-        # -------------------------
-        anticipatory = self._detect_anticipatory_signals(
-            current_regime  = regime,
-            leading_score   = leading_score,
-            leading_signals = leading_signals,
-            leading_trend   = leading_trend,
-            crude_live      = crude_live,
-            vix_live        = vix_live,
-            fii_live        = fii_live,
-            recent_runs     = recent_runs,
-        )
-        print(
-            f"  [Anticipatory] type={anticipatory['type']} "
-            f"action={anticipatory['action'][:40]}",
-            flush=True
-        )
+            _pmi = float(
+                hard_data.get("pmi", 0) or 0
+            )
+            leading_score, leading_signals, leading_trend = \
+                self._compute_leading_score(
+                    regime             = regime,
+                    crude_live         = crude_live,
+                    vix_live           = vix_live,
+                    fii_live           = fii_live,
+                    liquidity_score    = liquidity_score,
+                    yield_spread_india = _yield_spread,
+                    pmi_level          = _pmi,
+                    recent_runs        = recent_runs,
+                )
+            leading_adj = round(
+                max(-0.05, min(0.05,
+                    (leading_score - 0.5) * 0.10
+                )), 4
+            )
+            confidence = round(confidence + leading_adj, 4)
+            print(
+                f"  [Leading] Score={leading_score:.3f} "
+                f"adj={leading_adj:+.3f} "
+                f"new_conf={confidence:.3f}",
+                flush=True
+            )
+            anticipatory = self._detect_anticipatory_signals(
+                current_regime  = regime,
+                leading_score   = leading_score,
+                leading_signals = leading_signals,
+                leading_trend   = leading_trend,
+                crude_live      = crude_live,
+                vix_live        = vix_live,
+                fii_live        = fii_live,
+                recent_runs     = recent_runs,
+            )
+            print(
+                f"  [Anticipatory] type={anticipatory['type']} "
+                f"action={anticipatory['action'][:40]}",
+                flush=True
+            )
+        except Exception as _lead_err:
+            print(
+                f"  [Leading] ERROR: {_lead_err}",
+                flush=True
+            )
 
         # -------------------------
         # ✅ REGIME PERSISTENCE ADJUSTMENT
