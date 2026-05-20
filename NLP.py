@@ -3,10 +3,11 @@ NLP.py — IndianMacroNLP
 Multi-provider LLM engine with graceful fallback chain.
 
 Provider order (cost-optimised, quality-first):
-  1. Google Gemini 2.0 Flash  — best quality, free tier
-  2. Google Gemini 1.5 Flash  — fallback model
-  3. Groq llama-3.3-70b       — fast, free tier
-  4. Keyword engine            — zero cost, always available
+  1. Google Gemini 2.0 Flash       — best quality, free tier
+  2. Google Gemini 1.5 Flash       — fallback model
+  3. Groq llama-3.3-70b-versatile  — fast, free tier (primary)
+  4. Groq llama-3.1-8b-instant     — fast fallback
+  5. Keyword engine                 — zero cost, always available
 """
 
 import os
@@ -69,10 +70,13 @@ class IndianMacroNLP:
             })
         if groq_key:
             providers.append({
-                "name":  "groq",
-                "key":   groq_key,
-                "model": "llama-3.3-70b-versatile",
-                "fn":    self._call_groq
+                "name":   "groq",
+                "key":    groq_key,
+                "models": [
+                    "llama-3.3-70b-versatile",  # primary
+                    "llama-3.1-8b-instant",     # fast fallback
+                ],
+                "fn":     self._call_groq
             })
         if mistral_key:
             providers.append({
@@ -149,25 +153,35 @@ Return ONLY this JSON structure, no other text:
 
     def _call_groq(self, provider, prompt):
         import urllib.request
-        payload = json.dumps({
-            "model":       provider["model"],
-            "messages":    [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "max_tokens":  800
-        }).encode("utf-8")
-        req = urllib.request.Request(
-            "https://api.groq.com/openai/v1/chat/completions",
-            data=payload,
-            headers={
-                "Content-Type":  "application/json",
-                "Authorization": f"Bearer {provider['key']}"
-            },
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        text = data["choices"][0]["message"]["content"]
-        return self._parse_llm_response(text)
+        last_error = None
+        for model in provider.get("models", ["llama-3.3-70b-versatile"]):
+            try:
+                payload = json.dumps({
+                    "model":       model,
+                    "messages":    [{"role": "user", "content": prompt}],
+                    "temperature": 0.3,
+                    "max_tokens":  800
+                }).encode("utf-8")
+                req = urllib.request.Request(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    data=payload,
+                    headers={
+                        "Content-Type":  "application/json",
+                        "Authorization": f"Bearer {provider['key']}"
+                    },
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                text   = data["choices"][0]["message"]["content"]
+                result = self._parse_llm_response(text)
+                print(f"[NLP] Groq success with model: {model}")
+                return result
+            except Exception as e:
+                print(f"[NLP] Groq model {model} failed: {str(e)[:80]}")
+                last_error = e
+                continue
+        raise last_error or Exception("All Groq models failed")
 
     def _call_mistral(self, provider, prompt):
         import urllib.request
