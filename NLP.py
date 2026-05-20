@@ -15,6 +15,7 @@ Provider order (cost-optimised, quality-first):
 import os
 import json
 import re
+from time import time
 
 BULLISH_KEYWORDS = [
     "rally", "surge", "growth", "recovery", "expansion", "capex",
@@ -44,9 +45,9 @@ GEMINI_MODELS = [
 ]
 
 OPENROUTER_MODELS = [
+    "z-ai/glm-4.5-air:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "openai/gpt-oss-20b:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
     "meta-llama/llama-3.2-3b-instruct:free",
 ]
 
@@ -234,6 +235,7 @@ Return ONLY this JSON structure, no other text:
             except Exception as e:
                 print(f"[NLP] OpenRouter {model} failed: {str(e)[:80]}", flush=True)
                 last_error = e
+                time.sleep(2)
                 continue
         raise last_error or Exception("All OpenRouter models failed")
 
