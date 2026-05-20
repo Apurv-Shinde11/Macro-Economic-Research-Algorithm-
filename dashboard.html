@@ -2725,6 +2725,53 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
     }
+    /* ── Anticipatory Signal Card ── */
+    .anticipatory-card {
+      border-left: 3px solid var(--blue);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      background: var(--bg-2);
+      border-radius: var(--radius);
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
+    }
+    .anticipatory-header {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .anticipatory-message {
+      font-size: 13px;
+      color: var(--text-1, var(--text));
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .anticipatory-action {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+    }
+    .anticipatory-signals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .ant-sig {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 3px 8px;
+      background: var(--bg-3);
+      border-radius: 4px;
+      color: var(--text-3);
+      border: 1px solid var(--border);
+    }
   </style>
 </head>
 
@@ -3042,6 +3089,9 @@
           <div class="delta-watch-items" id="deltaWatchItems"></div>
         </div>
       </div>
+
+      <!-- Anticipatory Signal Card -->
+      <div class="anticipatory-card" id="anticipatoryCard" style="display:none;"></div>
 
       <!-- LAYER 1: First-run onboarding card -->
       <div class="onboarding-card" id="onboardingCard">
@@ -3676,9 +3726,39 @@
       if (!fromHistory && data.narrative_delta) {
         renderDelta(data.narrative_delta);
       }
+      if (!fromHistory && data.anticipatory) {
+        renderAnticipatoryCard(data.anticipatory);
+      } else if (!fromHistory) {
+        const antEl = document.getElementById('anticipatoryCard');
+        if (antEl) antEl.style.display = 'none';
+      }
       if (!fromHistory && data.transition) {
         renderTransition(data.transition);
       }
+    }
+
+    function renderAnticipatoryCard(ant) {
+      const antEl = document.getElementById('anticipatoryCard');
+      if (!antEl || !ant) { if (antEl) antEl.style.display = 'none'; return; }
+      const typeColors = {
+        'DEPLOYMENT_WINDOW': 'var(--green)',
+        'REGIME_FORMING':    'var(--red)',
+        'STRESS_BUILDING':   'var(--amber)',
+        'STABLE':            'var(--text-3)',
+        'CAUTION':           'var(--amber)',
+      };
+      const color = typeColors[ant.type] || 'var(--text-3)';
+      const sigsHtml = (ant.supporting_signals || []).length > 0
+        ? `<div class="anticipatory-signals">${(ant.supporting_signals || [])
+            .map(s => `<span class="ant-sig">${s}</span>`).join('')}</div>`
+        : '';
+      antEl.innerHTML = `
+        <div class="anticipatory-header" style="color:${color}">${(ant.type || '').replace(/_/g, ' ')}</div>
+        <div class="anticipatory-message">${ant.message || ''}</div>
+        <div class="anticipatory-action">→ ${ant.action || ''}</div>
+        ${sigsHtml}
+      `;
+      antEl.style.display = 'block';
     }
 
     function renderPlaybook(strategy, decision) {

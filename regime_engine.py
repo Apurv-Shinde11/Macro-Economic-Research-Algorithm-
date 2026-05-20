@@ -433,6 +433,291 @@ class MacroRegimeEngine:
         return alignment, details
 
     # =========================
+    # ✅ LEADING INDICATOR SCORER
+    # Fast-moving signals scored independently of lagging regime data.
+    # Returns (score: float [0,1], signals: list[dict], trend: str)
+    # =========================
+    def _compute_leading_score(
+        self,
+        regime,
+        crude_live,
+        vix_live,
+        fii_live,
+        liquidity_score,
+        yield_spread_india,
+        pmi_level,
+        recent_runs,
+    ):
+        signals = []
+        score   = 0.5
+
+        # ── VIX signal ────────────────────────────────────────────────
+        if vix_live > 0:
+            if vix_live < 14:
+                vix_sig, vix_label = 1.0, "CALM"
+            elif vix_live < 18:
+                vix_sig, vix_label = 0.65, "NORMAL"
+            elif vix_live < 22:
+                vix_sig, vix_label = 0.35, "ELEVATED"
+            else:
+                vix_sig, vix_label = 0.0, "FEAR"
+            signals.append({
+                "indicator": "India VIX",
+                "value":     vix_live,
+                "signal":    vix_label,
+                "score":     vix_sig,
+                "weight":    0.20,
+                "type":      "LEADING",
+            })
+
+        # ── Crude signal ───────────────────────────────────────────────
+        if crude_live > 0:
+            if crude_live < 75:
+                crude_sig, crude_label = 1.0, "SUPPORTIVE"
+            elif crude_live < 95:
+                crude_sig, crude_label = 0.65, "NEUTRAL"
+            elif crude_live < 105:
+                crude_sig, crude_label = 0.25, "STRESS"
+            else:
+                crude_sig, crude_label = 0.0, "EXTREME_STRESS"
+            signals.append({
+                "indicator": "Crude Oil",
+                "value":     crude_live,
+                "signal":    crude_label,
+                "score":     crude_sig,
+                "weight":    0.20,
+                "type":      "LEADING",
+            })
+
+        # ── FII signal ─────────────────────────────────────────────────
+        if fii_live is not None:
+            if fii_live > 3000:
+                fii_sig, fii_label = 1.0, "STRONG_BUYING"
+            elif fii_live > 500:
+                fii_sig, fii_label = 0.75, "BUYING"
+            elif fii_live > -500:
+                fii_sig, fii_label = 0.5, "NEUTRAL"
+            elif fii_live > -3000:
+                fii_sig, fii_label = 0.25, "SELLING"
+            else:
+                fii_sig, fii_label = 0.0, "HEAVY_SELLING"
+            signals.append({
+                "indicator": "FII Flows",
+                "value":     fii_live,
+                "signal":    fii_label,
+                "score":     fii_sig,
+                "weight":    0.25,
+                "type":      "LEADING",
+            })
+
+        # ── Yield curve signal ─────────────────────────────────────────
+        if yield_spread_india is not None:
+            if yield_spread_india > 1.5:
+                yc_sig, yc_label = 1.0, "STEEP_PRO_GROWTH"
+            elif yield_spread_india > 0.5:
+                yc_sig, yc_label = 0.75, "NORMAL"
+            elif yield_spread_india >= 0:
+                yc_sig, yc_label = 0.35, "FLAT_LATE_CYCLE"
+            else:
+                yc_sig, yc_label = 0.0, "INVERTED_WARNING"
+            signals.append({
+                "indicator": "India Yield Curve",
+                "value":     round(yield_spread_india, 2),
+                "signal":    yc_label,
+                "score":     yc_sig,
+                "weight":    0.20,
+                "type":      "LEADING",
+            })
+
+        # ── PMI signal ─────────────────────────────────────────────────
+        if pmi_level and pmi_level > 0:
+            if pmi_level > 55:
+                pmi_sig, pmi_label = 1.0, "STRONG_EXPANSION"
+            elif pmi_level > 52:
+                pmi_sig, pmi_label = 0.75, "HEALTHY_EXPANSION"
+            elif pmi_level >= 50:
+                pmi_sig, pmi_label = 0.5, "MARGINAL_EXPANSION"
+            else:
+                pmi_sig, pmi_label = 0.0, "CONTRACTION"
+            signals.append({
+                "indicator": "Manufacturing PMI",
+                "value":     pmi_level,
+                "signal":    pmi_label,
+                "score":     pmi_sig,
+                "weight":    0.15,
+                "type":      "LEADING",
+            })
+
+        # ── Weighted score ─────────────────────────────────────────────
+        if signals:
+            total_w = sum(s["weight"] for s in signals)
+            score   = sum(s["score"] * s["weight"] for s in signals) / total_w
+            score   = round(max(0.0, min(1.0, score)), 3)
+
+        # ── Trend from recent run confidence ───────────────────────────
+        trend = "STABLE"
+        if recent_runs and len(recent_runs) >= 3:
+            recent_conf = [
+                float(r.get("confidence", 0.5))
+                for r in recent_runs[:3]
+            ]
+            if recent_conf[0] > recent_conf[2] + 0.03:
+                trend = "BUILDING"
+            elif recent_conf[0] < recent_conf[2] - 0.03:
+                trend = "DETERIORATING"
+
+        print(
+            f"  [Leading] Score: {score:.3f} "
+            f"signals: {len(signals)} "
+            f"trend: {trend}",
+            flush=True
+        )
+        return score, signals, trend
+
+    # =========================
+    # ✅ ANTICIPATORY SIGNAL DETECTOR
+    # Proactively flags forming patterns across consecutive runs.
+    # Returns a dict with type, message, supporting_signals, etc.
+    # =========================
+    def _detect_anticipatory_signals(
+        self,
+        current_regime,
+        leading_score,
+        leading_signals,
+        leading_trend,
+        crude_live,
+        vix_live,
+        fii_live,
+        recent_runs,
+    ):
+        supporting   = []
+        stress_count = 0
+        support_count = 0
+
+        for sig in leading_signals:
+            s = sig["score"]
+            if s >= 0.65:
+                support_count += 1
+                supporting.append(
+                    f"{sig['indicator']}: {sig['signal']}"
+                )
+            elif s <= 0.35:
+                stress_count += 1
+                supporting.append(
+                    f"{sig['indicator']}: {sig['signal']} ⚠️"
+                )
+
+        # Pattern 1: DEPLOYMENT_WINDOW forming
+        if (
+            support_count >= 3
+            and stress_count == 0
+            and leading_trend == "BUILDING"
+            and current_regime in (
+                "LIQUIDITY_DRIVEN_EXPANSION",
+                "EARLY_CYCLE_RECOVERY",
+                "STABLE_GROWTH"
+            )
+        ):
+            return {
+                "type": "DEPLOYMENT_WINDOW",
+                "message": (
+                    f"{support_count} of {len(leading_signals)} "
+                    "leading indicators aligned and building. "
+                    "Conditions are forming for a high-conviction "
+                    "deployment window. Consider pre-positioning "
+                    "before confidence crosses HIGH threshold."
+                ),
+                "supporting_signals": supporting,
+                "confidence_pct":     round(leading_score * 100),
+                "action": (
+                    "PRE-POSITION — leading indicators "
+                    "strengthening ahead of lagging confirmation"
+                ),
+            }
+
+        # Pattern 2: REGIME_FORMING — leading diverges from current
+        if (
+            stress_count >= 3
+            and current_regime in (
+                "LIQUIDITY_DRIVEN_EXPANSION",
+                "STABLE_GROWTH"
+            )
+            and leading_trend == "DETERIORATING"
+        ):
+            return {
+                "type": "REGIME_FORMING",
+                "message": (
+                    f"{stress_count} of {len(leading_signals)} "
+                    "leading indicators now stressed. "
+                    "Current regime classification may lag "
+                    "actual conditions by 1-2 sessions. "
+                    "Watch for regime transition signal."
+                ),
+                "supporting_signals": supporting,
+                "confidence_pct":     round(leading_score * 100),
+                "action": (
+                    "REDUCE NEW POSITIONS — leading indicators "
+                    "diverging from current regime classification"
+                ),
+            }
+
+        # Pattern 3: STRESS_BUILDING — crude + FII + VIX all stressed
+        if (
+            crude_live > 100
+            and fii_live is not None
+            and fii_live < -1000
+            and vix_live > 18
+        ):
+            return {
+                "type": "STRESS_BUILDING",
+                "message": (
+                    f"Three stress signals active simultaneously: "
+                    f"Crude at ${crude_live:.0f} (imported inflation), "
+                    f"FII selling ₹{abs(fii_live):.0f} Cr "
+                    f"(foreign outflow), "
+                    f"VIX at {vix_live:.1f} (market fear). "
+                    "This combination has historically preceded "
+                    "regime transitions within 2-4 sessions."
+                ),
+                "supporting_signals": supporting,
+                "confidence_pct":     round(leading_score * 100),
+                "action": (
+                    "HOLD — do not add new positions until "
+                    "at least one stress signal resolves"
+                ),
+            }
+
+        # Pattern 4: STABLE — balanced signals
+        if abs(support_count - stress_count) <= 1:
+            return {
+                "type": "STABLE",
+                "message": (
+                    "Leading indicators are balanced — "
+                    "no strong directional signal forming. "
+                    "Current regime likely to persist."
+                ),
+                "supporting_signals": supporting,
+                "confidence_pct":     round(leading_score * 100),
+                "action": "HOLD current allocation",
+            }
+
+        # Pattern 5: CAUTION — mixed signals
+        return {
+            "type": "CAUTION",
+            "message": (
+                f"Mixed signals — {support_count} supportive, "
+                f"{stress_count} stressed. "
+                "Monitor next 2 sessions for directional clarity."
+            ),
+            "supporting_signals": supporting,
+            "confidence_pct":     round(leading_score * 100),
+            "action": (
+                "SELECTIVE — maintain existing positions, "
+                "defer new entries"
+            ),
+        }
+
+    # =========================
     # ✅ DATA STALENESS PENALTY
     # GDP (quarterly) and CPI (monthly) lose confidence weight as they age.
     # Confidence drifts down between releases, spikes on fresh data.
@@ -993,6 +1278,60 @@ class MacroRegimeEngine:
             )
 
         # -------------------------
+        # ✅ LEADING INDICATOR SCORE
+        # Fast-moving signals (VIX, crude, FII, yield curve, PMI)
+        # scored independently of lagging regime data.
+        # Adjusts confidence by up to ±5%.
+        # -------------------------
+        _yield_spread = float(
+            intel.get("yield_spread_india", 0.25) or 0.25
+        )
+        _pmi = float(
+            hard_data.get("pmi", 0) or 0
+        )
+
+        leading_score, leading_signals, leading_trend = \
+            self._compute_leading_score(
+                regime             = regime,
+                crude_live         = crude_live,
+                vix_live           = vix_live,
+                fii_live           = fii_live,
+                liquidity_score    = liquidity_score,
+                yield_spread_india = _yield_spread,
+                pmi_level          = _pmi,
+                recent_runs        = recent_runs,
+            )
+
+        leading_adj = round(max(-0.05, min(0.05, (leading_score - 0.5) * 0.10)), 4)
+        confidence  = round(confidence + leading_adj, 4)
+        print(
+            f"  [Leading] Score={leading_score:.3f} "
+            f"adj={leading_adj:+.3f} "
+            f"new_conf={confidence:.3f}",
+            flush=True
+        )
+
+        # -------------------------
+        # ✅ ANTICIPATORY SIGNALS
+        # Detects forming patterns across consecutive runs.
+        # -------------------------
+        anticipatory = self._detect_anticipatory_signals(
+            current_regime  = regime,
+            leading_score   = leading_score,
+            leading_signals = leading_signals,
+            leading_trend   = leading_trend,
+            crude_live      = crude_live,
+            vix_live        = vix_live,
+            fii_live        = fii_live,
+            recent_runs     = recent_runs,
+        )
+        print(
+            f"  [Anticipatory] type={anticipatory['type']} "
+            f"action={anticipatory['action'][:40]}",
+            flush=True
+        )
+
+        # -------------------------
         # ✅ REGIME PERSISTENCE ADJUSTMENT
         # -------------------------
         persistence_adj, consecutive_days = \
@@ -1134,6 +1473,16 @@ class MacroRegimeEngine:
             # scheduler.py reads this to decide whether to fire alerts
             # main.py can read this to show an in-app banner
             "change_info": change_info,
+
+            # ✅ Leading intelligence — fast-moving signal breakdown
+            "leading_intelligence": {
+                "score":   leading_score,
+                "signals": leading_signals,
+                "trend":   leading_trend,
+            },
+
+            # ✅ Anticipatory signal — proactive pattern detection
+            "anticipatory": anticipatory,
 
             "inputs": {
                 "repo_rate":       repo,

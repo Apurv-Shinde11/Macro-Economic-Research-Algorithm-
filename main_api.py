@@ -1459,6 +1459,16 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             f"[FRESHNESS] GDP weight: {gdp_weight:.2f}, CPI weight: {cpi_weight:.2f}",
             flush=True,
         )
+        # Yield spread — read from cache (populated by /api/yield-curve endpoint)
+        try:
+            _yc_analysis = (_yc_cache.get("data") or {}).get("analysis", {})
+            intel["yield_spread_india"] = float(
+                _yc_analysis.get("india_spread_10y_2y", 0.25) or 0.25
+            )
+        except Exception:
+            intel["yield_spread_india"] = 0.25
+        # India PMI — from hardcoded _PMI_VALUES (updated monthly)
+        intel.setdefault("hard_data", {})["pmi"] = _PMI_VALUES.get("IN", 0)
         try:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
