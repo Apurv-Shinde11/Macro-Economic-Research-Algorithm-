@@ -3,11 +3,13 @@ NLP.py — IndianMacroNLP
 Multi-provider LLM engine with graceful fallback chain.
 
 Provider order (cost-optimised, quality-first):
-  1. Google Gemini 2.0 Flash       — best quality, free tier
-  2. Google Gemini 1.5 Flash       — fallback model
-  3. Groq llama-3.3-70b-versatile  — fast, free tier (primary)
-  4. Groq llama-3.1-8b-instant     — fast fallback
-  5. Keyword engine                 — zero cost, always available
+  1. Google Gemini 2.0 Flash           — best quality, free tier
+  2. Google Gemini 2.0 Flash Lite      — Gemini fallback
+  3. OpenRouter Llama 3.1 8B (free)    — no IP blocks
+  4. OpenRouter Llama 3.2 3B (free)    — smaller fallback
+  5. OpenRouter Mistral 7B (free)      — final free fallback
+  6. Groq llama-3.3-70b-versatile      — last resort
+  7. Keyword engine                     — zero cost, always available
 """
 
 import os
@@ -41,6 +43,12 @@ GEMINI_MODELS = [
     "gemini-1.5-flash-latest",
 ]
 
+OPENROUTER_MODELS = [
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+]
+
 
 def _get_key(name):
     val = os.environ.get(name, "")
@@ -56,10 +64,11 @@ class IndianMacroNLP:
 
     def _init_providers(self):
         providers = []
-        gemini_key  = _get_key("GEMINI_API_KEY")
-        groq_key    = _get_key("GROQ_API_KEY")
-        mistral_key = _get_key("MISTRAL_API_KEY")
-        openai_key  = _get_key("OPENAI_API_KEY")
+        gemini_key     = _get_key("GEMINI_API_KEY")
+        openrouter_key = _get_key("OPENROUTER_API_KEY")
+        groq_key       = _get_key("GROQ_API_KEY")
+        mistral_key    = _get_key("MISTRAL_API_KEY")
+        openai_key     = _get_key("OPENAI_API_KEY")
 
         if gemini_key:
             providers.append({
@@ -67,6 +76,13 @@ class IndianMacroNLP:
                 "key":    gemini_key,
                 "models": GEMINI_MODELS,
                 "fn":     self._call_gemini
+            })
+        if openrouter_key:
+            providers.append({
+                "name":   "openrouter",
+                "key":    openrouter_key,
+                "models": OPENROUTER_MODELS,
+                "fn":     self._call_openrouter
             })
         if groq_key:
             providers.append({
@@ -182,6 +198,43 @@ Return ONLY this JSON structure, no other text:
                 last_error = e
                 continue
         raise last_error or Exception("All Groq models failed")
+
+    def _call_openrouter(self, provider, prompt):
+        import requests as _req
+        last_error = None
+        for model in provider.get("models", OPENROUTER_MODELS):
+            try:
+                print(f"[NLP] Trying OpenRouter {model}...", flush=True)
+                headers = {
+                    "Authorization": f"Bearer {provider['key']}",
+                    "Content-Type":  "application/json",
+                    "HTTP-Referer":  "https://macro-economic-research-algorithm.vercel.app",
+                    "X-Title":       "Sentinel Macro Intelligence",
+                }
+                payload = {
+                    "model":       model,
+                    "messages":    [{"role": "user", "content": prompt}],
+                    "max_tokens":  800,
+                    "temperature": 0.1,
+                }
+                r = _req.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=30,
+                )
+                if r.status_code != 200:
+                    raise Exception(f"HTTP {r.status_code}: {r.text[:200]}")
+                data   = r.json()
+                text   = data["choices"][0]["message"]["content"]
+                result = self._parse_llm_response(text)
+                print(f"[NLP] OpenRouter {model} succeeded", flush=True)
+                return result
+            except Exception as e:
+                print(f"[NLP] OpenRouter {model} failed: {str(e)[:80]}", flush=True)
+                last_error = e
+                continue
+        raise last_error or Exception("All OpenRouter models failed")
 
     def _call_mistral(self, provider, prompt):
         import urllib.request
