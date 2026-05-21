@@ -3697,7 +3697,7 @@
       renderActSignal(fromHistory ? data.regime : regime?.regime, conviction);
 
       if (!fromHistory && strategy) {
-        renderPlaybook(data.strategy, data.decision, data.regime);
+        renderPlaybook(data.strategy, data.decision, regime?.regime);
         renderDecisionPrompt(regime, data.strategy, data.decision);   // F7
         renderWtmfy(regime, data.strategy, data.decision, [{ confidence: regime?.confidence || 0 }, ..._lastHistory], data.sector_heatmap);  // F11
       } else if (fromHistory && data.summary) {
@@ -3766,55 +3766,166 @@
       const conviction = (strategy?.conviction || '').toUpperCase();
       const mandate = (_profile?.mandate_type || '').toLowerCase();
       const REGIME_PLAYBOOKS = {
-        "LIQUIDITY_DRIVEN_EXPANSION": [
-          "Equity: Selectively add to regime-appropriate sectors — avoid broad deployment",
-          "Increase allocation modestly (5–10% toward risk assets)",
-          "Favour large-cap over mid/small-cap until conviction firms to HIGH",
-          "Keep cash buffer at 10–12% — do not reduce below this level yet",
-        ],
-        "MONETARY_TIGHTENING": [
-          "Equity: Reduce to below benchmark weight — defensives only",
-          "Debt: Short duration strongly preferred — avoid long G-Sec",
-          "Gold: Add 5–8% allocation — rate uncertainty supports safe-haven",
-          "Cash: Build to 15–20% — deploy only when RBI signals pivot",
-          "Avoid: Banks, Real Estate, Auto — direct rate sensitivity",
-        ],
-        "STABLE_GROWTH": [
-          "Equity: Maintain benchmark weight — balanced sector exposure",
-          "Debt: Balanced duration — blend short and medium maturity",
-          "Gold: Hold structural 5% allocation",
-          "Selective additions across quality names in any sector",
-        ],
-        "EARLY_CYCLE_RECOVERY": [
-          "Equity: Aggressively add — early cycle is the best entry point",
-          "Overweight rate-sensitives: Banks, Real Estate, Auto",
-          "Extend bond duration — rate cuts ahead",
-          "Reduce cash buffer — deploy toward risk assets",
-        ],
-        "GROWTH_SLOWDOWN_SUPPORT": [
-          "Equity: Underweight — reduce cyclical exposure",
-          "Debt: Extend duration — rate cuts likely ahead",
-          "Defensives: FMCG, Pharma, IT exporters preferred",
-          "Build cash buffer to 15% — wait for growth stabilisation signals",
-        ],
-        "STAGFLATION_RISK": [
-          "Equity: Minimum weight — most challenging macro environment",
-          "Gold and commodities: Overweight as inflation hedge",
-          "IT and Pharma: Only equity exposure worth maintaining",
-          "Avoid all domestic cyclicals entirely",
-        ],
-        "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": [
-          "Equity: Reduce — inflation erodes real returns",
-          "Gold: Add significantly as inflation hedge",
-          "Short duration bonds only — avoid rate risk",
-          "Export earners: IT and Pharma provide relative safety",
-        ],
-        "LIQUIDITY_TIGHTENING": [
-          "Equity: Reduce to minimum weight",
-          "Debt: Ultra-short duration only — overnight funds",
-          "Avoid all credit — stick to sovereign",
-          "Cash is king until liquidity conditions ease",
-        ],
+        "LIQUIDITY_DRIVEN_EXPANSION": {
+          HIGH: [
+            "Equity: Deploy aggressively into regime-appropriate sectors",
+            "Overweight Banking, Infrastructure, Real Estate, Auto",
+            "Reduce cash buffer to 5–8% — conditions support deployment",
+            "Extend bond duration modestly — liquidity supports rates",
+          ],
+          MEDIUM: [
+            "Equity: Selective large-cap additions — no broad deployment yet",
+            "Increase allocation modestly (5–10% toward risk assets)",
+            "Favour large-cap over mid/small-cap until conviction firms",
+            "Keep cash buffer at 10–12% — do not reduce below this level",
+          ],
+          LOW: [
+            "Equity: Reduce to underweight — raise cash buffer",
+            "Debt: Short duration, G-Sec preferred over corporate credit",
+            "Gold: Add 3–5% as safe-haven hedge",
+            "Wait for 2 consecutive MEDIUM+ runs before any deployment",
+          ],
+        },
+        "MONETARY_TIGHTENING": {
+          HIGH: [
+            "Equity: Reduce to minimum weight — defensives only",
+            "Avoid: Banks, Real Estate, Auto — direct rate sensitivity",
+            "Debt: Ultra-short duration — overnight funds and T-bills",
+            "Gold: Add 7–10% — rate uncertainty supports safe-haven",
+          ],
+          MEDIUM: [
+            "Equity: Reduce to below benchmark weight — defensives only",
+            "Debt: Short duration strongly preferred — avoid long G-Sec",
+            "Gold: Add 5–8% allocation — rate uncertainty warrants hedge",
+            "Cash: Build to 15–20% — deploy only when RBI signals pivot",
+          ],
+          LOW: [
+            "Equity: Minimum weight across all sleeves",
+            "Debt: Cash and overnight instruments only",
+            "Gold: Maximum structural allocation",
+            "Do not deploy until regime confirms MEDIUM conviction",
+          ],
+        },
+        "STABLE_GROWTH": {
+          HIGH: [
+            "Equity: Maintain benchmark weight — broad participation",
+            "Balanced sector exposure — no strong directional tilt",
+            "Debt: Balanced duration blend — short and medium maturity",
+            "Focus on stock selection and quality over macro positioning",
+          ],
+          MEDIUM: [
+            "Equity: Maintain equity sleeve at neutral weight",
+            "Balanced G-Sec and corporate credit — neutral duration",
+            "Gold: Hold structural 5% allocation",
+            "No urgent macro trade — focus on quality and valuation",
+          ],
+          LOW: [
+            "Equity: Slight underweight until conviction builds",
+            "Debt: Neutral duration — avoid extremes",
+            "Hold cash buffer at 12–15%",
+            "Wait for regime to confirm before adding risk",
+          ],
+        },
+        "EARLY_CYCLE_RECOVERY": {
+          HIGH: [
+            "Equity: Aggressively add — best entry point in the cycle",
+            "Overweight rate-sensitives: Banks, Real Estate, Auto",
+            "Extend bond duration — rate cuts ahead will boost prices",
+            "Reduce cash buffer — deploy toward risk assets decisively",
+          ],
+          MEDIUM: [
+            "Equity: Add selectively to rate-sensitive sectors",
+            "Banks and Real Estate offer best risk/reward in recovery",
+            "Extend bond duration modestly",
+            "Reduce cash buffer by 3–5% toward risk assets",
+          ],
+          LOW: [
+            "Equity: Small additions only — confirm recovery first",
+            "Watch for second consecutive MEDIUM+ run before deploying",
+            "Debt: Begin extending duration gradually",
+            "Keep most cash ready — early cycle can reverse quickly",
+          ],
+        },
+        "GROWTH_SLOWDOWN_SUPPORT": {
+          HIGH: [
+            "Equity: Significant underweight — reduce cyclicals",
+            "Defensives only: FMCG, Pharma, IT exporters",
+            "Debt: Extend duration — rate cuts likely ahead",
+            "Build cash buffer to 15% — wait for growth stabilisation",
+          ],
+          MEDIUM: [
+            "Equity: Underweight — reduce cyclical exposure",
+            "Shift toward defensives and quality",
+            "Debt: Neutral to long duration",
+            "Cash buffer at 12–15% — cautious deployment",
+          ],
+          LOW: [
+            "Equity: Minimum weight — maximum caution",
+            "Debt: Long duration G-Sec for capital preservation",
+            "Gold: Add as recession hedge",
+            "Preserve capital — do not add risk in LOW conviction slowdown",
+          ],
+        },
+        "STAGFLATION_RISK": {
+          HIGH: [
+            "Equity: Minimum weight — most challenging macro environment",
+            "Hard assets: Gold and commodities — maximum overweight",
+            "IT and Pharma: Only equity exposure worth maintaining",
+            "Avoid ALL domestic cyclicals entirely",
+          ],
+          MEDIUM: [
+            "Equity: Well below benchmark — defensives and exporters only",
+            "Gold: Add significantly as stagflation hedge",
+            "Short duration bonds only — avoid duration risk",
+            "IT, Pharma, Gold: The only three allocations to hold",
+          ],
+          LOW: [
+            "Equity: Exit all cyclicals immediately",
+            "Maximum gold and commodity exposure",
+            "Cash in hard currency — INR at risk",
+            "Wait for either inflation or growth signal to resolve",
+          ],
+        },
+        "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": {
+          HIGH: [
+            "Equity: Reduce — inflation erodes real returns",
+            "Gold: Add significantly as inflation hedge",
+            "Short duration bonds only — avoid rate risk",
+            "Export earners: IT and Pharma for relative safety",
+          ],
+          MEDIUM: [
+            "Equity: Below benchmark — quality and exporters only",
+            "Gold: Add 7–10% as inflation hedge",
+            "Debt: Short duration, inflation-linked if available",
+            "Reduce INR exposure — hedge import costs",
+          ],
+          LOW: [
+            "Equity: Minimum weight",
+            "Gold: Maximum allocation",
+            "Cash in short-duration instruments only",
+            "Do not deploy until inflation shows two consecutive monthly declines",
+          ],
+        },
+        "LIQUIDITY_TIGHTENING": {
+          HIGH: [
+            "Equity: Minimum weight — liquidity withdrawal is equity negative",
+            "Debt: Ultra-short duration only — overnight funds",
+            "Avoid ALL credit — stick to sovereign",
+            "Cash is the only safe allocation",
+          ],
+          MEDIUM: [
+            "Equity: Significant underweight across all sectors",
+            "Debt: Short duration G-Sec and T-bills only",
+            "Reduce all leveraged positions immediately",
+            "Build cash buffer to 20%+",
+          ],
+          LOW: [
+            "Equity: Exit risk assets systematically",
+            "Overnight and liquid funds only",
+            "Gold for preservation — not for returns",
+            "Wait for liquidity conditions to stabilise",
+          ],
+        },
       };
       const _mkItem = (p, accent) => accent
         ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
@@ -3828,13 +3939,15 @@
           items.innerHTML = mPlays.slice(0, 5).map(p => _mkItem(p, false)).join('');
           return;
         }
-        items.innerHTML = [
+        const _rgBookL = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+        const _lowPlays = _rgBookL["LOW"] || _rgBookL["MEDIUM"] || [];
+        items.innerHTML = (_lowPlays.length ? _lowPlays : [
           'Hold existing positions — do not add aggressively until conviction builds',
           'Maintain higher cash buffer (15–20%)',
           'Avoid initiating new high-beta or mid/small-cap positions',
           'Watch for 2 consecutive MEDIUM+ conviction runs before deploying',
           'Reduce leverage-sensitive exposure'
-        ].map(p => _mkItem(p, false)).join('');
+        ]).map(p => _mkItem(p, false)).join('');
         return;
       }
 
@@ -3844,14 +3957,16 @@
           items.innerHTML = mPlays.slice(0, 5).map(p => _mkItem(p, false)).join('');
           return;
         }
-        const _regimePlays = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+        const _rgBookM = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+        const _regimePlays = _rgBookM["MEDIUM"] || _rgBookM["HIGH"] || [];
         items.innerHTML = _regimePlays.map(p => _mkItem(p, false)).join('');
         return;
       }
 
       // HIGH conviction — mandate overlay (blue accents) + regime-specific playbook, max 5 total
       const mandatePlays = _getMandatePlays(mandate, conviction);
-      const plays = REGIME_PLAYBOOKS[regimeKey] || strategy?.playbook || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+      const _rgBookH = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+      const plays = _rgBookH["HIGH"] || _rgBookH["MEDIUM"] || strategy?.playbook || [];
       if (!plays.length && !mandatePlays.length) {
         items.innerHTML = decision?.summary
           ? _mkItem(decision.summary, false)
