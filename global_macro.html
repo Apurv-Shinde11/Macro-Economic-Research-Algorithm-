@@ -1648,7 +1648,7 @@
         card.style.display = 'block';
         card.className     = 'currency-chart-card restricted';
         titleEl.textContent    = 'RUB — Russian Ruble';
-        subtitleEl.textContent = 'Capital controls active · Not on international feeds';
+        subtitleEl.textContent = 'No market rate on international feeds · CBR official rate only';
         const tabsRU = document.getElementById('currencyPerfTabs');
         if (tabsRU) tabsRU.style.display = 'none';
         const isLightRU = document.documentElement.classList.contains('light');
@@ -1659,6 +1659,7 @@
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
+            <div class="currency-regime-badge restricted">🔒 CAPITAL CONTROLS — Market rate suspended since Feb 2022</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${rv2};line-height:1.65;margin-bottom:12px;">
               RUB/USD market rate is not publicly available on international data feeds.
               Russia imposed capital controls in February 2022 following sanctions.
@@ -1675,7 +1676,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerRU = document.getElementById('currencyChartFooter');
-        if (footerRU) footerRU.textContent = 'Source: Central Bank of Russia (CBR). Data as of May 2026.';
+        if (footerRU) footerRU.textContent = 'Restricted currencies require local market access — unavailable to most foreign investors.';
         return;
       }
 
@@ -1684,7 +1685,7 @@
         card.style.display = 'block';
         card.className     = 'currency-chart-card info';
         titleEl.textContent    = 'AED — UAE Dirham';
-        subtitleEl.textContent = 'USD Peg · Fixed at 3.67 AED/USD';
+        subtitleEl.textContent = 'Fixed 3.67 AED/USD since 1997 · No currency risk for USD investors';
         const tabsAE = document.getElementById('currencyPerfTabs');
         if (tabsAE) tabsAE.style.display = 'none';
         const isLightAE = document.documentElement.classList.contains('light');
@@ -1695,6 +1696,7 @@
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
+            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${av2};line-height:1.65;margin-bottom:12px;">
               AED is pegged to the US Dollar at a fixed rate of 3.67 AED/USD since 1997.
               The peg is maintained by the UAE Central Bank's substantial FX reserves.
@@ -1710,7 +1712,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerAE = document.getElementById('currencyChartFooter');
-        if (footerAE) footerAE.textContent = 'Source: Central Bank of UAE. As of May 2026.';
+        if (footerAE) footerAE.textContent = 'Pegged currencies offer zero FX volatility but carry sovereign/political risk.';
         return;
       }
       // QA — pegged to USD at 3.64
@@ -1718,7 +1720,7 @@
         card.style.display = 'block';
         card.className     = 'currency-chart-card info';
         titleEl.textContent    = 'QAR — Qatari Riyal';
-        subtitleEl.textContent = 'USD Peg · Fixed at 3.64 QAR/USD';
+        subtitleEl.textContent = 'Fixed 3.64 QAR/USD · Backed by QIA sovereign wealth fund';
         const tabsQA = document.getElementById('currencyPerfTabs');
         if (tabsQA) tabsQA.style.display = 'none';
         const isLightQA = document.documentElement.classList.contains('light');
@@ -1729,6 +1731,7 @@
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
+            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${qv2};line-height:1.65;margin-bottom:12px;">
               QAR is pegged to the US Dollar at a fixed rate of 3.64 QAR/USD since 2001.
               Qatar's sovereign wealth fund (QIA, ~$450B AUM) provides a strong backstop.
@@ -1744,7 +1747,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerQA = document.getElementById('currencyChartFooter');
-        if (footerQA) footerQA.textContent = 'Source: Qatar Central Bank (QCB). As of May 2026.';
+        if (footerQA) footerQA.textContent = 'Pegged currencies offer zero FX volatility but carry sovereign/political risk.';
         return;
       }
       // AR — dual exchange rate / capital controls
@@ -1752,7 +1755,7 @@
         card.style.display = 'block';
         card.className     = 'currency-chart-card restricted';
         titleEl.textContent    = 'ARS — Argentine Peso';
-        subtitleEl.textContent = 'Dual exchange rate · Capital controls active';
+        subtitleEl.textContent = 'Official ~1,000 ARS/USD · Parallel rate diverges significantly';
         const tabsAR = document.getElementById('currencyPerfTabs');
         if (tabsAR) tabsAR.style.display = 'none';
         const isLightAR = document.documentElement.classList.contains('light');
@@ -1762,6 +1765,7 @@
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
+            <div class="currency-regime-badge restricted">⚠️ DUAL RATE SYSTEM — Official and parallel rates diverge significantly</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${rrv2};line-height:1.65;margin-bottom:12px;">
               Argentina operates a dual exchange rate system. The official rate (~1,000 ARS/USD) differs significantly
               from the parallel 'blue dollar' rate. Capital controls active since 2019.
@@ -1777,7 +1781,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerAR = document.getElementById('currencyChartFooter');
-        if (footerAR) footerAR.textContent = 'Source: BCRA (Banco Central de la República Argentina). Data as of May 2026.';
+        if (footerAR) footerAR.textContent = 'Restricted currencies require local market access — unavailable to most foreign investors.';
         return;
       }
 
