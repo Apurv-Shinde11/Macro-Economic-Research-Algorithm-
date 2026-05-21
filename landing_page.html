@@ -778,6 +778,57 @@
     html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg)  scale(1);   }
     html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
 
+    /* ══ PRICING ══ */
+    #pricing {
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 1px; background: var(--border);
+      border-radius: 14px; overflow: hidden;
+      margin-top: 60px;
+    }
+    .pricing-card {
+      background: var(--bg-2); padding: 40px 34px;
+      transition: background 0.3s, box-shadow 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .pricing-card:hover { background: var(--bg-3); }
+    .pricing-card.featured {
+      border: 1px solid var(--blue);
+      box-shadow: inset 0 0 40px rgba(79,131,255,0.06);
+    }
+    .pricing-label {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.22em; color: var(--text-3);
+      text-transform: uppercase; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pricing-pop-badge {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em;
+      padding: 3px 8px; border-radius: 4px; text-transform: uppercase; font-weight: 600;
+      background: rgba(79,131,255,0.14); color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.28);
+    }
+    .pricing-price {
+      font-family: var(--font-serif); font-size: 32px; font-weight: 600;
+      color: var(--text); margin-bottom: 8px; line-height: 1.1;
+    }
+    .pricing-tagline {
+      font-size: 13px; color: var(--text-2); line-height: 1.5; margin-bottom: 28px;
+    }
+    .pricing-divider { height: 1px; background: var(--border); margin-bottom: 22px; }
+    .pricing-features { list-style: none; }
+    .pricing-features li {
+      font-size: 13px; color: var(--text-2); padding: 6px 0;
+      display: flex; align-items: flex-start; gap: 8px;
+      border-bottom: 1px solid rgba(99,132,255,0.06);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-check { color: var(--green); flex-shrink: 0; font-size: 12px; margin-top: 2px; }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 960px) {
       nav { padding: 0 24px; }
@@ -811,10 +862,10 @@
     <a class="nav-logo" href="#">EconIq</a>
     <ul class="nav-links">
       <li><a href="#problem">What We Do</a></li>
-      <li><a href="#how">How It Works</a></li>
       <li><a href="#features">Features</a></li>
-      <li><a href="#backtest">Performance</a></li>
-      <li><a href="global_macro.html">Global Macro →</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="global_macro.html">Global Macro ↗</a></li>
+      <li><a href="pe.html">PE Intel ↗</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
@@ -839,17 +890,17 @@
       <div class="hero-eyebrow fade-in">
         <span class="eyebrow-line"></span>
         <span class="eyebrow-dot"></span>
-        India Macro Intelligence · Daily Regime Engine
+        India Macro Intelligence · 50 Economies · Daily Regime Engine
       </div>
       <h1 class="hero-h1 delay-1">
         The macro regime.<br>
         <em>Decoded daily.</em>
       </h1>
       <p class="hero-sub delay-2">
-        EconIq is an AI-powered macroeconomic intelligence terminal built for India's PMS managers, CAs, and wealth advisors — delivering daily regime analysis, portfolio playbook, and alert signals in one platform.
+        Sentinel is India's first AI-powered macro intelligence terminal — delivering daily regime classification, portfolio playbooks, and global macro coverage across 50 economies for professional allocators, PMS managers, and PE investors.
       </p>
       <div class="hero-ctas delay-3">
-        <a class="btn-primary" href="#cta">Request Early Access</a>
+        <a class="btn-primary" href="login.html">Access Sentinel</a>
         <a class="btn-outline" href="#features">See how it works ↓</a>
       </div>
       <div class="hero-proof delay-4">
@@ -878,7 +929,7 @@
             <div class="dot dot-red"></div>
             <div class="dot dot-amber"></div>
             <div class="dot dot-green"></div>
-            <span class="terminal-title">EconIq · MACRO REGIME ENGINE v2.4</span>
+            <span class="terminal-title">Sentinel · MACRO REGIME ENGINE · Live</span>
             <div class="terminal-live"><div class="live-dot"></div>LIVE</div>
           </div>
           <div class="terminal-body">
@@ -935,18 +986,18 @@
     <div class="problem-grid reveal">
       <div class="problem-card">
         <div class="problem-num"><span>01</span></div>
-        <div class="problem-title">A Named Macro Regime</div>
-        <div class="problem-desc">Every run produces a single authoritative regime classification — Stable Growth, Monetary Tightening, Stagflation Risk, and five others — with a confidence score, challenger regime, and persistence tracking so you always know how firm the call is.</div>
+        <div class="problem-title">A Named Macro Regime — Daily</div>
+        <div class="problem-desc">Every run produces a single authoritative regime classification — one of eight named regimes from Stable Growth to Stagflation Risk — with a confidence score, conviction level, challenger regime, and leading indicator alignment. Stability tracking shows whether the regime is building or breaking down.</div>
       </div>
       <div class="problem-card">
         <div class="problem-num"><span>02</span></div>
-        <div class="problem-title">An Actionable Portfolio Playbook</div>
-        <div class="problem-desc">The regime drives a conviction-adjusted allocation, sector overweight/underweight calls, tactical actions, and a risk framework — delivered as a white-label PDF to your inbox and to your clients under your firm's name.</div>
+        <div class="problem-title">A Conviction-Adjusted Portfolio Playbook</div>
+        <div class="problem-desc">The regime drives conviction-specific allocation bullets, sector heatmap with reasoning, scenario probabilities, and a multi-asset playbook that updates when conditions change — not just when you ask. Mandate-aware personalisation for equity, multi-asset, and aggressive profiles.</div>
       </div>
       <div class="problem-card">
         <div class="problem-num"><span>03</span></div>
-        <div class="problem-title">Intelligent Push Alerts</div>
-        <div class="problem-desc">When something meaningful changes — a regime shift, a confidence breach, a VIX spike, a sustained FII outflow — EconIq pushes an alert immediately. You are never the last to know when the macro environment is moving.</div>
+        <div class="problem-title">Global Macro + PE Intelligence</div>
+        <div class="problem-desc">50-economy global macro dashboard with live currency performance, yield data, and macro narratives. A dedicated PE Intelligence page translating the macro regime into deal environment, sector cycles, cost of capital, and IRR implications — updated automatically as the regime shifts.</div>
       </div>
     </div>
   </section>
@@ -964,25 +1015,28 @@
         <div class="how-tags">
           <span class="how-tag">NSE Live</span><span class="how-tag">RBI DBIE</span>
           <span class="how-tag">FII/DII</span><span class="how-tag">Yield Curve</span>
-          <span class="how-tag">NLP Headlines</span>
+          <span class="how-tag">LLM Headlines</span><span class="how-tag">World Bank</span>
+          <span class="how-tag">FRED Policy Rates</span>
         </div>
       </div>
       <div class="how-card" data-step="02">
         <div class="how-icon">🧠</div>
         <div class="how-title">Regime Engine</div>
-        <div class="how-desc">A multi-factor scoring engine classifies India's macro environment into one of eight named regimes — with confidence score, challenger regime, and persistence tracking.</div>
+        <div class="how-desc">A multi-factor scoring engine classifies India's macro environment into one of eight named regimes. Live signals — VIX, crude, FII flows, yield curve — feed directly into the classification, not just as an overlay. Leading indicators score separately from lagging macro data.</div>
         <div class="how-tags">
-          <span class="how-tag">8 Regimes</span><span class="how-tag">Confidence Score</span>
-          <span class="how-tag">Challenger</span><span class="how-tag">LLM Synthesis</span>
+          <span class="how-tag">8 Regimes</span><span class="how-tag">Live Signals</span>
+          <span class="how-tag">Leading Score</span><span class="how-tag">Confidence</span>
+          <span class="how-tag">Challenger</span>
         </div>
       </div>
       <div class="how-card" data-step="03">
         <div class="how-icon">🎯</div>
         <div class="how-title">Actionable Output</div>
-        <div class="how-desc">A portfolio playbook, sector positioning, conviction-adjusted allocation, scenario probabilities, and a white-label PDF — delivered to your inbox by 8am.</div>
+        <div class="how-desc">Regime-specific playbook, sector positioning with reasoning, conviction-adjusted allocation, scenario probabilities, anticipatory signals, and economic calendar context — all on one dashboard. PE and global macro pages extend the intelligence beyond India equities.</div>
         <div class="how-tags">
-          <span class="how-tag">Playbook</span><span class="how-tag">Sector Calls</span>
-          <span class="how-tag">PDF Report</span><span class="how-tag">Email + Alerts</span>
+          <span class="how-tag">Playbook</span><span class="how-tag">Sector Heatmap</span>
+          <span class="how-tag">PE Intel</span><span class="how-tag">Global Macro</span>
+          <span class="how-tag">Alerts</span>
         </div>
       </div>
     </div>
@@ -997,38 +1051,103 @@
       <div class="feature-card">
         <div class="feature-icon-row"><div class="feature-icon">📊</div><span class="feature-badge badge-tier1">Core Engine</span></div>
         <div class="feature-title">India Macro Regime Engine</div>
-        <div class="feature-desc">Eight named regimes covering every macro environment India faces — from Stable Growth to Stagflation Risk. Each run produces a dominant regime, confidence score, challenger regime, and persistence adjustment.</div>
-        <div class="feature-detail">STABLE_GROWTH · LIQUIDITY_DRIVEN_EXPANSION · MONETARY_TIGHTENING · STAGFLATION_RISK · EARLY_CYCLE_RECOVERY + 3 more</div>
+        <div class="feature-desc">Eight named regimes covering every macro environment India faces. Live market signals — VIX, crude, FII flows, yield curve — feed directly into regime classification. Leading indicator score runs independently of lagging macro data for forward-looking sensitivity.</div>
+        <div class="feature-detail">LIQUIDITY_DRIVEN_EXPANSION · MONETARY_TIGHTENING · STABLE_GROWTH · STAGFLATION_RISK · EARLY_CYCLE_RECOVERY + 3 more</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon-row"><div class="feature-icon">⚡</div><span class="feature-badge badge-tier1">Intelligence</span></div>
-        <div class="feature-title">Intelligent Notifications</div>
-        <div class="feature-desc">Push alerts that fire only when something meaningful changes — not daily noise. Regime shifts, challenger confidence breaches, VIX spikes, FII outflow streaks, and RBI event reminders with macro context.</div>
-        <div class="feature-detail">Regime shift · Confidence breach · VIX > 22 · INR > 85 · Crude spike · FII outflow streak · RBI event reminder</div>
+        <div class="feature-title">Anticipatory Signal Detection</div>
+        <div class="feature-desc">Proactively flags when leading indicators are forming a pattern — DEPLOYMENT_WINDOW when three supportive signals align, STRESS_BUILDING when crude, VIX, and FII selling align simultaneously. Fires before lagging data confirms the move.</div>
+        <div class="feature-detail">DEPLOYMENT_WINDOW · STRESS_BUILDING · REGIME_FORMING · CAUTION — each with supporting signals and action directive</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon-row"><div class="feature-icon">📈</div><span class="feature-badge badge-tier1">Market Data</span></div>
         <div class="feature-title">FII/DII Flow Intelligence</div>
-        <div class="feature-desc">India's most-watched institutional flow data synthesised into regime signals. Net flows, consecutive-day streaks, rolling 5-day momentum, and integration into the liquidity scoring engine.</div>
-        <div class="feature-detail">Live NSE feed · Combined flow signal · RISK_ON / RISK_OFF classification · Liquidity engine integration</div>
+        <div class="feature-desc">Daily institutional flow data synthesised into regime signals. Net flows, 1D/1W/1M/3M tabs, consecutive-day streaks, and integration into the live regime scoring engine — not just displayed as numbers.</div>
+        <div class="feature-detail">Live NSE feed · Multi-timeframe tabs · RISK_ON / RISK_OFF classification · Liquidity engine integration</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-row"><div class="feature-icon">🌍</div><span class="feature-badge badge-tier2">Global Macro</span></div>
+        <div class="feature-title">50-Economy Global Macro Dashboard</div>
+        <div class="feature-desc">Top 50 economies by nominal GDP with live currency performance, yield data, PMI, policy rates, and country-specific macro narratives. Handles pegged currencies (UAE, Saudi, Qatar), capital controls (Russia), and dual exchange rates (Argentina).</div>
+        <div class="feature-detail">World Bank data · Live FX charts · Peg &amp; capital control handling · Clickable economy list · Flag + name</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-row"><div class="feature-icon">💼</div><span class="feature-badge badge-tier2">PE Intelligence</span></div>
+        <div class="feature-title">Private Equity Intelligence Layer</div>
+        <div class="feature-desc">The macro regime translated into PE deal environment, sector cycle positioning, cost of capital, and IRR implications — all updating automatically as the regime shifts. Deal flow timestamps, regime-driven sector signals, and dynamic cost of capital from live repo rate.</div>
+        <div class="feature-detail">Deal environment · Sector cycles · Cost of capital · IRR context · Live regime strip · ⚡ Regime-driven badges</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon-row"><div class="feature-icon">📊</div><span class="feature-badge badge-tier2">India Activity</span></div>
+        <div class="feature-title">India Activity Signals</div>
+        <div class="feature-desc">GST collections, auto sales, and bank credit growth as real economy confirmation signals alongside the market-based regime classification. Composite activity score — STRONG / MODERATE / WEAK — available on every dashboard load.</div>
+        <div class="feature-detail">GST · Auto Sales · Bank Credit · Composite score · April 2026 data · Monthly updated</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon-row"><div class="feature-icon">📄</div><span class="feature-badge badge-tier2">Distribution</span></div>
-        <div class="feature-title">White-Label PDF Reports</div>
-        <div class="feature-desc">Every morning's briefing generates a PDF that shows your firm's name — not EconIq's. Designed for PMS managers who send research to clients. Timestamped, structured, and SEBI-compliant in framing.</div>
-        <div class="feature-detail">"Apex Capital — Monthly Macro Review, powered by EconIq" · Per-user branding · Automated delivery by 8am IST</div>
+        <div class="feature-title">Intelligent Push Alerts</div>
+        <div class="feature-desc">WhatsApp and email alerts that fire only when something meaningful changes — regime shift at 60%+ confidence, challenger breach, VIX spike, sustained FII outflow. Duplicate prevention ensures you are never spammed.</div>
+        <div class="feature-detail">Regime shift · Confidence breach · VIX > 22 · FII outflow streak · WhatsApp + email · Supabase dedup</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">📉</div><span class="feature-badge badge-tier1">Analytics</span></div>
-        <div class="feature-title">Yield Curve Intelligence</div>
-        <div class="feature-desc">India G-Sec and US Treasury yield curves tracked in real time. 10Y-2Y spread, India-US carry signal, curve shape classification — all wired directly into the regime scoring engine.</div>
-        <div class="feature-detail">Live RBI DBIE feed · Inversion detection · FII carry signal · Plotly interactive chart</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">🗂️</div><span class="feature-badge badge-tier2">History</span></div>
+        <div class="feature-icon-row"><div class="feature-icon">🗂️</div><span class="feature-badge badge-tier2">Archive</span></div>
         <div class="feature-title">Historical Regime Archive</div>
-        <div class="feature-desc">Every run is stored. Look back and see exactly what EconIq said on any date — regime, confidence, conviction, allocation, decision summary. Backtest-grade regime history growing daily.</div>
-        <div class="feature-detail">Supabase persistence · Confidence trend chart · Conviction timeline · Full run inspector</div>
+        <div class="feature-desc">Every run stored with regime, confidence, conviction, equity bias, implied action. Outcome tracking as 30-day windows close. Backtest performance by regime — hit rates, average returns, worst/best across Nifty, Bank Nifty, Midcap, IT, and Infra indices.</div>
+        <div class="feature-detail">Full run history · Outcome tracking · 5-index backtest · Per-regime performance · Confidence trend sparkline</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ PRICING ════ -->
+  <section id="pricing" class="section">
+    <div class="section-label reveal">Pricing</div>
+    <h2 class="section-h2 reveal">Built for <em>professional allocators.</em></h2>
+    <p class="section-sub reveal">Three tiers designed for different depths of macro engagement — from individual practitioners to institutional teams.</p>
+    <div class="pricing-grid reveal">
+      <div class="pricing-card">
+        <div class="pricing-label">Individual</div>
+        <div class="pricing-price">₹2,999 – ₹7,999<span style="font-size:16px;font-family:var(--font-sans);font-weight:400;color:var(--text-2);"> / month</span></div>
+        <div class="pricing-tagline">For individual practitioners and advisors</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check">✓</span>Daily regime dashboard</li>
+          <li><span class="pricing-check">✓</span>Conviction-adjusted playbook</li>
+          <li><span class="pricing-check">✓</span>Sector heatmap with reasoning</li>
+          <li><span class="pricing-check">✓</span>India activity signals</li>
+          <li><span class="pricing-check">✓</span>Economic calendar</li>
+          <li><span class="pricing-check">✓</span>Email alerts on regime shift</li>
+        </ul>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-label">Professional <span class="pricing-pop-badge">Most Popular</span></div>
+        <div class="pricing-price">₹24,999<span style="font-size:16px;font-family:var(--font-sans);font-weight:400;color:var(--text-2);"> / month</span></div>
+        <div class="pricing-tagline">For PMS managers and wealth advisors</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check">✓</span>Everything in Individual</li>
+          <li><span class="pricing-check">✓</span>PE Intelligence dashboard</li>
+          <li><span class="pricing-check">✓</span>Global macro — 50 economies</li>
+          <li><span class="pricing-check">✓</span>FII/DII multi-timeframe flows</li>
+          <li><span class="pricing-check">✓</span>WhatsApp + email alerts</li>
+          <li><span class="pricing-check">✓</span>Historical regime archive</li>
+          <li><span class="pricing-check">✓</span>Priority support</li>
+        </ul>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-label">Institutional <span class="pricing-pop-badge" style="background:rgba(251,191,36,0.10);color:var(--amber);border-color:rgba(251,191,36,0.28);">Custom</span></div>
+        <div class="pricing-price">₹50,000+<span style="font-size:16px;font-family:var(--font-sans);font-weight:400;color:var(--text-2);"> / month</span></div>
+        <div class="pricing-tagline">For funds and institutional allocators</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pricing-check">✓</span>Everything in Professional</li>
+          <li><span class="pricing-check">✓</span>Custom mandate configuration</li>
+          <li><span class="pricing-check">✓</span>White-label PDF reports</li>
+          <li><span class="pricing-check">✓</span>API access</li>
+          <li><span class="pricing-check">✓</span>Dedicated relationship support</li>
+          <li><span class="pricing-check">✓</span>Custom alert thresholds</li>
+          <li><span class="pricing-check">✓</span>Onboarding and training</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -1078,18 +1197,18 @@
   <!-- ════ CTA ════ -->
   <section id="cta">
     <div class="cta-inner reveal">
-      <div class="cta-badge"><span class="cta-badge-dot"></span>Early Access · Limited Seats</div>
-      <h2 class="cta-h2">Your first regime briefing.<br><em>Tomorrow morning.</em></h2>
-      <p class="cta-sub">Join India's first macro intelligence terminal built for the ₹100–500 Cr PMS manager. Request early access and our team will be in touch within 24 hours.</p>
-      <form class="cta-form" onsubmit="handleSubmit(event)">
-        <input class="cta-input" type="email" id="cta-email" placeholder="your@firm.com" required>
-        <button class="btn-primary" type="submit" id="cta-btn" style="white-space:nowrap;">Request Access</button>
-      </form>
-      <div class="cta-disclaimer" id="cta-msg">No spam. No commitment. Early access only.</div>
+      <div class="cta-badge"><span class="cta-badge-dot"></span>Sentinel · Professional Macro Intelligence</div>
+      <h2 class="cta-h2">Start with the<br><em>full picture.</em></h2>
+      <p class="cta-sub">Sentinel is live and available now. Access the daily regime dashboard, PE intelligence layer, and 50-economy global macro coverage — purpose-built for India's professional allocators.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;">
+        <a class="btn-primary" href="login.html" style="font-size:15px;padding:14px 32px;">Access Sentinel →</a>
+        <a class="btn-outline" href="mailto:hello@econiq.in" style="font-size:15px;padding:14px 32px;">Request a Demo</a>
+      </div>
+      <div class="cta-disclaimer">Individual · Professional · Institutional plans available</div>
       <div class="cta-trust">
         <div class="trust-item"><span class="trust-icon">🔒</span>SEBI-Compliant Framing</div>
-        <div class="trust-item"><span class="trust-icon">⚡</span>Delivered by 8am IST Daily</div>
-        <div class="trust-item"><span class="trust-icon">🎯</span>Purpose-Built for India PMS</div>
+        <div class="trust-item"><span class="trust-icon">🌍</span>50 Economies · Global Coverage</div>
+        <div class="trust-item"><span class="trust-icon">⚡</span>Live Regime Engine · Daily Updates</div>
       </div>
     </div>
   </section>
@@ -1097,8 +1216,8 @@
   <!-- ════ FOOTER ════ -->
   <footer>
     <div class="footer-left">
-      <div class="footer-logo">ECONIQ</div>
-      <div class="footer-tagline">India Macro Intelligence Terminal</div>
+      <div class="footer-logo">SENTINEL by EconIq</div>
+      <div class="footer-tagline">India Macro Intelligence · 50 Economies · Daily Regime Engine</div>
     </div>
     <div class="footer-disclaimer">
       EconIq is a macro research tool for informational purposes only. It does not constitute investment advice. SEBI Research Analyst registration is not required for internal research tools. Past backtest performance does not guarantee future results.
@@ -1124,7 +1243,7 @@
     }, { passive: true });
 
     /* ── Ticker band ── */
-    const tickers = [
+    const _fallbackTickers = [
       { name: 'NIFTY 50', val: '24,127.35', chg: '+0.82%', up: true },
       { name: 'SENSEX',   val: '79,408.50', chg: '+0.76%', up: true },
       { name: 'USDINR',   val: '83.42',     chg: '-0.09%', up: false },
@@ -1135,14 +1254,40 @@
       { name: 'FII NET',  val: '+₹1,842 Cr',chg: 'TODAY',  up: true },
       { name: 'DII NET',  val: '-₹340 Cr',  chg: 'TODAY',  up: false },
     ];
-    const tickerHtml = [...tickers, ...tickers].map(t =>
+    document.getElementById('ticker-track').innerHTML = [..._fallbackTickers, ..._fallbackTickers].map(t =>
       `<div class="ticker-item">
         <span class="ticker-name">${t.name}</span>
         <span class="ticker-val">${t.val}</span>
         <span class="ticker-chg ${t.up ? 'up' : 'down'}">${t.chg}</span>
       </div>`
     ).join('');
-    document.getElementById('ticker-track').innerHTML = tickerHtml;
+
+    const RAIL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+    async function loadLiveTicker() {
+      try {
+        const res  = await fetch(`${RAIL}/api/ticker`);
+        const data = await res.json();
+        const items = data.tickers || [];
+        if (!items.length) throw new Error('empty');
+        const tickerHtml = [...items, ...items].map(t => {
+          const up = parseFloat(
+            (t.change_pct || '0').replace('%','')
+          ) >= 0;
+          return `<div class="ticker-item">
+            <span class="ticker-name">${t.label}</span>
+            <span class="ticker-val">${t.price}</span>
+            <span class="ticker-chg ${up ? 'up' : 'down'}">
+              ${t.change_pct || ''}
+            </span>
+          </div>`;
+        }).join('');
+        document.getElementById('ticker-track').innerHTML = tickerHtml;
+      } catch(e) {
+        // Keep existing hardcoded fallback on error
+        console.log('Ticker fallback:', e.message);
+      }
+    }
+    loadLiveTicker();
 
     /* ── Scroll reveal ── */
     const observer = new IntersectionObserver(entries => {
