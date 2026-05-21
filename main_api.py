@@ -1690,7 +1690,25 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
     job = _get_job(job_id)
     if not job: raise HTTPException(status_code=404, detail="Job not found or expired")
     if job["user_id"] != user.id: raise HTTPException(status_code=403, detail="Not your job")
-    return {"job_id": job_id, "status": job["status"], "result": job["result"] if job["status"] == "complete" else None, "error": job["error"] if job["status"] == "failed" else None}
+    _result = job["result"] if job["status"] == "complete" else None
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "result": _result,
+        "error":  job["error"] if job["status"] == "failed" else None,
+        "anticipatory": (_result or {}).get("anticipatory", {
+            "type":               "STABLE",
+            "message":            "Leading signals unavailable.",
+            "supporting_signals": [],
+            "confidence_pct":     50,
+            "action":             "HOLD current allocation",
+        }),
+        "leading_intelligence": (_result or {}).get("leading_intelligence", {
+            "score":   0.5,
+            "signals": [],
+            "trend":   "STABLE",
+        }),
+    }
 
 @app.get("/api/history")
 async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
