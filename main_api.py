@@ -2957,14 +2957,29 @@ async def get_currency_history(code: str = "IN"):
     import yfinance as yf
 
     CURRENCY_TICKERS = {
+        # Original 20
         "US": None,        "CN": "USDCNY=X",  "DE": "EURUSD=X",  "IN": "USDINR=X",
         "JP": "USDJPY=X",  "GB": "GBPUSD=X",  "FR": "EURUSD=X",  "IT": "EURUSD=X",
         "BR": "USDBRL=X",  "CA": "USDCAD=X",  "RU": None,        "KR": "USDKRW=X",
         "AU": "AUDUSD=X",  "MX": "USDMXN=X",  "ID": "USDIDR=X",  "NL": "EURUSD=X",
         "SA": None,        "TR": "USDTRY=X",  "CH": "USDCHF=X",  "TW": "USDTWD=X",
+        # Freely floating additions
+        "PL": "USDPLN=X",  "SE": "USDSEK=X",  "NO": "USDNOK=X",  "IL": "USDILS=X",
+        "SG": "USDSGD=X",  "ZA": "USDZAR=X",  "MY": "USDMYR=X",  "DK": "USDDKK=X",
+        "PH": "USDPHP=X",  "TH": "USDTHB=X",  "BD": "USDBDT=X",  "VN": "USDVND=X",
+        "PK": "USDPKR=X",  "CO": "USDCOP=X",  "CL": "USDCLP=X",  "CZ": "USDCZK=X",
+        "RO": "USDRON=X",  "NZ": "NZDUSD=X",  "HU": "USDHUF=X",  "KZ": "USDKZT=X",
+        "NG": "USDNGN=X",
+        # EUR-zone members — same EURUSD=X rate as DE, FR, IT
+        "BE": "EURUSD=X",  "AT": "EURUSD=X",  "IE": "EURUSD=X",
+        "FI": "EURUSD=X",  "PT": "EURUSD=X",  "GR": "EURUSD=X",
     }
-    # Pairs where a rising quote means the non-USD currency is weakening
-    INVERTED = {"IN", "JP", "CN", "BR", "CA", "KR", "MX", "ID", "TR", "CH", "TW"}
+    # Pairs where a rising quote means the non-USD currency is weakening (USD is base)
+    INVERTED = {
+        "IN", "JP", "CN", "BR", "CA", "KR", "MX", "ID", "TR", "CH", "TW",
+        "PL", "SE", "NO", "IL", "SG", "ZA", "MY", "DK", "PH", "TH", "BD",
+        "VN", "PK", "CO", "CL", "CZ", "RO", "NZ", "HU", "KZ", "NG",
+    }
 
     code_upper  = code.upper()
     ticker_sym  = CURRENCY_TICKERS.get(code_upper)
@@ -3014,6 +3029,7 @@ async def get_currency_history(code: str = "IN"):
             },
             "sparkline_90d": sparkline,
             "available":     True,
+            "inverse":       code_upper == "NZ",
         }
 
     except Exception as e:
