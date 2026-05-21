@@ -1450,6 +1450,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             "india_vix": nse_snapshot.get("india_vix", 15),
             "nifty_pcr": nse_snapshot.get("pcr", 1.0),
         })
+        # RBI signal sanity check
+        # If current repo rate is at or below 5.5% and NLP says HIKE,
+        # override to PAUSE unless there has been an actual rate change
+        _nlp_rbi = intel.get("rbi_policy_implication", "PAUSE")
+        _repo    = float(intel["hard_data"].get("repo_rate", 6.5))
+        if _nlp_rbi == "HIKE" and _repo <= 5.5:
+            print(
+                f"[RBI_GUARD] NLP returned HIKE but "
+                f"repo={_repo}% — overriding to PAUSE",
+                flush=True
+            )
+            intel["rbi_policy_implication"] = "PAUSE"
         # Data freshness weights — infrastructure for regime engine; logged to Railway
         gdp_weight = _get_data_freshness_weight("gdp")
         cpi_weight = _get_data_freshness_weight("cpi")

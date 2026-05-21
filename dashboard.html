@@ -3697,9 +3697,9 @@
       renderActSignal(fromHistory ? data.regime : regime?.regime, conviction);
 
       if (!fromHistory && strategy) {
-        renderPlaybook(data.strategy, data.decision);
+        renderPlaybook(data.strategy, data.decision, data.regime);
         renderDecisionPrompt(regime, data.strategy, data.decision);   // F7
-        renderWtmfy(regime, data.strategy, data.decision, [{ confidence: regime?.confidence || 0 }, ..._lastHistory]);  // F11
+        renderWtmfy(regime, data.strategy, data.decision, [{ confidence: regime?.confidence || 0 }, ..._lastHistory], data.sector_heatmap);  // F11
       } else if (fromHistory && data.summary) {
         document.getElementById('playbookItems').innerHTML = `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${data.summary}</span></div>`;
         const _hReg = { regime: data.regime, confidence: data.confidence, narrative: data.summary, drivers: [] };
@@ -3761,10 +3761,61 @@
       antEl.style.display = 'block';
     }
 
-    function renderPlaybook(strategy, decision) {
+    function renderPlaybook(strategy, decision, regimeKey) {
       const items = document.getElementById('playbookItems');
       const conviction = (strategy?.conviction || '').toUpperCase();
       const mandate = (_profile?.mandate_type || '').toLowerCase();
+      const REGIME_PLAYBOOKS = {
+        "LIQUIDITY_DRIVEN_EXPANSION": [
+          "Equity: Selectively add to regime-appropriate sectors — avoid broad deployment",
+          "Increase allocation modestly (5–10% toward risk assets)",
+          "Favour large-cap over mid/small-cap until conviction firms to HIGH",
+          "Keep cash buffer at 10–12% — do not reduce below this level yet",
+        ],
+        "MONETARY_TIGHTENING": [
+          "Equity: Reduce to below benchmark weight — defensives only",
+          "Debt: Short duration strongly preferred — avoid long G-Sec",
+          "Gold: Add 5–8% allocation — rate uncertainty supports safe-haven",
+          "Cash: Build to 15–20% — deploy only when RBI signals pivot",
+          "Avoid: Banks, Real Estate, Auto — direct rate sensitivity",
+        ],
+        "STABLE_GROWTH": [
+          "Equity: Maintain benchmark weight — balanced sector exposure",
+          "Debt: Balanced duration — blend short and medium maturity",
+          "Gold: Hold structural 5% allocation",
+          "Selective additions across quality names in any sector",
+        ],
+        "EARLY_CYCLE_RECOVERY": [
+          "Equity: Aggressively add — early cycle is the best entry point",
+          "Overweight rate-sensitives: Banks, Real Estate, Auto",
+          "Extend bond duration — rate cuts ahead",
+          "Reduce cash buffer — deploy toward risk assets",
+        ],
+        "GROWTH_SLOWDOWN_SUPPORT": [
+          "Equity: Underweight — reduce cyclical exposure",
+          "Debt: Extend duration — rate cuts likely ahead",
+          "Defensives: FMCG, Pharma, IT exporters preferred",
+          "Build cash buffer to 15% — wait for growth stabilisation signals",
+        ],
+        "STAGFLATION_RISK": [
+          "Equity: Minimum weight — most challenging macro environment",
+          "Gold and commodities: Overweight as inflation hedge",
+          "IT and Pharma: Only equity exposure worth maintaining",
+          "Avoid all domestic cyclicals entirely",
+        ],
+        "INFLATION_PRESSURE_WITH_EXTERNAL_RISK": [
+          "Equity: Reduce — inflation erodes real returns",
+          "Gold: Add significantly as inflation hedge",
+          "Short duration bonds only — avoid rate risk",
+          "Export earners: IT and Pharma provide relative safety",
+        ],
+        "LIQUIDITY_TIGHTENING": [
+          "Equity: Reduce to minimum weight",
+          "Debt: Ultra-short duration only — overnight funds",
+          "Avoid all credit — stick to sovereign",
+          "Cash is king until liquidity conditions ease",
+        ],
+      };
       const _mkItem = (p, accent) => accent
         ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
         : `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`;
@@ -3793,19 +3844,14 @@
           items.innerHTML = mPlays.slice(0, 5).map(p => _mkItem(p, false)).join('');
           return;
         }
-        items.innerHTML = [
-          'Selectively add to regime-appropriate sectors — avoid broad deployment',
-          'Increase allocation modestly (5–10% toward risk assets)',
-          'Favour large-cap over mid/small-cap until conviction firms to HIGH',
-          'Keep cash buffer at 10–12% — do not reduce below this level yet',
-          'Review position sizing before adding any new exposures'
-        ].map(p => _mkItem(p, false)).join('');
+        const _regimePlays = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
+        items.innerHTML = _regimePlays.map(p => _mkItem(p, false)).join('');
         return;
       }
 
-      // HIGH conviction — mandate overlay (blue accents) + AI regime playbook, max 5 total
+      // HIGH conviction — mandate overlay (blue accents) + regime-specific playbook, max 5 total
       const mandatePlays = _getMandatePlays(mandate, conviction);
-      const plays = strategy?.playbook || [];
+      const plays = REGIME_PLAYBOOKS[regimeKey] || strategy?.playbook || REGIME_PLAYBOOKS["STABLE_GROWTH"];
       if (!plays.length && !mandatePlays.length) {
         items.innerHTML = decision?.summary
           ? _mkItem(decision.summary, false)
@@ -4521,7 +4567,7 @@
     }
 
     // FEATURE 11: What This Means For You — 5-dimension personalised intelligence
-    function renderWtmfy(regime, strategy, decision, history) {
+    function renderWtmfy(regime, strategy, decision, history, sectorHeatmap) {
       const card = document.getElementById('wtmfyCard');
       if (!card) return;
       const regimeKey = (regime?.regime || '').toUpperCase();
@@ -4547,7 +4593,15 @@
       const confTrend = _getConfidenceTrend(history);
 
       // Dimension 2 — Sector sensitivity from heatmap
-      const hmCtx = _getHeatmapContext();
+      // Prefer API sector_heatmap (current regime) over DOM scrape (may be stale)
+      let hmCtx = _getHeatmapContext();
+      const _apiSectors = (sectorHeatmap?.FAVOUR || sectorHeatmap?.favour || []);
+      if (_apiSectors.length > 0) {
+        hmCtx = {
+          favour: _apiSectors.slice(0, 2).map(s => s.sector || s.name || s),
+          avoid:  (sectorHeatmap?.AVOID || sectorHeatmap?.avoid || []).slice(0, 1).map(s => s.sector || s.name || s),
+        };
+      }
 
       // Dimension 3 — FII/DII flow
       const fiiNet = _getCurrentFiiNet();
