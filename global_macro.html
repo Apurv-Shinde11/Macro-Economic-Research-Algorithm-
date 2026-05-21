@@ -754,6 +754,29 @@
       font-family: var(--font-mono); font-size: 9px;
       color: var(--text-3); margin-top: 6px; letter-spacing: 0.04em;
     }
+    .currency-regime-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .currency-regime-badge.pegged {
+      background: rgba(79,131,255,0.12);
+      color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.25);
+    }
+    .currency-regime-badge.restricted {
+      background: rgba(251,191,36,0.12);
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.25);
+    }
   </style>
 </head>
 <body>
@@ -1590,7 +1613,7 @@
         card.style.display = 'block';
         card.className     = 'currency-chart-card info';
         titleEl.textContent    = 'SAR — Saudi Riyal';
-        subtitleEl.textContent = 'USD Peg · Fixed at 3.75 SAR/USD';
+        subtitleEl.textContent = 'Fixed 3.75 SAR/USD since 1986 · Backed by $450B FX reserves';
         const tabsSA = document.getElementById('currencyPerfTabs');
         if (tabsSA) tabsSA.style.display = 'none';
         const isLightSA = document.documentElement.classList.contains('light');
@@ -1601,6 +1624,7 @@
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
+            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${tv2};line-height:1.65;margin-bottom:12px;">
               SAR is pegged to the US Dollar at a fixed rate of 3.75 SAR/USD since 1986.
               The peg is maintained by Saudi Arabia's substantial foreign exchange reserves (~$450B).
@@ -1616,7 +1640,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerSA = document.getElementById('currencyChartFooter');
-        if (footerSA) footerSA.textContent = 'Source: Saudi Central Bank (SAMA). As of May 2026.';
+        if (footerSA) footerSA.textContent = 'Pegged currencies offer zero FX volatility but carry sovereign/political risk.';
         return;
       }
       // RU — capital controls note
