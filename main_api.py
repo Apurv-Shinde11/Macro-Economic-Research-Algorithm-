@@ -1499,6 +1499,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         regime["confidence"]        = _adj_conf
         regime["base_confidence"]   = _base_conf
         regime["stress_adjustment"] = round(_adj_conf - _base_conf, 3)
+        _anticipatory = regime.get("anticipatory", {
+            "type":               "STABLE",
+            "message":            "Leading signals unavailable.",
+            "supporting_signals": [],
+            "confidence_pct":     50,
+            "action":             "HOLD current allocation",
+        })
+        _leading = regime.get("leading_intelligence", {
+            "score":   0.5,
+            "signals": [],
+            "trend":   "STABLE",
+        })
         if regime.get("regime") in POSITIVE_REGIMES and regime.get("confidence", 0) >= 0.65:
             regime.setdefault("components", {})["equity_bias"] = "RISK_ON"
         elif regime.get("regime") in DEFENSIVE_REGIMES and regime.get("confidence", 0) >= 0.65:
@@ -1623,7 +1635,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
