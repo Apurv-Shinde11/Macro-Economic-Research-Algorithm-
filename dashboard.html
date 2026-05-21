@@ -3738,6 +3738,11 @@
     }
 
     function renderAnticipatoryCard(ant) {
+      if (!ant || ant.type === 'STABLE') {
+        const antEl = document.getElementById('anticipatoryCard');
+        if (antEl) antEl.style.display = 'none';
+        return;
+      }
       const antEl = document.getElementById('anticipatoryCard');
       if (!antEl || !ant) { if (antEl) antEl.style.display = 'none'; return; }
       const typeColors = {
