@@ -16,7 +16,6 @@ import os
 import json
 import re
 import time
-from time import time
 
 BULLISH_KEYWORDS = [
     "rally", "surge", "growth", "recovery", "expansion", "capex",
