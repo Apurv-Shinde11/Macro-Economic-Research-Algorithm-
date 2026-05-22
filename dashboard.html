@@ -2268,6 +2268,29 @@
       background: var(--red);
     }
 
+    .heatmap-context {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+      line-height: 1.5;
+      padding: 6px 10px;
+      background: rgba(79,131,255,0.04);
+      border-left: 2px solid var(--border-2);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .heatmap-legend-note {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin: 8px 0 16px;
+      opacity: 0.7;
+    }
+
     /* ══ HISTORICAL BACKTEST ══ */
     .backtest-card {
       background: var(--bg-2);
@@ -3281,10 +3304,16 @@
         <span class="section-title">Sector Heatmap</span>
         <span class="section-meta" id="heatmapMeta">Based on current regime</span>
       </div>
+      <div class="heatmap-context">
+        Reflects portfolio allocation positioning — not consumer demand or business fundamentals. Regime-driven capital rotation logic.
+      </div>
       <div class="heatmap-card" id="heatmapCard">
         <div class="heatmap-columns" id="heatmapColumns">
           <div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:16px 0;grid-column:1/-1;">
             Run the engine to generate sector positioning.</div>
+        </div>
+        <div class="heatmap-legend-note">
+          ↑ Portfolio overweight / underweight signals — not buy/sell recommendations
         </div>
       </div>
 
