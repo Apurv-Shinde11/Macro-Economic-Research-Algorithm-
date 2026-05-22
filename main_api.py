@@ -54,6 +54,17 @@ except ImportError:
     JUGAAD_AVAILABLE = False
     print("[JUGAAD] jugaad-data not installed — falling back to yfinance", flush=True)
 
+try:
+    from arch import arch_model
+    ARCH_AVAILABLE = True
+except ImportError:
+    ARCH_AVAILABLE = False
+    print(
+        "[GARCH] arch library not installed — "
+        "volatility signal disabled",
+        flush=True
+    )
+
 JOB_TTL_SECONDS = 3600
 
 _engines:  dict        = {}
@@ -1469,6 +1480,183 @@ def _fetch_nifty_pe() -> float | None:
     return None
 
 
+# 24-hour cache for GARCH forecast
+_garch_cache: dict = {
+    "forecast_vol": None,
+    "current_vol":  None,
+    "direction":    None,
+    "regime":       None,
+    "score":        None,
+    "fetched_at":   None,
+}
+
+
+def _compute_garch_volatility() -> dict:
+    """
+    Fit a GARCH(1,1) model on 90 days of Nifty 50 daily returns
+    and forecast 30-day ahead annualised volatility.
+    Returns dict with forecast_vol, current_vol, direction,
+    regime, score, available.
+    """
+    from datetime import datetime, timedelta
+
+    empty = {
+        "forecast_vol": None,
+        "current_vol":  None,
+        "direction":    "STABLE",
+        "regime":       "NORMAL",
+        "score":        0.5,
+        "available":    False,
+    }
+
+    if not ARCH_AVAILABLE:
+        return empty
+
+    # Return cache if fresh (24 hr)
+    if (
+        _garch_cache["forecast_vol"] is not None
+        and _garch_cache["fetched_at"] is not None
+        and datetime.utcnow() - _garch_cache["fetched_at"]
+            < timedelta(hours=24)
+    ):
+        return {
+            "forecast_vol": _garch_cache["forecast_vol"],
+            "current_vol":  _garch_cache["current_vol"],
+            "direction":    _garch_cache["direction"],
+            "regime":       _garch_cache["regime"],
+            "score":        _garch_cache["score"],
+            "available":    True,
+        }
+
+    try:
+        import yfinance as yf
+        import numpy as np
+        import pandas as pd
+        from datetime import date
+
+        # Fetch 120 days — extra buffer for weekends/holidays
+        end   = date.today()
+        start = end - timedelta(days=120)
+
+        ticker = yf.Ticker("^NSEI")
+        hist   = ticker.history(
+            start=start.isoformat(),
+            end=end.isoformat()
+        )
+
+        if hist.empty or len(hist) < 60:
+            print(
+                "[GARCH] Insufficient data — "
+                f"got {len(hist)} rows",
+                flush=True
+            )
+            return empty
+
+        # Compute log returns
+        closes  = hist["Close"].dropna()
+        returns = 100 * np.log(
+            closes / closes.shift(1)
+        ).dropna()
+
+        # Use last 90 trading days
+        returns = returns.iloc[-90:]
+
+        # Current realised volatility — 20-day rolling annualised
+        current_vol = round(
+            float(returns.iloc[-20:].std() * np.sqrt(252)),
+            2
+        )
+
+        # Fit GARCH(1,1)
+        am = arch_model(
+            returns,
+            vol="Garch",
+            p=1,
+            q=1,
+            dist="normal",
+            rescale=False,
+        )
+        res = am.fit(disp="off", show_warning=False)
+
+        # 30-day ahead forecast
+        forecast = res.forecast(horizon=30, reindex=False)
+        # Variance is in % squared (returns multiplied by 100)
+        # Annualise: sqrt(var * 252)
+        fcast_var = float(forecast.variance.iloc[-1].mean())
+        forecast_vol = round(float(np.sqrt(fcast_var * 252)), 2)
+
+        # Direction
+        diff = forecast_vol - current_vol
+        if diff > 2.0:
+            direction = "RISING"
+        elif diff < -2.0:
+            direction = "FALLING"
+        else:
+            direction = "STABLE"
+
+        # Regime classification based on Nifty historical vol
+        if forecast_vol < 12:
+            regime = "LOW"
+        elif forecast_vol < 18:
+            regime = "NORMAL"
+        elif forecast_vol < 25:
+            regime = "ELEVATED"
+        elif forecast_vol < 35:
+            regime = "HIGH"
+        else:
+            regime = "EXTREME"
+
+        # Score for leading indicator
+        score_map = {
+            ("LOW",      "FALLING"): 1.00,
+            ("LOW",      "STABLE"):  0.85,
+            ("LOW",      "RISING"):  0.70,
+            ("NORMAL",   "FALLING"): 0.75,
+            ("NORMAL",   "STABLE"):  0.65,
+            ("NORMAL",   "RISING"):  0.50,
+            ("ELEVATED", "FALLING"): 0.45,
+            ("ELEVATED", "STABLE"):  0.40,
+            ("ELEVATED", "RISING"):  0.25,
+            ("HIGH",     "FALLING"): 0.15,
+            ("HIGH",     "STABLE"):  0.10,
+            ("HIGH",     "RISING"):  0.05,
+            ("EXTREME",  "FALLING"): 0.05,
+            ("EXTREME",  "STABLE"):  0.00,
+            ("EXTREME",  "RISING"):  0.00,
+        }
+        score = score_map.get((regime, direction), 0.5)
+
+        # Cache result
+        _garch_cache["forecast_vol"] = forecast_vol
+        _garch_cache["current_vol"]  = current_vol
+        _garch_cache["direction"]    = direction
+        _garch_cache["regime"]       = regime
+        _garch_cache["score"]        = score
+        _garch_cache["fetched_at"]   = datetime.utcnow()
+
+        print(
+            f"[GARCH] current={current_vol:.1f}% "
+            f"forecast={forecast_vol:.1f}% "
+            f"direction={direction} "
+            f"regime={regime} "
+            f"score={score}",
+            flush=True
+        )
+
+        return {
+            "forecast_vol": forecast_vol,
+            "current_vol":  current_vol,
+            "direction":    direction,
+            "regime":       regime,
+            "score":        score,
+            "available":    True,
+        }
+
+    except Exception as e:
+        print(f"[GARCH] Failed: {e}", flush=True)
+        return empty
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -1592,6 +1780,20 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         if _nifty_pe:
             nse_snapshot["nifty_pe"] = _nifty_pe
             print(f"[NSE] Nifty PE: {_nifty_pe}", flush=True)
+        # ── GARCH volatility forecast ────────────────────────────────────────────
+        _garch = _compute_garch_volatility()
+        if _garch.get("available"):
+            nse_snapshot["garch_forecast_vol"] = _garch["forecast_vol"]
+            nse_snapshot["garch_current_vol"]  = _garch["current_vol"]
+            nse_snapshot["garch_direction"]    = _garch["direction"]
+            nse_snapshot["garch_regime"]       = _garch["regime"]
+            nse_snapshot["garch_score"]        = _garch["score"]
+            print(
+                f"[NSE] GARCH vol forecast: "
+                f"{_garch['forecast_vol']}% "
+                f"({_garch['direction']})",
+                flush=True
+            )
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -1633,6 +1835,11 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         intel.setdefault("hard_data", {})["pmi"] = _PMI_VALUES.get("IN", 0)
         if _nifty_pe:
             intel["nifty_pe"] = _nifty_pe
+        if _garch.get("available"):
+            intel["garch_forecast_vol"] = _garch["forecast_vol"]
+            intel["garch_direction"]    = _garch["direction"]
+            intel["garch_regime"]       = _garch["regime"]
+            intel["garch_score"]        = _garch["score"]
         try:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:

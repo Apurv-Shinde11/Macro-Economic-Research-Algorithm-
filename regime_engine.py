@@ -448,6 +448,9 @@ class MacroRegimeEngine:
         pmi_level,
         recent_runs,
         nifty_pe=0.0,
+        garch_score=None,
+        garch_regime=None,
+        garch_direction=None,
     ):
         signals = []
         score   = 0.5
@@ -572,6 +575,27 @@ class MacroRegimeEngine:
             print(
                 f"  [PE Signal] PE={nifty_pe} "
                 f"label={pe_label} score={pe_sig}",
+                flush=True
+            )
+
+        # ── GARCH volatility signal ────────────────────────────────────
+        if garch_score is not None:
+            signals.append({
+                "indicator": "Vol Forecast (GARCH)",
+                "value":     garch_score,
+                "signal":    (
+                    f"{garch_regime}_{garch_direction}"
+                    if garch_regime and garch_direction
+                    else "UNAVAILABLE"
+                ),
+                "score":     float(garch_score),
+                "weight":    0.15,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [GARCH Signal] regime={garch_regime} "
+                f"direction={garch_direction} "
+                f"score={garch_score}",
                 flush=True
             )
 
@@ -1339,6 +1363,9 @@ class MacroRegimeEngine:
                     pmi_level          = _pmi,
                     recent_runs        = recent_runs,
                     nifty_pe           = float(intel.get("nifty_pe", 0) or 0),
+                    garch_score        = intel.get("garch_score"),
+                    garch_regime       = intel.get("garch_regime"),
+                    garch_direction    = intel.get("garch_direction"),
                 )
             leading_adj = round(
                 max(-0.05, min(0.05,
