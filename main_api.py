@@ -1657,6 +1657,195 @@ def _compute_garch_volatility() -> dict:
         return empty
 
 
+# RBI bank credit growth history (YoY %)
+# Source: RBI DBIE — update monthly on June 2nd
+_CREDIT_GROWTH_HISTORY = [
+    {"month": "2025-11", "value": 11.5},
+    {"month": "2025-12", "value": 11.8},
+    {"month": "2026-01", "value": 12.1},
+    {"month": "2026-02", "value": 12.3},
+    {"month": "2026-03", "value": 12.6},
+    {"month": "2026-05", "value": 12.8},
+]
+
+
+def _compute_credit_impulse() -> dict:
+    empty = {
+        "impulse":   None,
+        "current":   None,
+        "trend":     "STABLE",
+        "score":     0.55,
+        "available": False,
+    }
+    try:
+        history = _CREDIT_GROWTH_HISTORY
+        if len(history) < 4:
+            print(
+                "[CREDIT_IMPULSE] Insufficient "
+                "history — need 4+ readings",
+                flush=True
+            )
+            return empty
+
+        current   = float(history[-1]["value"])
+        prior_3   = [float(h["value"]) for h in history[-4:-1]]
+        prior_avg = sum(prior_3) / len(prior_3)
+        impulse   = round(current - prior_avg, 2)
+
+        if impulse > 1.0:
+            trend = "ACCELERATING"
+            score = 0.90
+        elif impulse > 0.3:
+            trend = "BUILDING"
+            score = 0.75
+        elif impulse >= -0.3:
+            trend = "STABLE"
+            score = 0.55
+        elif impulse >= -1.0:
+            trend = "SLOWING"
+            score = 0.30
+        else:
+            trend = "CONTRACTING"
+            score = 0.10
+
+        print(
+            f"[CREDIT_IMPULSE] current={current}% "
+            f"prior_avg={prior_avg:.2f}% "
+            f"impulse={impulse:+.2f}pp "
+            f"trend={trend} score={score}",
+            flush=True
+        )
+        return {
+            "impulse":   impulse,
+            "current":   current,
+            "trend":     trend,
+            "score":     score,
+            "available": True,
+        }
+    except Exception as e:
+        print(f"[CREDIT_IMPULSE] Failed: {e}", flush=True)
+        return empty
+
+
+# In-memory FII trend cache (refreshed each run)
+_fii_trend_cache: dict = {
+    "momentum_7d":  None,
+    "streak":       None,
+    "streak_dir":   None,
+    "slope_10d":    None,
+    "score":        None,
+    "fetched_at":   None,
+}
+
+
+def _compute_fii_trend(sb_url: str, sb_key: str) -> dict:
+    import numpy as np
+
+    empty = {
+        "momentum_7d": None,
+        "streak":      0,
+        "streak_dir":  "MIXED",
+        "slope_10d":   None,
+        "score":       0.5,
+        "available":   False,
+    }
+    try:
+        from supabase import create_client
+        sb   = create_client(sb_url, sb_key)
+        resp = (
+            sb.table("fii_dii_daily")
+            .select("trade_date, fii_net_crore")
+            .order("trade_date", desc=True)
+            .limit(20)
+            .execute()
+        )
+        rows = resp.data if resp.data else []
+
+        if len(rows) < 5:
+            print(
+                f"[FII_TREND] Insufficient data "
+                f"— got {len(rows)} rows",
+                flush=True
+            )
+            return empty
+
+        rows  = sorted(rows, key=lambda x: x["trade_date"])
+        flows = [
+            float(r["fii_net_crore"])
+            for r in rows
+            if r.get("fii_net_crore") is not None
+        ]
+
+        if len(flows) < 5:
+            return empty
+
+        momentum_7d = round(sum(flows[-7:]), 2)
+
+        streak     = 1
+        streak_dir = "BUYING" if flows[-1] > 0 else "SELLING"
+        for i in range(len(flows) - 2, -1, -1):
+            day_dir = "BUYING" if flows[i] > 0 else "SELLING"
+            if day_dir == streak_dir:
+                streak += 1
+            else:
+                break
+
+        recent = flows[-10:] if len(flows) >= 10 else flows
+        x      = np.arange(len(recent))
+        slope  = round(float(np.polyfit(x, recent, 1)[0]), 2)
+
+        if momentum_7d > 5000:
+            base_score = 0.90
+        elif momentum_7d > 2000:
+            base_score = 0.75
+        elif momentum_7d > 0:
+            base_score = 0.60
+        elif momentum_7d > -2000:
+            base_score = 0.45
+        elif momentum_7d > -5000:
+            base_score = 0.25
+        else:
+            base_score = 0.10
+
+        streak_mod = 0.0
+        if streak >= 3:
+            if streak_dir == "BUYING":
+                streak_mod = min(0.10, 0.05 * (streak // 3))
+            else:
+                streak_mod = max(-0.10, -0.05 * (streak // 3))
+
+        slope_mod = 0.0
+        if slope > 500:
+            slope_mod = 0.05
+        elif slope < -500:
+            slope_mod = -0.05
+
+        score = round(
+            max(0.0, min(1.0, base_score + streak_mod + slope_mod)),
+            3
+        )
+
+        print(
+            f"[FII_TREND] momentum_7d="
+            f"₹{momentum_7d:.0f}Cr "
+            f"streak={streak}d {streak_dir} "
+            f"slope={slope:.0f} "
+            f"score={score}",
+            flush=True
+        )
+        return {
+            "momentum_7d": momentum_7d,
+            "streak":      streak,
+            "streak_dir":  streak_dir,
+            "slope_10d":   slope,
+            "score":       score,
+            "available":   True,
+        }
+    except Exception as e:
+        print(f"[FII_TREND] Failed: {e}", flush=True)
+        return empty
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -1840,6 +2029,22 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             intel["garch_direction"]    = _garch["direction"]
             intel["garch_regime"]       = _garch["regime"]
             intel["garch_score"]        = _garch["score"]
+        # ── Credit impulse ────────────────────────────────────────────────────
+        _credit_impulse = _compute_credit_impulse()
+        if _credit_impulse.get("available"):
+            intel["credit_impulse"]       = _credit_impulse["impulse"]
+            intel["credit_impulse_trend"] = _credit_impulse["trend"]
+            intel["credit_impulse_score"] = _credit_impulse["score"]
+        # ── FII trend momentum ────────────────────────────────────────────────
+        _fii_trend = _compute_fii_trend(
+            sb_url=_config.get("supabase_url", ""),
+            sb_key=_config.get("supabase_service_key", ""),
+        )
+        if _fii_trend.get("available"):
+            intel["fii_momentum_7d"]  = _fii_trend["momentum_7d"]
+            intel["fii_streak"]       = _fii_trend["streak"]
+            intel["fii_streak_dir"]   = _fii_trend["streak_dir"]
+            intel["fii_trend_score"]  = _fii_trend["score"]
         try:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:

@@ -451,6 +451,10 @@ class MacroRegimeEngine:
         garch_score=None,
         garch_regime=None,
         garch_direction=None,
+        credit_impulse_score=None,
+        credit_impulse_trend=None,
+        fii_trend_score=None,
+        fii_streak_dir=None,
     ):
         signals = []
         score   = 0.5
@@ -596,6 +600,40 @@ class MacroRegimeEngine:
                 f"  [GARCH Signal] regime={garch_regime} "
                 f"direction={garch_direction} "
                 f"score={garch_score}",
+                flush=True
+            )
+
+        # ── Credit impulse signal ──────────────────────────────────────
+        if credit_impulse_score is not None:
+            signals.append({
+                "indicator": "Credit Impulse",
+                "value":     credit_impulse_score,
+                "signal":    credit_impulse_trend or "STABLE",
+                "score":     float(credit_impulse_score),
+                "weight":    0.10,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [Credit Impulse Signal] "
+                f"trend={credit_impulse_trend} "
+                f"score={credit_impulse_score}",
+                flush=True
+            )
+
+        # ── FII trend signal ───────────────────────────────────────────
+        if fii_trend_score is not None:
+            signals.append({
+                "indicator": "FII Trend (7d)",
+                "value":     fii_trend_score,
+                "signal":    fii_streak_dir or "MIXED",
+                "score":     float(fii_trend_score),
+                "weight":    0.15,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [FII Trend Signal] "
+                f"streak_dir={fii_streak_dir} "
+                f"score={fii_trend_score}",
                 flush=True
             )
 
@@ -1354,18 +1392,22 @@ class MacroRegimeEngine:
             )
             leading_score, leading_signals, leading_trend = \
                 self._compute_leading_score(
-                    regime             = regime,
-                    crude_live         = crude_live,
-                    vix_live           = vix_live,
-                    fii_live           = fii_live,
-                    liquidity_score    = liquidity_score,
-                    yield_spread_india = _yield_spread,
-                    pmi_level          = _pmi,
-                    recent_runs        = recent_runs,
-                    nifty_pe           = float(intel.get("nifty_pe", 0) or 0),
-                    garch_score        = intel.get("garch_score"),
-                    garch_regime       = intel.get("garch_regime"),
-                    garch_direction    = intel.get("garch_direction"),
+                    regime               = regime,
+                    crude_live           = crude_live,
+                    vix_live             = vix_live,
+                    fii_live             = fii_live,
+                    liquidity_score      = liquidity_score,
+                    yield_spread_india   = _yield_spread,
+                    pmi_level            = _pmi,
+                    recent_runs          = recent_runs,
+                    nifty_pe             = float(intel.get("nifty_pe", 0) or 0),
+                    garch_score          = intel.get("garch_score"),
+                    garch_regime         = intel.get("garch_regime"),
+                    garch_direction      = intel.get("garch_direction"),
+                    credit_impulse_score = intel.get("credit_impulse_score"),
+                    credit_impulse_trend = intel.get("credit_impulse_trend"),
+                    fii_trend_score      = intel.get("fii_trend_score"),
+                    fii_streak_dir       = intel.get("fii_streak_dir"),
                 )
             leading_adj = round(
                 max(-0.05, min(0.05,
