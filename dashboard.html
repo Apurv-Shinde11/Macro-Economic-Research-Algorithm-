@@ -2795,6 +2795,98 @@
       color: var(--text-3);
       border: 1px solid var(--border);
     }
+
+    /* ══ SIGNAL INTELLIGENCE CARD ══ */
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--card-shadow);
+    }
+
+    .signal-intel-card {
+      padding: 18px 20px;
+      margin-bottom: 12px;
+    }
+
+    .signal-intel-subtitle {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-2);
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .signal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .signal-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: var(--bg-3);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .signal-item-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .signal-item-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .signal-item-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .signal-item-bar-wrap {
+      width: 48px;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .signal-item-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.6s ease;
+    }
+
+    .signal-intel-footer {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+      line-height: 1.6;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      opacity: 0.7;
+    }
   </style>
 </head>
 
@@ -3256,6 +3348,16 @@
             <div class="activity-card-yoy" id="actCreditYoy">—</div>
             <div class="activity-card-signal" id="actCreditSignal">—</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Signal Intelligence Card -->
+      <div class="card signal-intel-card" id="signalIntelCard" style="display:none;">
+        <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Signal Intelligence</div>
+        <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
+        <div class="signal-grid" id="signalGrid"></div>
+        <div class="signal-intel-footer">
+          Leading score weights VIX, crude, FII flows, yield curve, PMI, PE ratio, volatility forecast, credit impulse, and FII trend momentum.
         </div>
       </div>
 
@@ -3761,6 +3863,8 @@
         const antEl = document.getElementById('anticipatoryCard');
         if (antEl) antEl.style.display = 'none';
       }
+      // Signal Intelligence card
+      renderSignalIntelCard(data);
       if (!fromHistory && data.transition) {
         renderTransition(data.transition);
       }
@@ -5137,6 +5241,70 @@
           <span class="backtest-insight-icon">💡</span>
           <span class="backtest-insight-text">${d.key_insight}</span>`;
       }
+    }
+
+    /* ── SIGNAL INTELLIGENCE CARD ── */
+    function renderSignalIntelCard(result) {
+      const card    = document.getElementById('signalIntelCard');
+      const grid    = document.getElementById('signalGrid');
+      const summary = document.getElementById('signalIntelSummary');
+      if (!card || !grid) return;
+
+      const leading = result.leading_intelligence;
+      if (!leading || !leading.signals || !leading.signals.length) {
+        card.style.display = 'none';
+        return;
+      }
+
+      const signals = leading.signals;
+      const score   = leading.score || 0;
+      const trend   = leading.trend || 'STABLE';
+
+      const bullish = signals.filter(s => s.score >= 0.65).length;
+      const bearish = signals.filter(s => s.score <= 0.35).length;
+      const neutral = signals.length - bullish - bearish;
+
+      summary.textContent =
+        `${signals.length} signals · ` +
+        `${bullish} supportive · ` +
+        `${bearish} stressed · ` +
+        `${neutral} neutral · ` +
+        `trend ${trend}`;
+
+      function scoreColor(s) {
+        if (s >= 0.75) return 'var(--green)';
+        if (s >= 0.55) return 'var(--blue)';
+        if (s >= 0.35) return 'var(--amber)';
+        return 'var(--red)';
+      }
+
+      function barColor(s) {
+        if (s >= 0.65) return 'var(--green)';
+        if (s >= 0.45) return 'var(--amber)';
+        return 'var(--red)';
+      }
+
+      grid.innerHTML = signals.map(sig => {
+        const pct    = Math.round((sig.score || 0) * 100);
+        const color  = scoreColor(sig.score || 0);
+        const bColor = barColor(sig.score || 0);
+        const label  = (sig.signal || '').replace(/_/g, ' ');
+        return `
+          <div class="signal-item">
+            <div class="signal-item-left">
+              <div class="signal-item-name">${sig.indicator || ''}</div>
+              <div class="signal-item-label" style="color:${color}">${label}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="signal-item-bar-wrap">
+                <div class="signal-item-bar" style="width:${pct}%;background:${bColor}"></div>
+              </div>
+              <div style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:${color};min-width:28px;text-align:right;">${pct}%</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      card.style.display = 'block';
     }
 
     /* ── SECTOR HEATMAP ── */
