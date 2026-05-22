@@ -447,6 +447,7 @@ class MacroRegimeEngine:
         yield_spread_india,
         pmi_level,
         recent_runs,
+        nifty_pe=0.0,
     ):
         signals = []
         score   = 0.5
@@ -547,6 +548,32 @@ class MacroRegimeEngine:
                 "weight":    0.15,
                 "type":      "LEADING",
             })
+
+        # ── PE ratio signal ────────────────────────────────────────────
+        if nifty_pe > 0:
+            if nifty_pe < 18:
+                pe_sig, pe_label = 1.0, "CHEAP"
+            elif nifty_pe < 22:
+                pe_sig, pe_label = 0.75, "FAIR_VALUE"
+            elif nifty_pe < 26:
+                pe_sig, pe_label = 0.45, "STRETCHED"
+            elif nifty_pe < 30:
+                pe_sig, pe_label = 0.20, "EXPENSIVE"
+            else:
+                pe_sig, pe_label = 0.0, "BUBBLE_RISK"
+            signals.append({
+                "indicator": "Nifty P/E Ratio",
+                "value":     nifty_pe,
+                "signal":    pe_label,
+                "score":     pe_sig,
+                "weight":    0.15,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [PE Signal] PE={nifty_pe} "
+                f"label={pe_label} score={pe_sig}",
+                flush=True
+            )
 
         # ── Weighted score ─────────────────────────────────────────────
         if signals:
@@ -1311,6 +1338,7 @@ class MacroRegimeEngine:
                     yield_spread_india = _yield_spread,
                     pmi_level          = _pmi,
                     recent_runs        = recent_runs,
+                    nifty_pe           = float(intel.get("nifty_pe", 0) or 0),
                 )
             leading_adj = round(
                 max(-0.05, min(0.05,

@@ -47,6 +47,13 @@ from schemas import (
 from economic_calendar      import get_events_by_window, days_until_label
 from pdf_report_generator   import PDFReportGenerator
 
+try:
+    from jugaad_data.nse import NSELive, NSEDailyReports
+    JUGAAD_AVAILABLE = True
+except ImportError:
+    JUGAAD_AVAILABLE = False
+    print("[JUGAAD] jugaad-data not installed — falling back to yfinance", flush=True)
+
 JOB_TTL_SECONDS = 3600
 
 _engines:  dict        = {}
@@ -1345,6 +1352,123 @@ def _get_data_freshness_weight(indicator: str) -> float:
         return 1.0
 
 
+def _fetch_nse_snapshot_jugaad() -> dict:
+    """
+    Fetch live NSE data via jugaad-data.
+    Returns dict with india_vix, nifty50, bank_nifty, nifty500.
+    """
+    result = {
+        "india_vix":  None,
+        "nifty50":    None,
+        "bank_nifty": None,
+        "nifty500":   None,
+        "source":     "jugaad",
+    }
+    try:
+        n = NSELive()
+        indices = n.all_indices()
+        data = indices.get("data", [])
+
+        for item in data:
+            name = item.get("index", "")
+            last = item.get("last")
+            pct  = item.get("percentChange")
+
+            if name == "INDIA VIX":
+                result["india_vix"] = float(last) if last else None
+            elif name == "NIFTY 50":
+                result["nifty50"] = {
+                    "last":          float(last),
+                    "percentChange": float(pct or 0),
+                }
+            elif name == "NIFTY BANK":
+                result["bank_nifty"] = {
+                    "last":          float(last),
+                    "percentChange": float(pct or 0),
+                }
+            elif name == "NIFTY 500":
+                result["nifty500"] = {
+                    "last":          float(last),
+                    "percentChange": float(pct or 0),
+                }
+
+        print(
+            f"[JUGAAD] VIX={result['india_vix']} "
+            f"Nifty={result['nifty50']['last'] if result['nifty50'] else 'N/A'} "
+            f"BankNifty={result['bank_nifty']['last'] if result['bank_nifty'] else 'N/A'}",
+            flush=True
+        )
+
+    except Exception as e:
+        print(f"[JUGAAD] all_indices failed: {e}", flush=True)
+        result["source"] = "jugaad_failed"
+
+    return result
+
+
+# 24-hour cache for PE ratio
+_pe_cache: dict = {"value": None, "fetched_at": None}
+
+
+def _fetch_nifty_pe() -> float | None:
+    """
+    Fetch Nifty 50 PE ratio from NSE daily reports via jugaad-data session.
+    Cached for 24 hours. Returns float PE ratio or None on failure.
+    """
+    from datetime import datetime, timedelta
+
+    if (
+        _pe_cache["value"] is not None
+        and _pe_cache["fetched_at"] is not None
+        and datetime.utcnow() - _pe_cache["fetched_at"] < timedelta(hours=24)
+    ):
+        return _pe_cache["value"]
+
+    try:
+        import pandas as pd
+        from io import StringIO
+        from datetime import date
+
+        dr     = NSEDailyReports()
+        today  = date.today()
+        ddmmyy = today.strftime("%d%m%y")
+        url    = (
+            "https://nsearchives.nseindia.com"
+            f"/content/equities/peDetail/PE_{ddmmyy}.csv"
+        )
+        resp = dr.s.get(url, timeout=10)
+
+        if resp.status_code != 200:
+            from datetime import timedelta as _td
+            prev   = today - _td(days=1)
+            ddmmyy = prev.strftime("%d%m%y")
+            url    = (
+                "https://nsearchives.nseindia.com"
+                f"/content/equities/peDetail/PE_{ddmmyy}.csv"
+            )
+            resp = dr.s.get(url, timeout=10)
+
+        if resp.status_code == 200:
+            df = pd.read_csv(StringIO(resp.text))
+            pe_col = (
+                "SYMBOL P/E"
+                if "SYMBOL P/E" in df.columns
+                else df.columns[1]
+            )
+            pe_vals = df[pe_col].dropna()
+            pe_vals = pe_vals[(pe_vals > 0) & (pe_vals < 200)]
+            market_pe = round(float(pe_vals.median()), 2)
+            _pe_cache["value"]      = market_pe
+            _pe_cache["fetched_at"] = datetime.utcnow()
+            print(f"[PE] Nifty median PE: {market_pe}", flush=True)
+            return market_pe
+
+    except Exception as e:
+        print(f"[PE] fetch failed: {e}", flush=True)
+
+    return None
+
+
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
     try:
         eng = _engines
@@ -1358,22 +1482,43 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
-        # Patch india_vix from ticker cache if NSE failed or returned placeholder default
-        try:
-            _cached_vix = _ticker_cache.get("data", {}).get("India VIX", {}).get("price")
-            _current_vix = nse_snapshot.get("india_vix")
-            if _cached_vix and (
-                not _current_vix or
-                _current_vix == 15 or
-                _current_vix == 15.0
-            ):
-                nse_snapshot["india_vix"] = float(_cached_vix)
+        # ── NSE Snapshot — layered VIX fallback ──────────────────────────────────
+        # Layer 1: jugaad-data (confirmed on Railway)
+        if JUGAAD_AVAILABLE:
+            _jd = _fetch_nse_snapshot_jugaad()
+            if _jd.get("india_vix") is not None:
+                nse_snapshot["india_vix"] = _jd["india_vix"]
                 print(
-                    f"[VIX] Patched from ticker cache: {_cached_vix}",
+                    f"[NSE] VIX from jugaad: {_jd['india_vix']}",
                     flush=True
                 )
-        except Exception as _vix_err:
-            print(f"[VIX] Patch failed: {_vix_err}", flush=True)
+            if _jd.get("nifty50"):
+                nse_snapshot["nifty_last"]   = _jd["nifty50"]["last"]
+                nse_snapshot["nifty_change"] = _jd["nifty50"]["percentChange"]
+            if _jd.get("bank_nifty"):
+                nse_snapshot["bank_nifty_last"]   = _jd["bank_nifty"]["last"]
+                nse_snapshot["bank_nifty_change"] = _jd["bank_nifty"]["percentChange"]
+        # Layer 2: ticker cache patch (fallback when jugaad VIX unavailable)
+        if not nse_snapshot.get("india_vix"):
+            print(
+                "[NSE] jugaad VIX unavailable — trying ticker cache patch",
+                flush=True
+            )
+            try:
+                _cached_vix = _ticker_cache.get("data", {}).get("India VIX", {}).get("price")
+                _current_vix = nse_snapshot.get("india_vix")
+                if _cached_vix and (
+                    not _current_vix or
+                    _current_vix == 15 or
+                    _current_vix == 15.0
+                ):
+                    nse_snapshot["india_vix"] = float(_cached_vix)
+                    print(
+                        f"[VIX] Patched from ticker cache: {_cached_vix}",
+                        flush=True
+                    )
+            except Exception as _vix_err:
+                print(f"[VIX] Patch failed: {_vix_err}", flush=True)
         # FII/DII — DataIngestor runs full source chain (BSE → NSDL → NSE → Supabase fallback)
         # dii_net_crore defaults to None, never 0 — 0 is indistinguishable from missing data
         try:
@@ -1442,6 +1587,11 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             except Exception as _ce:
                 print(f"[PIPELINE] Crude fetch failed — storing NULL: {_ce}", flush=True)
         nse_snapshot["crude_price"] = _crude_live
+        # ── Nifty PE ratio ───────────────────────────────────────────────────────
+        _nifty_pe = _fetch_nifty_pe()
+        if _nifty_pe:
+            nse_snapshot["nifty_pe"] = _nifty_pe
+            print(f"[NSE] Nifty PE: {_nifty_pe}", flush=True)
         intel = eng["nlp"].get_regime_scores(news)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
@@ -1481,6 +1631,8 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             intel["yield_spread_india"] = 0.25
         # India PMI — from hardcoded _PMI_VALUES (updated monthly)
         intel.setdefault("hard_data", {})["pmi"] = _PMI_VALUES.get("IN", 0)
+        if _nifty_pe:
+            intel["nifty_pe"] = _nifty_pe
         try:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
