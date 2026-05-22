@@ -1678,6 +1678,51 @@ async def root():
 async def health():
     return {"status": "ok", "engines": len(_engines), "jobs": len(_jobs), "supabase": bool(_supabase)}
 
+@app.get("/api/test-jugaad")
+async def test_jugaad():
+    """
+    Temporary endpoint to test jugaad-data
+    from Railway's IP range.
+    Remove after testing.
+    """
+    results = {}
+    try:
+        from jugaad_data.nse import NSELive
+        n = NSELive()
+
+        # Test 1 — VIX
+        try:
+            vix = n.live_index("INDIA VIX")
+            results["vix"] = {
+                "status": "success",
+                "value": vix["metadata"]["last"],
+                "time":  vix["metadata"]["timeVal"],
+            }
+        except Exception as e:
+            results["vix"] = {
+                "status": "failed",
+                "error": str(e),
+            }
+
+        # Test 2 — Nifty 50
+        try:
+            nifty = n.live_index("NIFTY 50")
+            results["nifty"] = {
+                "status":  "success",
+                "value":   nifty["metadata"]["last"],
+                "change":  nifty["metadata"]["percChange"],
+            }
+        except Exception as e:
+            results["nifty"] = {
+                "status": "failed",
+                "error": str(e),
+            }
+
+    except Exception as e:
+        results["import_error"] = str(e)
+
+    return results
+
 @app.post("/api/run")
 async def start_run(body: RunRequest, background_tasks: BackgroundTasks, profile: dict = Depends(require_access)):
     _expire_old_jobs()
