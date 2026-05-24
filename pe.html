@@ -550,6 +550,114 @@
       font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
       margin-bottom: 16px; flex-wrap: wrap;
     }
+
+    /* ══ SECTOR CARD EXPAND ══ */
+    .sector-expand-indicator {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 18px;
+      color: var(--text-3);
+      transition: transform 0.25s ease;
+      line-height: 1;
+    }
+
+    .sector-card {
+      position: relative;
+      transition: background 0.32s ease, color 0.32s ease,
+                  border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sector-card.sector-expanded {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px rgba(79,131,255,0.2), 0 0 20px rgba(79,131,255,0.12);
+    }
+
+    .sector-detail-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    .sector-detail-section {
+      margin-bottom: 14px;
+    }
+
+    .sector-detail-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .sector-detail-text {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.75;
+    }
+
+    .sector-detail-multiples {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sector-detail-multiple-item {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .sector-detail-multiple-item:last-child {
+      border-bottom: none;
+    }
+
+    .sector-detail-risks,
+    .sector-detail-signals {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .sector-detail-risks li,
+    .sector-detail-signals li {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.6;
+      padding-left: 14px;
+      position: relative;
+    }
+
+    .sector-detail-risks li::before {
+      content: '⚠';
+      position: absolute;
+      left: 0;
+      font-size: 10px;
+      color: var(--amber);
+    }
+
+    .sector-detail-signals li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      font-size: 10px;
+      color: var(--blue);
+      font-family: var(--font-mono);
+    }
+
+    @media (max-width: 640px) {
+      .sector-detail-multiples { gap: 6px; }
+      .sector-detail-text { font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -798,6 +906,7 @@
 
       renderEnvCard(costOfCapital, regime);
       renderSectors(sectorCycles);
+      initSectorCards();
       renderCapMetrics(costOfCapital);
       renderDeals(dealFlow);
 
@@ -884,6 +993,94 @@
       return 'neutral';
     }
 
+    /* ── Sector detail data ── */
+    const SECTOR_DETAIL_DATA = {
+      'Banking & Financials': {
+        dealEnv: 'Liquidity expansion improves NIM and credit growth — the two primary value drivers for financial sector PE. NBFC and microfinance targets are most attractive as credit cycle upturn benefits lower-tier lenders disproportionately. Control deals in mid-size private banks and lending fintechs offer the best risk-adjusted entry in this regime.',
+        multiples: [['Private Banks', '1.8–2.5x P/B'], ['NBFCs', '2.0–3.0x P/B'], ['Lending Fintechs', '8–12x EBITDA']],
+        risks: ['Asset quality deterioration if credit conditions tighten suddenly', 'RBI regulatory intervention on NBFC leverage ratios', 'Concentration risk in unsecured retail lending growing fastest'],
+        signals: ['Repo rate hike signal → compress multiples 15–20% immediately', 'Gross NPA above 4% sector-wide → exit signal', 'FII sustained buying returning → multiple expansion opportunity'],
+      },
+      'Infrastructure & Capex': {
+        dealEnv: 'Government capex at ₹12.2L Cr provides revenue visibility for EPC and infrastructure asset owners. Greenfield assets are being de-risked by public co-investment. Toll roads, renewable energy, and data centre infrastructure offer the most actionable deal flow in this regime.',
+        multiples: [['Toll Roads', '10–14x EBITDA'], ['Renewable Energy', '8–11x EBITDA'], ['EPC Companies', '6–9x EBITDA']],
+        risks: ['Crude above $95 raises construction input costs materially', 'Election cycle risk on capex disbursement timing', 'Execution risk on greenfield projects in new geographies'],
+        signals: ['Budget capex allocation revision → order book visibility changes', 'Crude sustained above $105 → construction cost pressure', 'RBI liquidity withdrawal → project financing cost spike'],
+      },
+      'Consumer Discretionary': {
+        dealEnv: 'Credit availability and rising income confidence are driving volume recovery across premium segments. D2C brands, experiential retail, and premium food &amp; beverage are seeing strong top-line growth. This regime favours growth equity over buyouts — EBITDA margins are still expanding.',
+        multiples: [['D2C Consumer Brands', '15–25x EBITDA'], ['QSR / Food Chains', '12–18x EBITDA'], ['Premium Retail', '8–14x EBITDA']],
+        risks: ['Crude above $95 erodes discretionary spend via inflation', 'Urban consumption concentrated — Tier 2/3 recovery lagging', 'Working capital intensity in inventory-heavy models'],
+        signals: ['CPI above 6% for 2 months → discretionary spend compression', 'Auto sales declining → consumer confidence leading indicator', 'GST growth below 10% YoY → consumption slowdown signal'],
+      },
+      'Real Estate': {
+        dealEnv: 'Accommodative rates reduce developer financing costs and buyer EMI burden simultaneously. Residential absorption is strong in top 6 cities. Warehousing and data centres offer the best PE risk/return. Avoid residential development — prefer income-generating commercial assets.',
+        multiples: [['Commercial Office', '6–8% cap rate'], ['Warehousing/Logistics', '7–9% cap rate'], ['Residential Developer equity', '2.5–4x invested capital']],
+        risks: ['Rate cycle reversal compresses valuations immediately and sharply', 'RERA compliance and approval delays extend holding periods', 'Residential inventory overhang in specific micro-markets'],
+        signals: ['Repo rate above 6.5% → residential demand destruction', '10Y G-Sec above 7.5% → cap rate expansion, valuation compression', 'Unsold inventory above 24 months → avoid new residential in that market'],
+      },
+      'IT & Technology': {
+        dealEnv: 'Domestic demand is neutral — the real opportunity is export-oriented SaaS and IT services where USD revenue hedges INR weakness. AI-enabled services at Series B/C offer the best growth equity entry. Traditional IT services buyouts face commoditisation headwinds.',
+        multiples: [['SaaS (global GTM)', '5–8x ARR'], ['IT Services niche verticals', '8–12x EBITDA'], ['AI/ML with proprietary IP', '15–25x EBITDA']],
+        risks: ['US client spending uncertainty hits IT revenue directly', 'INR strengthening reduces USD revenue value', 'Talent cost inflation compressing delivery margins'],
+        signals: ['US ISM Services PMI below 50 for 2 months → IT revenue risk', 'INR below 90 USD/INR → USD hedge value diminishes', 'Attrition above 25% → margin pressure signal'],
+      },
+      'Pharmaceuticals': {
+        dealEnv: 'Defensive earnings and USD export revenues make pharma regime-agnostic. CDMO is the highest-value subsegment — global supply chain diversification away from China is a structural tailwind. Branded generics for emerging markets offer stable cash flows.',
+        multiples: [['CDMO / API Manufacturers', '14–20x EBITDA'], ['Branded Generics domestic', '18–25x EBITDA'], ['Formulations exporters', '10–15x EBITDA']],
+        risks: ['US FDA warning letters — binary risk for export-dependent businesses', 'Drug price control orders on domestic formulations', 'China API supply disruption risk'],
+        signals: ['US FDA import alert on Indian sites → binary valuation risk', 'DPCO expansion to new categories → domestic margin compression', 'China-India trade normalisation → CDMO tailwind reduction'],
+      },
+      'Auto & Auto Ancillaries': {
+        dealEnv: 'Credit cycle upturn is boosting vehicle financing and volumes. EV transition creates deal opportunities in battery tech, charging infrastructure, and EV-native OEM suppliers. ICE ancillaries have a 5–7 year window before structural disruption — growth equity in EV supply chain is the primary theme.',
+        multiples: [['EV Component Suppliers', '15–25x EBITDA'], ['ICE Auto Ancillaries', '6–10x EBITDA'], ['Auto Financing NBFCs', '2.5–3.5x P/B']],
+        risks: ['EV adoption pace uncertainty — OEM guidance has disappointed repeatedly', 'Working capital intensity during production ramp cycles', 'Crude reversal reduces EV value proposition for consumers'],
+        signals: ['EV below 5% monthly sales penetration post-2026 → supply chain thesis weakens', 'Crude below $70 sustained → ICE demand holds, EV slower', 'Auto credit NPA rising → financing NBFC stress signal'],
+      },
+      'FMCG & Staples': {
+        dealEnv: 'Despite institutional portfolio AVOID, FMCG is a strong PE buyout target. Pricing power, cash flow predictability, and rural distribution moats make FMCG businesses excellent acquisitions — especially regional players being consolidated. The institutional underweight creates entry opportunity at reasonable multiples.',
+        multiples: [['Regional FMCG brands', '12–18x EBITDA'], ['Premium personal care', '20–30x EBITDA'], ['Food processing with export', '10–15x EBITDA']],
+        risks: ['Input cost inflation (palm oil, crude derivatives) compresses margins', 'Rural demand recovery slower than urban', 'Private label threat from organised retail at premium price points'],
+        signals: ['MGNREGS rural wage data → leading indicator for mass FMCG volumes', 'Palm oil and packaging cost index → margin compression signal', 'Modern trade private label above 15% in key categories → pricing pressure'],
+      },
+      'Utilities': {
+        dealEnv: 'Regulated returns provide floor but rate sensitivity limits upside in liquidity regimes. Renewable energy utilities are the exception — PPAs with government entities provide 20–25 year cash flow visibility. Transmission and distribution privatisation deals offer infrastructure-like returns.',
+        multiples: [['Regulated Utilities', '8–10x EBITDA'], ['Renewable IPPs with PPAs', '9–12x EBITDA'], ['Distribution privatisation', '6–8x EBITDA']],
+        risks: ['Regulatory tariff revision uncertainty in state distribution companies', 'Curtailment risk for renewable assets in grid-constrained states', 'State DISCOM payment delay risk'],
+        signals: ['Interest rate hike → immediate multiple compression', 'State DISCOM dues above ₹1.5L Cr → payment risk for renewable IPPs', 'Coal above ₹8,000/tonne → thermal generation cost pressure'],
+      },
+    };
+
+    function _sectorDetailHtml(name) {
+      const d = SECTOR_DETAIL_DATA[name];
+      if (!d) return '';
+      const multiplesHtml = d.multiples.map(([label, val]) =>
+        `<div class="sector-detail-multiple-item"><span>${label}</span><span>${val}</span></div>`
+      ).join('');
+      const risksHtml    = d.risks.map(r   => `<li>${r}</li>`).join('');
+      const signalsHtml  = d.signals.map(s => `<li>${s}</li>`).join('');
+      return `
+        <div class="sector-detail" style="display:none;">
+          <div class="sector-detail-divider"></div>
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Deal Environment</div>
+            <div class="sector-detail-text">${d.dealEnv}</div>
+          </div>
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Entry Multiple Context</div>
+            <div class="sector-detail-multiples">${multiplesHtml}</div>
+          </div>
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Key Risks</div>
+            <ul class="sector-detail-risks">${risksHtml}</ul>
+          </div>
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Watch Signals</div>
+            <ul class="sector-detail-signals">${signalsHtml}</ul>
+          </div>
+        </div>`;
+    }
+
     /* ── Sector rendering ── */
     const EMERGING_NAMES = new Set(['Space & Deep Tech', 'Defence & Aerospace', 'Green Energy & Climate']);
 
@@ -935,6 +1132,7 @@
           <div class="sector-wind-label" style="margin-top:6px;">▼ Headwind</div>
           <div class="sector-wind">${s.macro_headwind}</div>
           <div class="sector-entry">${s.entry_timing}</div>
+          ${_sectorDetailHtml(name)}
         </div>`;
     }
 
@@ -959,6 +1157,47 @@
       };
       const [cls, label] = map[signal] || ['sig-neutral', signal];
       return `<span class="badge ${cls}">${label}</span>`;
+    }
+
+    /* ── Sector card expand/collapse ── */
+    function initSectorCards() {
+      const cards = document.querySelectorAll(
+        '.sector-card, .pe-sector-card, [data-sector]'
+      );
+
+      cards.forEach(card => {
+        card.style.cursor = 'pointer';
+
+        const indicator = document.createElement('div');
+        indicator.className = 'sector-expand-indicator';
+        indicator.innerHTML = '&#8250;';
+        card.appendChild(indicator);
+
+        card.addEventListener('click', () => {
+          const isOpen = card.classList.contains('sector-expanded');
+
+          cards.forEach(c => {
+            c.classList.remove('sector-expanded');
+            const detail = c.querySelector('.sector-detail');
+            if (detail) detail.style.display = 'none';
+            const ind = c.querySelector('.sector-expand-indicator');
+            if (ind) ind.style.transform = 'rotate(0deg)';
+          });
+
+          if (!isOpen) {
+            card.classList.add('sector-expanded');
+            const detail = card.querySelector('.sector-detail');
+            if (detail) {
+              detail.style.display = 'block';
+              setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 100);
+            }
+            const ind = card.querySelector('.sector-expand-indicator');
+            if (ind) ind.style.transform = 'rotate(90deg)';
+          }
+        });
+      });
     }
 
     /* ── Capital metrics ── */
