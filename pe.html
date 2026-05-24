@@ -215,6 +215,7 @@
       margin: 0 auto;
       padding-left: 32px; padding-right: 32px;
       padding-bottom: 80px;
+      overflow: visible;
     }
 
     /* ══ PAGE HEADER ══ */
@@ -331,6 +332,7 @@
     .emerging-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
       margin-bottom: 0;
+      overflow: visible;
     }
     .emerging-card {
       background: var(--bg-2);
@@ -340,6 +342,7 @@
       box-shadow: var(--card-shadow), 0 0 20px rgba(16,212,138,0.04);
       animation: emergingPulse 3s ease-in-out infinite;
       position: relative;
+      overflow: visible;
     }
     @keyframes emergingPulse {
       0%,100% { border-color: rgba(16,212,138,0.20); }
@@ -358,6 +361,7 @@
     .sector-grid {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
       align-items: start;
+      overflow: visible;
     }
     .sector-card {
       background: var(--bg-2);
@@ -552,6 +556,24 @@
       margin-bottom: 16px; flex-wrap: wrap;
     }
 
+    /* ══ SECTOR DETAIL OVERLAY ══ */
+    .sector-detail {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: var(--bg-2);
+      border: 1px solid var(--blue);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow:
+        0 8px 32px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(79,131,255,0.15);
+      min-width: 280px;
+    }
+
     /* ══ SECTOR CARD EXPAND ══ */
     .sector-expand-indicator {
       position: absolute;
@@ -565,6 +587,7 @@
 
     .sector-card {
       position: relative;
+      overflow: visible;
       transition: background 0.32s ease, color 0.32s ease,
                   border-color 0.2s ease, box-shadow 0.2s ease;
     }
@@ -1084,7 +1107,7 @@
       const risksHtml    = d.risks.map(r   => `<li>${r}</li>`).join('');
       const signalsHtml  = d.signals.map(s => `<li>${s}</li>`).join('');
       return `
-        <div class="sector-detail" style="display:none;">
+        <div class="sector-detail">
           <div class="sector-detail-divider"></div>
           <div class="sector-detail-section">
             <div class="sector-detail-label">Deal Environment</div>
@@ -1214,9 +1237,6 @@
             const detail = card.querySelector('.sector-detail');
             if (detail) {
               detail.style.display = 'block';
-              setTimeout(() => {
-                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }, 100);
             }
             const ind = card.querySelector('.sector-expand-indicator');
             if (ind) ind.style.transform = 'rotate(90deg)';
