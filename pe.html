@@ -568,7 +568,8 @@
                   border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .sector-card.sector-expanded {
+    .sector-card.sector-expanded,
+    .emerging-card.sector-expanded {
       border-color: var(--blue);
       box-shadow: 0 0 0 1px rgba(79,131,255,0.2), 0 0 20px rgba(79,131,255,0.12);
     }
@@ -633,7 +634,7 @@
       font-size: 12px;
       color: var(--text-2);
       line-height: 1.6;
-      padding-left: 14px;
+      padding-left: 16px;
       position: relative;
     }
 
@@ -995,41 +996,41 @@
 
     /* ── Sector detail data ── */
     const SECTOR_DETAIL_DATA = {
-      'Banking & Financials': {
-        dealEnv: 'Liquidity expansion improves NIM and credit growth — the two primary value drivers for financial sector PE. NBFC and microfinance targets are most attractive as credit cycle upturn benefits lower-tier lenders disproportionately. Control deals in mid-size private banks and lending fintechs offer the best risk-adjusted entry in this regime.',
+      'Consumer & Retail': {
+        dealEnv: 'Credit availability and rising income confidence are driving volume recovery across premium segments. D2C brands, experiential retail, and premium food &amp; beverage are seeing strong top-line growth. This regime favours growth equity over buyouts — EBITDA margins are still expanding.',
+        multiples: [['D2C Consumer Brands', '15–25x EBITDA'], ['QSR / Food Chains', '12–18x EBITDA'], ['Premium Retail', '8–14x EBITDA']],
+        risks: ['Crude above $95 erodes discretionary spend via inflation', 'Urban consumption concentrated — Tier 2/3 recovery lagging', 'Working capital intensity in inventory-heavy models'],
+        signals: ['CPI above 6% for 2 months → discretionary spend compression', 'Auto sales declining → consumer confidence leading indicator', 'GST growth below 10% YoY → consumption slowdown signal'],
+      },
+      'Financial Services & Fintech': {
+        dealEnv: 'Liquidity expansion improves NIM and credit growth — the two primary value drivers for financial sector PE. NBFC and microfinance targets are most attractive as credit cycle upturn benefits lower-tier lenders disproportionately. Control deals in mid-size private banks and lending fintechs offer the best risk-adjusted entry.',
         multiples: [['Private Banks', '1.8–2.5x P/B'], ['NBFCs', '2.0–3.0x P/B'], ['Lending Fintechs', '8–12x EBITDA']],
         risks: ['Asset quality deterioration if credit conditions tighten suddenly', 'RBI regulatory intervention on NBFC leverage ratios', 'Concentration risk in unsecured retail lending growing fastest'],
         signals: ['Repo rate hike signal → compress multiples 15–20% immediately', 'Gross NPA above 4% sector-wide → exit signal', 'FII sustained buying returning → multiple expansion opportunity'],
       },
-      'Infrastructure & Capex': {
+      'Infrastructure & Logistics': {
         dealEnv: 'Government capex at ₹12.2L Cr provides revenue visibility for EPC and infrastructure asset owners. Greenfield assets are being de-risked by public co-investment. Toll roads, renewable energy, and data centre infrastructure offer the most actionable deal flow in this regime.',
         multiples: [['Toll Roads', '10–14x EBITDA'], ['Renewable Energy', '8–11x EBITDA'], ['EPC Companies', '6–9x EBITDA']],
         risks: ['Crude above $95 raises construction input costs materially', 'Election cycle risk on capex disbursement timing', 'Execution risk on greenfield projects in new geographies'],
         signals: ['Budget capex allocation revision → order book visibility changes', 'Crude sustained above $105 → construction cost pressure', 'RBI liquidity withdrawal → project financing cost spike'],
       },
-      'Consumer Discretionary': {
-        dealEnv: 'Credit availability and rising income confidence are driving volume recovery across premium segments. D2C brands, experiential retail, and premium food &amp; beverage are seeing strong top-line growth. This regime favours growth equity over buyouts — EBITDA margins are still expanding.',
-        multiples: [['D2C Consumer Brands', '15–25x EBITDA'], ['QSR / Food Chains', '12–18x EBITDA'], ['Premium Retail', '8–14x EBITDA']],
-        risks: ['Crude above $95 erodes discretionary spend via inflation', 'Urban consumption concentrated — Tier 2/3 recovery lagging', 'Working capital intensity in inventory-heavy models'],
-        signals: ['CPI above 6% for 2 months → discretionary spend compression', 'Auto sales declining → consumer confidence leading indicator', 'GST growth below 10% YoY → consumption slowdown signal'],
+      'Healthcare & Pharma': {
+        dealEnv: 'Defensive earnings and USD export revenues make pharma regime-agnostic. CDMO is the highest-value subsegment — global supply chain diversification away from China is a structural tailwind. Branded generics for emerging markets offer stable cash flows with limited macro sensitivity.',
+        multiples: [['CDMO / API Manufacturers', '14–20x EBITDA'], ['Branded Generics domestic', '18–25x EBITDA'], ['Formulations exporters', '10–15x EBITDA']],
+        risks: ['US FDA warning letters — binary risk for export-dependent businesses', 'Drug price control orders on domestic formulations', 'China API supply disruption risk'],
+        signals: ['US FDA import alert on Indian sites → binary valuation risk', 'DPCO expansion to new categories → domestic margin compression', 'China-India trade normalisation → CDMO tailwind reduction'],
+      },
+      'Technology & SaaS': {
+        dealEnv: 'Domestic demand is neutral — the real opportunity is export-oriented SaaS and IT services where USD revenue hedges INR weakness. AI-enabled services at Series B/C offer the best growth equity entry. Traditional IT services buyouts face commoditisation headwinds.',
+        multiples: [['SaaS (global GTM)', '5–8x ARR'], ['IT Services niche verticals', '8–12x EBITDA'], ['AI/ML with proprietary IP', '15–25x EBITDA']],
+        risks: ['US client spending uncertainty hits IT revenue directly', 'INR strengthening reduces USD revenue value', 'Talent cost inflation compressing delivery margins'],
+        signals: ['US ISM Services PMI below 50 for 2 months → IT revenue risk', 'INR below 90 USD/INR → USD hedge value diminishes', 'Attrition above 25% → margin pressure signal'],
       },
       'Real Estate': {
         dealEnv: 'Accommodative rates reduce developer financing costs and buyer EMI burden simultaneously. Residential absorption is strong in top 6 cities. Warehousing and data centres offer the best PE risk/return. Avoid residential development — prefer income-generating commercial assets.',
         multiples: [['Commercial Office', '6–8% cap rate'], ['Warehousing/Logistics', '7–9% cap rate'], ['Residential Developer equity', '2.5–4x invested capital']],
         risks: ['Rate cycle reversal compresses valuations immediately and sharply', 'RERA compliance and approval delays extend holding periods', 'Residential inventory overhang in specific micro-markets'],
         signals: ['Repo rate above 6.5% → residential demand destruction', '10Y G-Sec above 7.5% → cap rate expansion, valuation compression', 'Unsold inventory above 24 months → avoid new residential in that market'],
-      },
-      'IT & Technology': {
-        dealEnv: 'Domestic demand is neutral — the real opportunity is export-oriented SaaS and IT services where USD revenue hedges INR weakness. AI-enabled services at Series B/C offer the best growth equity entry. Traditional IT services buyouts face commoditisation headwinds.',
-        multiples: [['SaaS (global GTM)', '5–8x ARR'], ['IT Services niche verticals', '8–12x EBITDA'], ['AI/ML with proprietary IP', '15–25x EBITDA']],
-        risks: ['US client spending uncertainty hits IT revenue directly', 'INR strengthening reduces USD revenue value', 'Talent cost inflation compressing delivery margins'],
-        signals: ['US ISM Services PMI below 50 for 2 months → IT revenue risk', 'INR below 90 USD/INR → USD hedge value diminishes', 'Attrition above 25% → margin pressure signal'],
-      },
-      'Pharmaceuticals': {
-        dealEnv: 'Defensive earnings and USD export revenues make pharma regime-agnostic. CDMO is the highest-value subsegment — global supply chain diversification away from China is a structural tailwind. Branded generics for emerging markets offer stable cash flows.',
-        multiples: [['CDMO / API Manufacturers', '14–20x EBITDA'], ['Branded Generics domestic', '18–25x EBITDA'], ['Formulations exporters', '10–15x EBITDA']],
-        risks: ['US FDA warning letters — binary risk for export-dependent businesses', 'Drug price control orders on domestic formulations', 'China API supply disruption risk'],
-        signals: ['US FDA import alert on Indian sites → binary valuation risk', 'DPCO expansion to new categories → domestic margin compression', 'China-India trade normalisation → CDMO tailwind reduction'],
       },
       'Auto & Auto Ancillaries': {
         dealEnv: 'Credit cycle upturn is boosting vehicle financing and volumes. EV transition creates deal opportunities in battery tech, charging infrastructure, and EV-native OEM suppliers. ICE ancillaries have a 5–7 year window before structural disruption — growth equity in EV supply chain is the primary theme.',
@@ -1048,6 +1049,24 @@
         multiples: [['Regulated Utilities', '8–10x EBITDA'], ['Renewable IPPs with PPAs', '9–12x EBITDA'], ['Distribution privatisation', '6–8x EBITDA']],
         risks: ['Regulatory tariff revision uncertainty in state distribution companies', 'Curtailment risk for renewable assets in grid-constrained states', 'State DISCOM payment delay risk'],
         signals: ['Interest rate hike → immediate multiple compression', 'State DISCOM dues above ₹1.5L Cr → payment risk for renewable IPPs', 'Coal above ₹8,000/tonne → thermal generation cost pressure'],
+      },
+      'Space & Deep Tech': {
+        dealEnv: 'IN-SPACe framework has opened commercial space to private capital for the first time. Launch vehicle startups, satellite communication platforms, and defence dual-use tech are all seeing early institutional interest. This is a policy-driven formation phase — first-mover advantage is significant but exit visibility is 7-10 years.',
+        multiples: [['Launch Vehicle Startups', '4–8x revenue'], ['Satellite Platforms', '6–10x revenue'], ['Defence Dual-Use Tech', '10–15x EBITDA']],
+        risks: ['Long gestation — 7-10 year holds with limited early liquidity', 'Policy dependency — regulatory framework still evolving', 'Talent pool constraints in deep tech engineering'],
+        signals: ['IN-SPACe approval acceleration → deal flow indicator', 'ISRO commercial launch cadence → sector formation signal', 'Defence budget allocation to private sector → revenue visibility'],
+      },
+      'Defence & Aerospace': {
+        dealEnv: '₹6L Cr defence budget with 75% domestic procurement mandate creates durable revenue visibility for private defence players. MRO, defence electronics, ammunition, and naval systems are the most active subsegments. Growth equity in established players is more actionable than early-stage given procurement cycle length.',
+        multiples: [['Defence Electronics', '18–28x EBITDA'], ['MRO Platforms', '12–18x EBITDA'], ['Ammunition / Systems', '10–15x EBITDA']],
+        risks: ['Single customer risk — MoD is primary buyer for most players', 'Long procurement cycles — 3-5 years from order to revenue', 'Geopolitical sensitivity limits export market access'],
+        signals: ['Defence capital budget allocation → revenue pipeline indicator', 'DPIIT defence export target → export revenue diversification', 'iDEX challenge announcements → early-stage deal flow signal'],
+      },
+      'Green Energy & Climate': {
+        dealEnv: '500GW renewable target and green hydrogen mission are driving the largest infrastructure investment cycle in India\'s history. Utility-scale solar and wind are mature — the PE opportunity is in storage technology, green hydrogen, EV charging infrastructure, and climate tech SaaS. Liquidity regime actively supports infrastructure financing.',
+        multiples: [['Utility Solar/Wind (operational)', '9–12x EBITDA'], ['Battery Storage Tech', '8–14x revenue'], ['Green Hydrogen platforms', 'Early — DCF based']],
+        risks: ['Rate sensitivity — long-duration assets reprice on rate hike', 'Land acquisition and grid integration delays extend timelines', 'Green hydrogen cost curve not yet competitive without subsidy'],
+        signals: ['MNRE capacity addition targets vs actual → execution signal', 'Green hydrogen production cost below $3/kg → inflection point', 'State DISCOM PPA signing pace → revenue visibility indicator'],
       },
     };
 
@@ -1115,6 +1134,7 @@
           <div class="sector-wind-label" style="margin-top:8px;">▼ HEADWIND</div>
           <div class="sector-wind">${s.macro_headwind}</div>
           <div class="sector-entry">${s.entry_timing}</div>
+          ${_sectorDetailHtml(name)}
         </div>`;
     }
 
@@ -1162,7 +1182,7 @@
     /* ── Sector card expand/collapse ── */
     function initSectorCards() {
       const cards = document.querySelectorAll(
-        '.sector-card, .pe-sector-card, [data-sector]'
+        '.sector-card, .emerging-card'
       );
 
       cards.forEach(card => {
