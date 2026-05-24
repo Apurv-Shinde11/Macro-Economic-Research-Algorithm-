@@ -3532,6 +3532,17 @@
   <script>
     'use strict';
 
+    // Keep Railway container warm
+    function keepAlive() {
+      const RAIL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+      fetch(`${RAIL}/api/ping`)
+        .then(() => console.log('[KeepAlive] pinged'))
+        .catch(() => {});
+    }
+    // Ping immediately on load, then every 10 minutes
+    keepAlive();
+    setInterval(keepAlive, 10 * 60 * 1000);
+
     /* ── Theme toggle ── */
     const rootEl = document.documentElement;
     const toggleBtn = document.getElementById('theme-toggle');
@@ -3552,7 +3563,50 @@
     let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [], _lastHistory = [];
     let _fiiHistory = null, _lastNseData = null, _tickerData = null;
 
+    function setLoadingState() {
+      const confEl = document.getElementById('confidenceValue');
+      if (confEl) confEl.textContent = '—';
+
+      const regimeEl = document.getElementById('regimeName');
+      if (regimeEl) regimeEl.textContent = 'Loading...';
+
+      const banner = document.createElement('div');
+      banner.id = 'loadingBanner';
+      banner.style.cssText = `
+        position: fixed;
+        top: 68px;
+        left: 0; right: 0;
+        background: rgba(79,131,255,0.12);
+        border-bottom: 1px solid rgba(79,131,255,0.25);
+        padding: 8px 20px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--blue);
+        letter-spacing: 0.08em;
+        text-align: center;
+        z-index: 98;
+      `;
+      banner.textContent = 'Connecting to Sentinel engine...';
+      document.body.appendChild(banner);
+
+      setTimeout(() => {
+        const b = document.getElementById('loadingBanner');
+        if (b) {
+          b.style.background = 'rgba(251,191,36,0.12)';
+          b.style.borderBottomColor = 'rgba(251,191,36,0.25)';
+          b.style.color = 'var(--amber)';
+          b.textContent = 'Engine warming up — refresh in 15 seconds';
+        }
+      }, 20000);
+    }
+
+    function removeLoadingBanner() {
+      const b = document.getElementById('loadingBanner');
+      if (b) b.remove();
+    }
+
     async function init() {
+      setLoadingState();
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { window.location.href = 'login.html'; return; }
       _session = session; _token = session.access_token;
@@ -3604,6 +3658,7 @@
         const sparkVals = history.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
         renderConfSparkline(sparkVals);
         renderConfArrow(history);
+        removeLoadingBanner();
       } catch (e) { console.error('Dashboard load failed:', e); }
     }
 

@@ -251,7 +251,7 @@ SECTOR_HEATMAP = {
             {"sector": "Banking & Financials",    "reason": "Liquidity expansion directly benefits credit growth and NIM expansion"},
             {"sector": "Infrastructure & Capex",  "reason": "Govt capex ₹12.2L Cr cycle supports order books and revenue visibility"},
             {"sector": "Consumer Discretionary",  "reason": "Credit availability and income growth drive discretionary spending recovery"},
-            {"sector": "Real Estate",             "reason": "Accommodative rates and liquidity support residential and commercial demand"},
+            {"sector": "Real Estate",             "reason": "Accommodative rates reduce financing costs for developers and buyers — real estate stocks benefit from rate cycle even when physical demand is mixed"},
             {"sector": "Auto & Auto Ancillaries", "reason": "Credit cycle upturn directly boosts vehicle financing and volumes"},
         ],
         "NEUTRAL": [
@@ -261,7 +261,7 @@ SECTOR_HEATMAP = {
             {"sector": "Telecom",          "reason": "Stable recurring revenues; limited upside leverage to liquidity conditions"},
         ],
         "AVOID": [
-            {"sector": "FMCG & Staples",        "reason": "Capital rotates away from defensives in risk-on liquidity regimes"},
+            {"sector": "FMCG & Staples",        "reason": "Institutional capital rotates away from defensives in risk-on regimes — despite strong consumer demand, portfolio managers reduce FMCG weight in favour of cyclicals"},
             {"sector": "Utilities",             "reason": "Rate-sensitive valuations compress as growth assets attract premium"},
             {"sector": "Gold & Precious Metals", "reason": "Risk-on environment reduces safe-haven demand; opportunity cost rises"},
         ],
@@ -2241,6 +2241,10 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok", "engines": len(_engines), "jobs": len(_jobs), "supabase": bool(_supabase)}
+
+@app.get("/api/ping")
+async def ping():
+    return {"status": "ok", "ts": time.time()}
 
 @app.get("/api/test-jugaad")
 async def test_jugaad():

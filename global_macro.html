@@ -1557,6 +1557,19 @@
       loadCurrencyChart(eco.code);
     }
 
+    async function fetchWithTimeout(url, ms = 8000) {
+      const ctrl = new AbortController();
+      const id   = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(id);
+        return res;
+      } catch (e) {
+        clearTimeout(id);
+        throw e;
+      }
+    }
+
     /* ── Fetch macro data ── */
     async function loadMacroData() {
       if (!Object.keys(economiesData).length) {
@@ -1567,8 +1580,25 @@
           </div>
         `;
       }
+      const listEl = document.getElementById('economyList')
+        || document.getElementById('countryList')
+        || document.getElementById('economy-size-section');
+      if (listEl) {
+        listEl.innerHTML = `
+          <div style="
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3);
+            padding: 20px;
+            text-align: center;
+            letter-spacing: 0.08em;
+          ">
+            Loading 50 economies...
+          </div>
+        `;
+      }
       try {
-        const res  = await fetch(`${RAIL}/api/global-macro`);
+        const res  = await fetchWithTimeout(`${RAIL}/api/global-macro`);
         const data = await res.json();
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
