@@ -2894,6 +2894,183 @@
       border-top: 1px solid var(--border);
       opacity: 0.7;
     }
+
+    /* ══ ONBOARDING MODAL OVERLAY ══ */
+    .onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4,6,15,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .onboarding-modal {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow:
+        0 24px 80px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(79,131,255,0.1);
+    }
+
+    .onboarding-overlay .onboarding-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .onboarding-logo {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    .onboarding-overlay .onboarding-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .onboarding-sub {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+      max-width: 360px;
+    }
+
+    .onboarding-step-indicator {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .step-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border-2);
+      transition: background 0.2s, width 0.2s;
+    }
+
+    .step-dot.active {
+      background: var(--blue);
+      width: 18px;
+      border-radius: 3px;
+    }
+
+    .onboarding-btn-primary {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .onboarding-btn-primary:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .onboarding-btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .mandate-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    .mandate-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .mandate-option:hover {
+      border-color: var(--border-2);
+      background: var(--bg-2);
+    }
+
+    .mandate-option.selected {
+      border-color: var(--blue);
+      background: rgba(79,131,255,0.08);
+    }
+
+    .mandate-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .mandate-name {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .mandate-desc {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    .onboarding-skip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-3);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+
+    .onboarding-skip:hover {
+      color: var(--text-2);
+    }
+
+    @media (max-width: 480px) {
+      .onboarding-modal {
+        padding: 28px 20px;
+      }
+      .onboarding-overlay .onboarding-title {
+        font-size: 24px;
+      }
+    }
   </style>
 </head>
 
@@ -3536,6 +3713,70 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- ONBOARDING OVERLAY -->
+  <div class="onboarding-overlay" id="onboardingOverlay" style="display:none;">
+    <div class="onboarding-modal">
+
+      <!-- Step 1: Welcome -->
+      <div class="onboarding-step" id="onboardStep1">
+        <div class="onboarding-logo">SENTINEL</div>
+        <div class="onboarding-title">Welcome to Sentinel</div>
+        <div class="onboarding-sub">
+          India's macro regime — classified in real time. Two quick questions before your first run.
+        </div>
+        <div class="onboarding-step-indicator">
+          <span class="step-dot active"></span>
+          <span class="step-dot"></span>
+        </div>
+        <button class="onboarding-btn-primary" onclick="showOnboardStep(2)">
+          Get Started →
+        </button>
+      </div>
+
+      <!-- Step 2: Mandate selection -->
+      <div class="onboarding-step" id="onboardStep2" style="display:none;">
+        <div class="onboarding-title">What best describes your mandate?</div>
+        <div class="onboarding-sub">
+          This personalises your portfolio playbook and allocation guidance. You can change this anytime.
+        </div>
+        <div class="mandate-options">
+          <div class="mandate-option" data-mandate="EQUITY" onclick="selectMandate(this)">
+            <div class="mandate-icon">📈</div>
+            <div>
+              <div class="mandate-name">Equity Focus</div>
+              <div class="mandate-desc">Primarily equity portfolios — mutual funds, PMS, direct stocks</div>
+            </div>
+          </div>
+          <div class="mandate-option" data-mandate="MULTI_ASSET" onclick="selectMandate(this)">
+            <div class="mandate-icon">⚖️</div>
+            <div>
+              <div class="mandate-name">Multi-Asset</div>
+              <div class="mandate-desc">Balanced across equity, debt, gold, and alternatives</div>
+            </div>
+          </div>
+          <div class="mandate-option" data-mandate="AGGRESSIVE" onclick="selectMandate(this)">
+            <div class="mandate-icon">🎯</div>
+            <div>
+              <div class="mandate-name">Aggressive</div>
+              <div class="mandate-desc">High conviction, concentrated positions, higher risk tolerance</div>
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-step-indicator">
+          <span class="step-dot"></span>
+          <span class="step-dot active"></span>
+        </div>
+        <button class="onboarding-btn-primary" id="onboardMandateBtn" onclick="completeOnboarding()" disabled>
+          Set Mandate & Continue →
+        </button>
+        <div class="onboarding-skip" onclick="skipMandate()">
+          Skip — use Multi-Asset default
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     'use strict';
 
@@ -3625,6 +3866,7 @@
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { window.location.href = 'login.html'; return; }
       _session = session; _token = session.access_token;
+      initOnboarding();
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
       loadActivitySignals();
       setInterval(loadTicker, 300000);
@@ -5182,6 +5424,114 @@
         });
         loadAdminStats();
       } catch (e) { alert('Update failed: ' + e.message); }
+    }
+
+    // ── ONBOARDING ────────────────────────────────────────────────────────────
+    let _selectedMandate = null;
+
+    function isFirstLogin() {
+      const key = 'sentinel_onboarded_' + (_session?.user?.id || 'default');
+      return !localStorage.getItem(key);
+    }
+
+    function markOnboarded() {
+      const key = 'sentinel_onboarded_' + (_session?.user?.id || 'default');
+      localStorage.setItem(key, '1');
+    }
+
+    function showOnboardingModal() {
+      const overlay = document.getElementById('onboardingOverlay');
+      if (overlay) {
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function hideOnboardingModal() {
+      const overlay = document.getElementById('onboardingOverlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      markOnboarded();
+    }
+
+    function showOnboardStep(step) {
+      document.getElementById('onboardStep1').style.display = step === 1 ? 'flex' : 'none';
+      document.getElementById('onboardStep2').style.display = step === 2 ? 'flex' : 'none';
+    }
+
+    function selectMandate(el) {
+      document.querySelectorAll('.mandate-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      _selectedMandate = el.dataset.mandate;
+      const btn = document.getElementById('onboardMandateBtn');
+      if (btn) btn.disabled = false;
+    }
+
+    function skipMandate() {
+      _selectedMandate = 'MULTI_ASSET';
+      completeOnboarding();
+    }
+
+    async function completeOnboarding() {
+      const mandate = _selectedMandate || 'MULTI_ASSET';
+      try {
+        await api('/api/profile', {
+          method: 'POST',
+          body: JSON.stringify({ mandate: mandate }),
+        });
+        console.log('[Onboarding] Mandate saved:', mandate);
+      } catch(e) {
+        console.log('[Onboarding] Mandate save failed:', e.message);
+      }
+      hideOnboardingModal();
+      showRunPromptBanner();
+    }
+
+    function showRunPromptBanner() {
+      const banner = document.createElement('div');
+      banner.id = 'runPromptBanner';
+      banner.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, var(--blue), var(--indigo));
+        color: white;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 8px 32px rgba(79,131,255,0.4);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      `;
+      banner.innerHTML = `
+        <span>⚡</span>
+        <span>Your dashboard is ready — Run Engine to get today's regime read</span>
+        <span style="opacity:0.7;font-size:12px;">(tap to dismiss)</span>
+      `;
+      banner.onclick = () => banner.remove();
+      document.body.appendChild(banner);
+      setTimeout(() => {
+        if (banner.parentElement) {
+          banner.style.opacity = '0';
+          banner.style.transition = 'opacity 0.5s ease';
+          setTimeout(() => banner.remove(), 500);
+        }
+      }, 8000);
+    }
+
+    function initOnboarding() {
+      if (isFirstLogin()) {
+        showOnboardingModal();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', init);
