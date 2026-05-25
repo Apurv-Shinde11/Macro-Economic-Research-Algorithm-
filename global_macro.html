@@ -777,6 +777,31 @@
       color: var(--amber);
       border: 1px solid rgba(251,191,36,0.25);
     }
+
+    /* ══ SKELETON ══ */
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--bg-3) 25%,
+        rgba(79,131,255,0.06) 50%,
+        var(--bg-3) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      color: transparent !important;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .skeleton * {
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
@@ -1602,6 +1627,7 @@
         const data = await res.json();
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
+        document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
         highlightEconomyCountries(economies);
         renderEconomySizeSection();
         const last = localStorage.getItem('econiq_selected_economy');
@@ -1911,10 +1937,42 @@
       setTimeout(() => { loadMacroData().then(scheduleRefresh); }, 30 * 60 * 1000);
     }
 
+    function showMacroSkeleton() {
+      const container = document.getElementById('economy-size-section');
+      if (container) {
+        container.innerHTML = `
+          <div class="economy-size-standalone-inner">
+            <div class="economy-size-standalone-title skeleton" style="height:20px;width:40%;border-radius:4px;margin-bottom:8px;"></div>
+            <div class="economy-size-standalone-sub skeleton" style="height:12px;width:55%;border-radius:4px;margin-bottom:16px;"></div>
+            <div>${Array(8).fill(0).map(() => `
+              <div class="skeleton" style="height:22px;margin-bottom:6px;border-radius:5px;"></div>
+            `).join('')}</div>
+          </div>
+        `;
+      }
+      const detail = document.getElementById('detail-content');
+      if (detail) {
+        detail.innerHTML = `
+          <div class="detail-inner">
+            <div style="padding:24px;display:flex;flex-direction:column;gap:12px;">
+              <div class="skeleton" style="height:28px;width:60%;border-radius:4px;"></div>
+              <div class="skeleton" style="height:16px;width:40%;border-radius:4px;"></div>
+              <div class="skeleton" style="height:80px;border-radius:8px;"></div>
+              <div class="skeleton" style="height:80px;border-radius:8px;"></div>
+            </div>
+          </div>
+        `;
+      }
+      setTimeout(() => {
+        document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+      }, 20000);
+    }
+
     /* ── Init ── */
     initTheme();
     document.getElementById('theme-btn').addEventListener('click', toggleTheme);
     loadGeoMap();
+    showMacroSkeleton();
     loadMacroData();
     scheduleRefresh();
 

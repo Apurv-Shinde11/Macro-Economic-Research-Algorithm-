@@ -1457,21 +1457,28 @@
     }
 
     /* ══ SKELETON ══ */
-    .skeleton {
-      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
-      background-size: 200% 100%;
-      animation: skelShimmer 1.5s infinite;
-      border-radius: 5px;
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
     }
 
-    @keyframes skelShimmer {
-      0% {
-        background-position: 200% 0;
-      }
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--bg-3) 25%,
+        rgba(79,131,255,0.06) 50%,
+        var(--bg-3) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      color: transparent !important;
+      pointer-events: none;
+      user-select: none;
+    }
 
-      100% {
-        background-position: -200% 0;
-      }
+    .skeleton * {
+      visibility: hidden;
     }
 
     .empty-state {
@@ -3570,6 +3577,8 @@
       const regimeEl = document.getElementById('regimeName');
       if (regimeEl) regimeEl.textContent = 'Loading...';
 
+      document.querySelectorAll('.regime-pill').forEach(el => el.classList.add('skeleton'));
+
       const banner = document.createElement('div');
       banner.id = 'loadingBanner';
       banner.style.cssText = `
@@ -3590,6 +3599,7 @@
       document.body.appendChild(banner);
 
       setTimeout(() => {
+        document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
         const b = document.getElementById('loadingBanner');
         if (b) {
           b.style.background = 'rgba(251,191,36,0.12)';
@@ -3603,6 +3613,11 @@
     function removeLoadingBanner() {
       const b = document.getElementById('loadingBanner');
       if (b) b.remove();
+    }
+
+    function removeLoadingState() {
+      document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+      removeLoadingBanner();
     }
 
     async function init() {
@@ -3658,7 +3673,7 @@
         const sparkVals = history.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100);
         renderConfSparkline(sparkVals);
         renderConfArrow(history);
-        removeLoadingBanner();
+        removeLoadingState();
       } catch (e) { console.error('Dashboard load failed:', e); }
     }
 
