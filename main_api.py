@@ -2242,7 +2242,7 @@ async def root():
 async def health():
     return {"status": "ok", "engines": len(_engines), "jobs": len(_jobs), "supabase": bool(_supabase)}
 
-@app.get("/api/ping")
+@app.api_route("/api/ping", methods=["GET", "HEAD"])
 async def ping():
     return {"status": "ok", "ts": time.time()}
 
