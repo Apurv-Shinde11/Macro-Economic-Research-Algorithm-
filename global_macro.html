@@ -802,6 +802,19 @@
     .skeleton * {
       visibility: hidden;
     }
+
+    /* ══ NAV LINKS ══ */
+    .nav-left { display: flex; align-items: center; gap: 14px; }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--text-2); text-decoration: none;
+      padding: 6px 10px; border-radius: 6px;
+      border: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
+    .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
   </style>
 </head>
 <body>
@@ -816,7 +829,14 @@
 
   <!-- ══ NAV ══ -->
   <nav class="nav">
-    <a class="nav-logo" href="landing_page.html">EconIq</a>
+    <div class="nav-left">
+      <a class="nav-logo" href="landing_page.html">EconIq</a>
+      <div class="nav-links">
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <a class="nav-link active" href="global_macro.html">Global Macro</a>
+        <a class="nav-link" href="pe.html">PE Intel</a>
+      </div>
+    </div>
     <div class="nav-right">
       <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">
         <span class="icon-moon">🌙</span>

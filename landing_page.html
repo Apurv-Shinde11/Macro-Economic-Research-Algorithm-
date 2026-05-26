@@ -845,7 +845,56 @@
       .hero-proof { gap: 22px; }
       #cta { padding: 80px 24px; }
       .cta-trust { flex-direction: column; gap: 14px; }
+      .nav-hamburger { display: flex; }
+      nav .btn-outline,
+      nav .btn-primary { display: none; }
     }
+
+    /* ══ HAMBURGER / MOBILE NAV ══ */
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      z-index: 101;
+    }
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text-2);
+      border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-mobile-menu {
+      position: fixed;
+      top: 68px; left: 0; right: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: 99;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .nav-mobile-links {
+      list-style: none; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .nav-mobile-links li { border-bottom: 1px solid var(--border); }
+    .nav-mobile-links a {
+      display: block; padding: 18px 0;
+      font-size: 16px; font-weight: 500;
+      color: var(--text-2); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-mobile-links a:hover { color: var(--text); }
+    .nav-links a.active { color: var(--text); }
+    .nav-links a.active::after { transform: scaleX(1); }
   </style>
 </head>
 <body>
@@ -859,7 +908,7 @@
 
   <!-- ════ NAV ════ -->
   <nav>
-    <a class="nav-logo" href="#">EconIq</a>
+    <a class="nav-logo" href="landing_page.html">EconIq</a>
     <ul class="nav-links">
       <li><a href="#problem">What We Do</a></li>
       <li><a href="#features">Features</a></li>
@@ -874,8 +923,24 @@
       </button>
       <a class="btn-outline" href="login.html">Sign In</a>
       <a class="btn-primary" href="#cta">Request Access</a>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </nav>
+
+  <div class="nav-mobile-menu" id="navMobileMenu" style="display:none;">
+    <ul class="nav-mobile-links">
+      <li><a href="#problem" onclick="closeMobileMenu()">What We Do</a></li>
+      <li><a href="#features" onclick="closeMobileMenu()">Features</a></li>
+      <li><a href="#pricing" onclick="closeMobileMenu()">Pricing</a></li>
+      <li><a href="global_macro.html" onclick="closeMobileMenu()">Global Macro ↗</a></li>
+      <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel ↗</a></li>
+      <li><a href="login.html" onclick="closeMobileMenu()">Sign In</a></li>
+    </ul>
+  </div>
 
   <!-- ════ TICKER ════ -->
   <div class="ticker-band" style="position:fixed;top:68px;left:0;right:0;z-index:99;">
@@ -1352,6 +1417,22 @@
       btn.textContent = 'Submitted ✓'; btn.style.background = 'linear-gradient(135deg,var(--green),#059669)'; btn.disabled = true;
       msg.textContent = "You're on the list. We'll be in touch within 24 hours."; msg.style.color = 'var(--green)';
     }
+    function toggleMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      const isOpen = menu.style.display !== 'none';
+      menu.style.display = isOpen ? 'none' : 'block';
+      btn.classList.toggle('open', !isOpen);
+      document.body.style.overflow = isOpen ? '' : 'hidden';
+    }
+    function closeMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      menu.style.display = 'none';
+      btn.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.getElementById('navHamburger').addEventListener('click', toggleMobileMenu);
   </script>
 </body>
 </html>

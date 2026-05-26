@@ -3430,6 +3430,33 @@ async def get_global_macro():
     cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
     if _global_macro_cache_mem.get("data") and cache_age < 21600:
         return {**_global_macro_cache_mem["data"], "cached": True}
+    # Check Supabase full-blob cache (24h)
+    try:
+        cache_resp = _supabase.table(
+            "global_macro_cache"
+        ).select("*").eq(
+            "cache_key", "global_macro_50"
+        ).order(
+            "created_at", desc=True
+        ).limit(1).execute()
+        if cache_resp.data:
+            cached = cache_resp.data[0]
+            cached_at = datetime.fromisoformat(cached["created_at"])
+            age_hours = (
+                datetime.now(timezone.utc) - cached_at
+            ).total_seconds() / 3600
+            if age_hours < 24:
+                print(
+                    f"[GLOBAL_MACRO] Serving from cache (age: {age_hours:.1f}h)",
+                    flush=True
+                )
+                import json
+                return json.loads(cached["data"])
+    except Exception as e:
+        print(
+            f"[GLOBAL_MACRO] Cache check failed: {e}",
+            flush=True
+        )
     try:
         cutoff = (
             datetime.now(timezone.utc)
@@ -3535,6 +3562,16 @@ async def get_global_macro():
         "page_updated_at": datetime.now(timezone.utc).isoformat(),
         "cached":          False,
     }
+    try:
+        import json as _json
+        _supabase.table("global_macro_cache").upsert({
+            "cache_key": "global_macro_50",
+            "data": _json.dumps(result),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }).execute()
+        print("[GLOBAL_MACRO] Cache updated", flush=True)
+    except Exception as _ce:
+        print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     return result
 
