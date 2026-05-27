@@ -829,31 +829,9 @@
     .pricing-features li:last-child { border-bottom: none; }
     .pricing-check { color: var(--green); flex-shrink: 0; font-size: 12px; margin-top: 2px; }
 
-    /* ══ RESPONSIVE ══ */
-    @media (max-width: 960px) {
-      nav { padding: 0 24px; }
-      .nav-links { display: none !important; }
-      #hero { flex-direction: column; padding: 100px 24px 60px; gap: 52px; }
-      .hero-right { max-width: 100%; width: 100%; }
-      .section { padding: 72px 24px; }
-      .problem-grid, .how-grid, .features-grid { grid-template-columns: 1fr; }
-      .backtest-wrap { grid-template-columns: 1fr; }
-      .backtest-stats { grid-template-columns: 1fr 1fr; }
-      footer { flex-direction: column; gap: 18px; }
-      .footer-disclaimer { text-align: center; }
-      .cta-form { flex-direction: column; }
-      .hero-proof { gap: 22px; }
-      #cta { padding: 80px 24px; }
-      .cta-trust { flex-direction: column; gap: 14px; }
-      .nav-hamburger { display: flex !important; }
-      nav .btn-outline,
-      nav .btn-primary,
-      nav .theme-toggle { display: none !important; }
-    }
-
     /* ══ HAMBURGER / MOBILE NAV ══ */
     .nav-hamburger {
-      display: none !important;
+      display: none;
       flex-direction: column;
       gap: 5px;
       background: none;
@@ -898,6 +876,28 @@
     .nav-mobile-links a:hover { color: var(--text); }
     .nav-links a.active { color: var(--text); }
     .nav-links a.active::after { transform: scaleX(1); }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 960px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      #hero { flex-direction: column; padding: 100px 24px 60px; gap: 52px; }
+      .hero-right { max-width: 100%; width: 100%; }
+      .section { padding: 72px 24px; }
+      .problem-grid, .how-grid, .features-grid { grid-template-columns: 1fr; }
+      .backtest-wrap { grid-template-columns: 1fr; }
+      .backtest-stats { grid-template-columns: 1fr 1fr; }
+      footer { flex-direction: column; gap: 18px; }
+      .footer-disclaimer { text-align: center; }
+      .cta-form { flex-direction: column; }
+      .hero-proof { gap: 22px; }
+      #cta { padding: 80px 24px; }
+      .cta-trust { flex-direction: column; gap: 14px; }
+      .nav-hamburger { display: flex; }
+      nav .btn-outline,
+      nav .btn-primary,
+      nav .theme-toggle { display: none; }
+    }
   </style>
 </head>
 <body>
