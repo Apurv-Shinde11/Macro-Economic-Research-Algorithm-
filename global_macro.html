@@ -815,6 +815,56 @@
     }
     .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
     .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
+
+    /* ══ HAMBURGER / MOBILE NAV ══ */
+    .nav-hamburger {
+      display: none !important;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      z-index: 110;
+      flex-shrink: 0;
+    }
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text-2);
+      border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-mobile-menu {
+      position: fixed;
+      top: var(--nav-h); left: 0; right: 0; bottom: 0;
+      background: var(--bg-2);
+      z-index: 99;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      overflow-y: auto;
+    }
+    .nav-mobile-links {
+      list-style: none; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .nav-mobile-links li { border-bottom: 1px solid var(--border); }
+    .nav-mobile-links a {
+      display: block; padding: 18px 0;
+      font-size: 16px; font-weight: 500;
+      color: var(--text-2); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-mobile-links a:hover { color: var(--text); }
+    @media (max-width: 960px) {
+      .nav-hamburger { display: flex !important; }
+      .nav-links { display: none !important; }
+      .btn-sentinel { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -843,8 +893,20 @@
         <span class="icon-sun">☀️</span>
       </button>
       <a class="btn-sentinel" href="login.html">Access Sentinel →</a>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
+
+  <div class="nav-mobile-menu" id="navMobileMenu" style="display:none;">
+    <ul class="nav-mobile-links">
+      <li><a href="landing_page.html" onclick="closeMobileMenu()">Home</a></li>
+      <li><a href="dashboard.html" onclick="closeMobileMenu()">Dashboard</a></li>
+      <li><a href="global_macro.html" onclick="closeMobileMenu()">Global Macro</a></li>
+      <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel</a></li>
+    </ul>
+  </div>
 
   <main class="page-main">
 
@@ -2018,6 +2080,27 @@
     });
     _mapSvg.addEventListener('mouseleave', () => {
       if (_tt) _tt.style.display = 'none';
+    });
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      if (!menu || !btn) return;
+      const isOpen = menu.style.display !== 'none';
+      menu.style.display = isOpen ? 'none' : 'block';
+      btn.classList.toggle('open', !isOpen);
+      document.body.style.overflow = isOpen ? '' : 'hidden';
+    }
+    function closeMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      if (menu) menu.style.display = 'none';
+      if (btn) btn.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const hamBtn = document.getElementById('navHamburger');
+      if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
     });
   </script>
 </body>

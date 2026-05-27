@@ -832,7 +832,7 @@
     /* ══ RESPONSIVE ══ */
     @media (max-width: 960px) {
       nav { padding: 0 24px; }
-      nav .nav-links { display: none; }
+      .nav-links { display: none !important; }
       #hero { flex-direction: column; padding: 100px 24px 60px; gap: 52px; }
       .hero-right { max-width: 100%; width: 100%; }
       .section { padding: 72px 24px; }
@@ -845,21 +845,23 @@
       .hero-proof { gap: 22px; }
       #cta { padding: 80px 24px; }
       .cta-trust { flex-direction: column; gap: 14px; }
-      .nav-hamburger { display: flex; }
+      .nav-hamburger { display: flex !important; }
       nav .btn-outline,
-      nav .btn-primary { display: none; }
+      nav .btn-primary,
+      nav .theme-toggle { display: none !important; }
     }
 
     /* ══ HAMBURGER / MOBILE NAV ══ */
     .nav-hamburger {
-      display: none;
+      display: none !important;
       flex-direction: column;
       gap: 5px;
       background: none;
       border: none;
       cursor: pointer;
       padding: 6px;
-      z-index: 101;
+      z-index: 110;
+      flex-shrink: 0;
     }
     .nav-hamburger span {
       display: block;
@@ -880,6 +882,7 @@
       z-index: 99;
       padding: 32px 24px;
       border-top: 1px solid var(--border);
+      overflow-y: auto;
     }
     .nav-mobile-links {
       list-style: none; padding: 0; margin: 0;
@@ -1420,6 +1423,7 @@
     function toggleMobileMenu() {
       const menu = document.getElementById('navMobileMenu');
       const btn  = document.getElementById('navHamburger');
+      if (!menu || !btn) return;
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
       btn.classList.toggle('open', !isOpen);
@@ -1428,11 +1432,14 @@
     function closeMobileMenu() {
       const menu = document.getElementById('navMobileMenu');
       const btn  = document.getElementById('navHamburger');
-      menu.style.display = 'none';
-      btn.classList.remove('open');
+      if (menu) menu.style.display = 'none';
+      if (btn) btn.classList.remove('open');
       document.body.style.overflow = '';
     }
-    document.getElementById('navHamburger').addEventListener('click', toggleMobileMenu);
+    document.addEventListener('DOMContentLoaded', () => {
+      const hamBtn = document.getElementById('navHamburger');
+      if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
+    });
   </script>
 </body>
 </html>
