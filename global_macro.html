@@ -872,7 +872,49 @@
       .nav-links { display: none; }
       .btn-sentinel { display: none; }
     }
+
+    /* ══ GLOBE ══ */
+    .globe-container {
+      width: 100%;
+      height: 420px;
+      position: relative;
+      cursor: grab;
+      border-radius: 16px;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, rgba(13,20,40,0.8) 0%, rgba(4,6,15,0.95) 70%);
+    }
+    .globe-container:active { cursor: grabbing; }
+    #globeCanvas { width: 100% !important; height: 100% !important; }
+    .globe-tooltip {
+      position: absolute;
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text);
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .globe-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+    }
+    @media (max-width: 768px) {
+      .globe-container { height: 300px; }
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -924,18 +966,12 @@
       <p class="page-subtitle">Click any economy on the map to explore GDP, inflation, policy rates, and macro regime signals.</p>
     </div>
 
-    <!-- ══ MAP ══ -->
+    <!-- ══ GLOBE ══ -->
     <section class="map-section">
-      <div class="map-wrap">
-        <div class="map-loading" id="map-loading">Loading macro data…</div>
-        <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-          <!-- Ocean -->
-          <rect width="1000" height="500" fill="var(--bg)"/>
-          <!-- Country paths rendered from GeoJSON by JS -->
-          <g id="countries-group"></g>
-          <!-- Flag emoji labels (pointer-events:none, rendered on top) -->
-          <g id="labels-group"></g>
-        </svg>
+      <div class="globe-container" id="globeContainer">
+        <canvas id="globeCanvas"></canvas>
+        <div class="globe-tooltip" id="globeTooltip" style="display:none;"></div>
+        <div class="globe-hint">Drag to rotate · Click to select</div>
       </div>
     </section>
 
@@ -1716,6 +1752,36 @@
         const data = await res.json();
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
+
+        // Expose to globe
+        window._economyData = {};
+        economies.forEach(eco => {
+          window._economyData[eco.code] = {
+            name:   eco.name,
+            signal: eco.macro_signal || eco.signal,
+          };
+        });
+
+        // Re-colour globe dots if already initialised
+        if (window._globeDotsMesh) {
+          const _gcol = window._globeDotsMesh.geometry.attributes.color;
+          const _SCOL = {
+            'EXPANDING':          [0.06, 0.83, 0.54],
+            'STABLE_GROWTH':      [0.31, 0.51, 1.00],
+            'SLOWDOWN':           [0.98, 0.75, 0.14],
+            'CONTRACTION':        [0.97, 0.44, 0.44],
+            'INFLATION_PRESSURE': [0.97, 0.44, 0.44],
+            'MONITORING':         [0.18, 0.24, 0.35],
+          };
+          (window._globeDots || []).forEach((dot, i) => {
+            const sig = window._economyData[dot.code]?.signal || 'MONITORING';
+            dot.signal = sig;
+            const c = _SCOL[sig] || [0.18, 0.24, 0.35];
+            _gcol.setXYZ(i, c[0], c[1], c[2]);
+          });
+          _gcol.needsUpdate = true;
+        }
+
         document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
         highlightEconomyCountries(economies);
         renderEconomySizeSection();
@@ -2065,29 +2131,31 @@
     loadMacroData();
     scheduleRefresh();
 
-    /* ── Map marker tooltip (delegated) ── */
+    /* ── Map marker tooltip (delegated — no-op when SVG map not present) ── */
     const _mapSvg = document.getElementById('world-map');
     const _tt     = document.getElementById('country-tooltip');
-    _mapSvg.addEventListener('mousemove', (e) => {
-      const path = e.target.closest && e.target.closest('.country-path.highlighted[data-code]');
-      if (path && _tt) {
-        const code = path.getAttribute('data-code');
-        const eco  = economiesData[code];
-        if (eco) {
-          const gdp = eco.gdp_nominal_trillion;
-          const sig = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || '').replace(/_/g, ' ');
-          _tt.textContent = `${eco.flag} ${eco.name}${gdp != null ? ' | $' + gdp + 'T' : ''} | ${sig}`;
-          _tt.style.display = 'block';
-          _tt.style.left    = (e.clientX + 16) + 'px';
-          _tt.style.top     = (e.clientY - 8)  + 'px';
+    if (_mapSvg) {
+      _mapSvg.addEventListener('mousemove', (e) => {
+        const path = e.target.closest && e.target.closest('.country-path.highlighted[data-code]');
+        if (path && _tt) {
+          const code = path.getAttribute('data-code');
+          const eco  = economiesData[code];
+          if (eco) {
+            const gdp = eco.gdp_nominal_trillion;
+            const sig = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || '').replace(/_/g, ' ');
+            _tt.textContent = `${eco.flag} ${eco.name}${gdp != null ? ' | $' + gdp + 'T' : ''} | ${sig}`;
+            _tt.style.display = 'block';
+            _tt.style.left    = (e.clientX + 16) + 'px';
+            _tt.style.top     = (e.clientY - 8)  + 'px';
+          }
+        } else if (_tt) {
+          _tt.style.display = 'none';
         }
-      } else if (_tt) {
-        _tt.style.display = 'none';
-      }
-    });
-    _mapSvg.addEventListener('mouseleave', () => {
-      if (_tt) _tt.style.display = 'none';
-    });
+      });
+      _mapSvg.addEventListener('mouseleave', () => {
+        if (_tt) _tt.style.display = 'none';
+      });
+    }
 
     function toggleMobileMenu() {
       const menu = document.getElementById('navMobileMenu');
@@ -2109,6 +2177,259 @@
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
     });
+  </script>
+
+  <script>
+  (function () {
+  'use strict';
+
+  const ECONOMY_COORDS = {
+    'US': [38, -97],   'CN': [35, 105],  'DE': [51, 10],
+    'IN': [20, 77],    'JP': [36, 138],  'GB': [54, -2],
+    'FR': [46, 2],     'IT': [42, 12],   'BR': [-10, -55],
+    'CA': [56, -96],   'RU': [60, 90],   'KR': [37, 128],
+    'AU': [-25, 133],  'MX': [24, -102], 'ID': [-5, 120],
+    'NL': [52, 5],     'SA': [24, 45],   'TR': [39, 35],
+    'CH': [47, 8],     'TW': [24, 121],  'PL': [52, 20],
+    'SE': [62, 15],    'BE': [50, 4],    'AR': [-34, -64],
+    'NO': [64, 13],    'AE': [24, 54],   'IL': [31, 35],
+    'AT': [47, 14],    'SG': [1, 104],   'NG': [9, 8],
+    'ZA': [-29, 25],   'MY': [4, 109],   'DK': [56, 10],
+    'PH': [13, 122],   'IE': [53, -8],   'TH': [15, 101],
+    'BD': [24, 90],    'VN': [16, 108],  'PK': [30, 70],
+    'CO': [4, -72],    'CL': [-30, -71], 'FI': [64, 26],
+    'CZ': [50, 15],    'RO': [46, 25],   'NZ': [-41, 174],
+    'QA': [25, 51],    'KZ': [48, 68],   'HU': [47, 19],
+    'PT': [39, -8],    'GR': [39, 22],
+  };
+
+  const SIGNAL_COLORS = {
+    'EXPANDING':          0x10d48a,
+    'STABLE_GROWTH':      0x4f83ff,
+    'SLOWDOWN':           0xfbbf24,
+    'CONTRACTION':        0xf87171,
+    'INFLATION_PRESSURE': 0xf87171,
+    'MONITORING':         0x2e3d58,
+  };
+  const DEFAULT_COLOR = 0x2e3d58;
+
+  let globeData    = {};
+  let scene, camera, renderer;
+  let globe, dotsMesh;
+  let isDragging   = false;
+  let prevMouse    = { x: 0, y: 0 };
+  let rotationVel  = { x: 0, y: 0.001 };
+  let dots         = [];
+  let raycaster, mouse;
+
+  function latLngToVec3(lat, lng, r) {
+    const phi   = (90 - lat)  * Math.PI / 180;
+    const theta = (lng + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+      -r * Math.sin(phi) * Math.cos(theta),
+       r * Math.cos(phi),
+       r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+
+  function initGlobe() {
+    const container = document.getElementById('globeContainer');
+    const canvas    = document.getElementById('globeCanvas');
+    if (!container || !canvas || typeof THREE === 'undefined') return;
+
+    try {
+      const isMobile  = window.innerWidth < 768;
+      const segs      = isMobile ? 24 : 48;
+      const wireSegs  = isMobile ? 16 : 24;
+
+      const W = container.clientWidth;
+      const H = container.clientHeight;
+
+      scene    = new THREE.Scene();
+      camera   = new THREE.PerspectiveCamera(45, W / H, 0.1, 1000);
+      camera.position.z = 2.8;
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000000, 0);
+
+      // Globe sphere
+      const geo = new THREE.SphereGeometry(1, segs, segs);
+      const mat = new THREE.MeshPhongMaterial({
+        color: 0x0d1428, emissive: 0x061020,
+        transparent: true, opacity: 0.92,
+      });
+      globe = new THREE.Mesh(geo, mat);
+      scene.add(globe);
+
+      // Wireframe overlay
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry(1.001, wireSegs, wireSegs),
+        new THREE.MeshBasicMaterial({ color: 0x1e2d4a, wireframe: true, transparent: true, opacity: 0.15 })
+      ));
+
+      // Atmosphere glow
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry(1.15, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0x4f83ff, transparent: true, opacity: 0.04, side: THREE.BackSide })
+      ));
+
+      // Lighting
+      scene.add(new THREE.AmbientLight(0x4f83ff, 0.4));
+      const dLight = new THREE.DirectionalLight(0x7aa3ff, 0.8);
+      dLight.position.set(5, 3, 5);
+      scene.add(dLight);
+
+      // Economy dots
+      raycaster = new THREE.Raycaster();
+      mouse     = new THREE.Vector2();
+      raycaster.params.Points.threshold = 0.05;
+
+      const dotGeo    = new THREE.BufferGeometry();
+      const positions = [];
+      const colors    = [];
+      dots = [];
+
+      Object.entries(ECONOMY_COORDS).forEach(([code, [lat, lng]]) => {
+        const v      = latLngToVec3(lat, lng, 1.02);
+        positions.push(v.x, v.y, v.z);
+        const signal = globeData[code]?.signal || 'MONITORING';
+        const c      = new THREE.Color(SIGNAL_COLORS[signal] || DEFAULT_COLOR);
+        colors.push(c.r, c.g, c.b);
+        dots.push({ code, name: globeData[code]?.name || code, signal, position: v });
+      });
+
+      dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      dotGeo.setAttribute('color',    new THREE.Float32BufferAttribute(colors, 3));
+
+      dotsMesh = new THREE.Points(dotGeo, new THREE.PointsMaterial({
+        size: 0.055, vertexColors: true, sizeAttenuation: true,
+      }));
+      globe.add(dotsMesh);
+
+      // Expose for post-load re-colouring
+      window._globeDotsMesh = dotsMesh;
+      window._globeDots     = dots;
+
+      // Mouse events
+      canvas.addEventListener('mousedown', e => {
+        isDragging  = true;
+        prevMouse   = { x: e.clientX, y: e.clientY };
+        rotationVel = { x: 0, y: 0 };
+      });
+      window.addEventListener('mouseup', () => { isDragging = false; });
+      canvas.addEventListener('mousemove', e => {
+        if (isDragging) {
+          const dx = e.clientX - prevMouse.x;
+          const dy = e.clientY - prevMouse.y;
+          globe.rotation.y += dx * 0.005;
+          globe.rotation.x += dy * 0.005;
+          rotationVel.x = dy * 0.0002;
+          rotationVel.y = dx * 0.0002;
+          prevMouse = { x: e.clientX, y: e.clientY };
+        }
+        const rect = canvas.getBoundingClientRect();
+        mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+        mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+        checkDotHover(e.clientX, e.clientY, rect);
+      });
+      canvas.addEventListener('click', e => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+        mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+        handleDotClick();
+      });
+
+      // Touch support
+      let lastTouch = null;
+      canvas.addEventListener('touchstart', e => {
+        lastTouch   = e.touches[0];
+        rotationVel = { x: 0, y: 0 };
+      }, { passive: true });
+      canvas.addEventListener('touchmove', e => {
+        if (!lastTouch) return;
+        const t  = e.touches[0];
+        const dx = t.clientX - lastTouch.clientX;
+        const dy = t.clientY - lastTouch.clientY;
+        globe.rotation.y += dx * 0.005;
+        globe.rotation.x += dy * 0.005;
+        rotationVel.y = dx * 0.0002;
+        lastTouch = t;
+      }, { passive: true });
+
+      window.addEventListener('resize', () => {
+        const W2 = container.clientWidth;
+        const H2 = container.clientHeight;
+        camera.aspect = W2 / H2;
+        camera.updateProjectionMatrix();
+        renderer.setSize(W2, H2);
+      });
+
+      animate();
+
+    } catch (err) {
+      console.warn('[Globe] Initialization failed:', err);
+      const container = document.getElementById('globeContainer');
+      if (container) container.style.display = 'none';
+    }
+  }
+
+  function checkDotHover(mx, my, rect) {
+    if (!raycaster || !dotsMesh) return;
+    raycaster.setFromCamera(mouse, camera);
+    const hits    = raycaster.intersectObject(dotsMesh);
+    const tooltip = document.getElementById('globeTooltip');
+    if (!tooltip) return;
+    if (hits.length > 0) {
+      const dot = dots[hits[0].index];
+      if (dot) {
+        tooltip.style.display = 'block';
+        tooltip.style.left    = (mx - rect.left + 12) + 'px';
+        tooltip.style.top     = (my - rect.top  - 12) + 'px';
+        tooltip.textContent   = dot.name + ' · ' + (dot.signal || '').replace(/_/g, ' ');
+      }
+    } else {
+      tooltip.style.display = 'none';
+    }
+  }
+
+  function handleDotClick() {
+    if (!raycaster || !dotsMesh) return;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObject(dotsMesh);
+    if (hits.length > 0) {
+      const dot = dots[hits[0].index];
+      if (dot && typeof selectEconomy === 'function') {
+        selectEconomy(dot.code, true);
+      }
+    }
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!isDragging) {
+      globe.rotation.y += rotationVel.y;
+      rotationVel.y *= 0.98;
+      rotationVel.y = Math.max(Math.abs(rotationVel.y), 0.0008) * Math.sign(rotationVel.y || 1);
+    }
+    renderer.render(scene, camera);
+  }
+
+  function initWhenReady() {
+    if (typeof window._economyData !== 'undefined') {
+      globeData = window._economyData;
+    }
+    initGlobe();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWhenReady);
+  } else {
+    initWhenReady();
+  }
+
+  })();
   </script>
 </body>
 </html>
