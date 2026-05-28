@@ -4208,7 +4208,7 @@
           .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
-          .limit(20);
+          .limit(100);
         if (error) throw error;
         const history = histData || [];
         _lastHistory = history;
@@ -4271,7 +4271,7 @@
               .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary')
               .eq('user_id', _session.user.id)
               .order('run_at', { ascending: false })
-              .limit(20);
+              .limit(100);
             const freshArr = freshData || [];
             _lastHistory = freshArr;
             renderHistoryTable(freshArr);
@@ -5113,7 +5113,7 @@
           .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
-          .limit(20);
+          .limit(100);
         renderHistoryTable(freshData || []);
       } catch (e) {
         status.textContent = 'Evaluation failed — check logs';
