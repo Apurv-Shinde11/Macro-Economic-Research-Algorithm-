@@ -2324,7 +2324,7 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
     }
 
 @app.get("/api/history")
-async def get_history(limit: int = 20, profile: dict = Depends(require_access)):
+async def get_history(limit: int = 100, profile: dict = Depends(require_access)):
     _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_crore,dii_net_crore,crude_price,scenarios,triggers,asset_out,strat,sector_heatmap"
     result = _supabase.table("runs").select(_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
     runs = result.data or []
