@@ -3134,6 +3134,197 @@
       .nav-links { display: none; }
       nav .theme-toggle { display: none; }
     }
+
+    /* ── Archive Controls ── */
+    .archive-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .archive-controls-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .archive-controls-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .archive-filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .archive-filter-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+      text-transform: uppercase;
+    }
+    .archive-select {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 120px;
+    }
+    .archive-select:focus,
+    .archive-select:hover {
+      border-color: var(--blue);
+      color: var(--text);
+    }
+    .archive-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+    }
+    .archive-reset-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      letter-spacing: 0.06em;
+    }
+    .archive-reset-btn:hover {
+      color: var(--text-2);
+      border-color: var(--border-2);
+    }
+
+    /* ── Archive rows ── */
+    .archive-row {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .archive-row:hover {
+      background: var(--bg-3) !important;
+    }
+    .archive-row-open {
+      border-left: 2px solid var(--blue);
+    }
+    .archive-conf-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .archive-conf-bar-outer {
+      width: 40px;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .archive-conf-bar-inner {
+      height: 100%;
+      border-radius: 2px;
+    }
+    .archive-regime-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      color: var(--text-2);
+    }
+    .archive-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.06em;
+    }
+    .conviction-tag-HIGH {
+      background: rgba(16,212,138,0.12);
+      color: var(--green);
+    }
+    .conviction-tag-MEDIUM {
+      background: rgba(79,131,255,0.12);
+      color: var(--blue);
+    }
+    .conviction-tag-LOW {
+      background: rgba(251,191,36,0.12);
+      color: var(--amber);
+    }
+    .bias-tag-RISK_ON {
+      background: rgba(16,212,138,0.12);
+      color: var(--green);
+    }
+    .bias-tag-NEUTRAL {
+      background: rgba(79,131,255,0.08);
+      color: var(--text-2);
+    }
+    .bias-tag-RISK_OFF {
+      background: rgba(248,113,113,0.12);
+      color: var(--red);
+    }
+    .archive-outcome-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+    .archive-date {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    /* ── Detail row ── */
+    .archive-detail-content {
+      padding: 14px 16px;
+    }
+    .archive-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .archive-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .archive-detail-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+      text-transform: uppercase;
+    }
+    .archive-detail-value {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+    }
+
+    @media (max-width: 768px) {
+      .archive-controls {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .archive-detail-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .archive-select {
+        min-width: 100px;
+      }
+    }
   </style>
 </head>
 
@@ -3761,8 +3952,50 @@
 
       <div class="section-header">
         <span class="section-title">Historical Regime Archive</span>
-        <span class="section-meta">Last 20 runs</span>
+        <span class="section-meta" id="archiveCount">20 runs</span>
       </div>
+
+      <div class="archive-controls">
+        <div class="archive-controls-left">
+          <div class="archive-filter-group">
+            <label class="archive-filter-label">REGIME</label>
+            <select class="archive-select" id="archiveRegimeFilter">
+              <option value="">All Regimes</option>
+              <option value="LIQUIDITY_DRIVEN_EXPANSION">Liquidity Driven Expansion</option>
+              <option value="STABLE_GROWTH">Stable Growth</option>
+              <option value="MONETARY_TIGHTENING">Monetary Tightening</option>
+              <option value="EARLY_CYCLE_RECOVERY">Early Cycle Recovery</option>
+              <option value="GROWTH_SLOWDOWN_SUPPORT">Growth Slowdown</option>
+              <option value="STAGFLATION_RISK">Stagflation Risk</option>
+              <option value="INFLATION_PRESSURE_WITH_EXTERNAL_RISK">Inflation Pressure</option>
+              <option value="LIQUIDITY_TIGHTENING">Liquidity Tightening</option>
+            </select>
+          </div>
+          <div class="archive-filter-group">
+            <label class="archive-filter-label">CONVICTION</label>
+            <select class="archive-select" id="archiveConvictionFilter">
+              <option value="">All</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+          <div class="archive-filter-group">
+            <label class="archive-filter-label">SHOW</label>
+            <select class="archive-select" id="archiveShowFilter">
+              <option value="5">Last 5</option>
+              <option value="10">Last 10</option>
+              <option value="20" selected>Last 20</option>
+              <option value="50">Last 50</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+        <div class="archive-controls-right">
+          <button class="archive-reset-btn" id="archiveResetBtn" onclick="resetArchiveFilters()">Reset</button>
+        </div>
+      </div>
+
       <div style="overflow-x:auto;">
         <table class="history-table">
           <thead>
@@ -3774,11 +4007,12 @@
               <th>Equity Bias</th>
               <th>Implied Action<span class="tip-icon" data-tip="implied">ⓘ</span></th>
               <th>Outcome<span class="tip-icon" data-tip="outcome">ⓘ</span></th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="historyBody">
             <tr>
-              <td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td>
+              <td colspan="8" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td>
             </tr>
           </tbody>
         </table>
@@ -3886,6 +4120,8 @@
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
     let _session = null, _profile = null, _token = null, _pollTimer = null, _calendarEvents = [], _lastHistory = [];
     let _fiiHistory = null, _lastNseData = null, _tickerData = null;
+    let _allArchiveRuns = [];
+    let _openArchiveRows = new Set();
 
     function setLoadingState() {
       const confEl = document.getElementById('confidenceValue');
@@ -4721,26 +4957,139 @@
     }
 
     function renderHistoryTable(history) {
+      _allArchiveRuns = history || [];
+      _openArchiveRows.clear();
+      renderArchiveWithFilters();
+    }
+
+    function renderArchiveWithFilters() {
+      const regimeFilter = document.getElementById('archiveRegimeFilter')?.value || '';
+      const convFilter = document.getElementById('archiveConvictionFilter')?.value || '';
+      const showVal = document.getElementById('archiveShowFilter')?.value || '20';
+
+      let filtered = _allArchiveRuns.filter(run => {
+        if (regimeFilter && run.regime !== regimeFilter) return false;
+        if (convFilter && run.conviction !== convFilter) return false;
+        return true;
+      });
+
+      const limit = showVal === 'all' ? filtered.length : parseInt(showVal);
+      const shown = filtered.slice(0, limit);
+
+      const countEl = document.getElementById('archiveCount');
+      if (countEl) {
+        countEl.textContent = shown.length + ' of ' + _allArchiveRuns.length + ' runs';
+      }
+
       const tbody = document.getElementById('historyBody');
-      if (!history.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">No run history yet.</td></tr>`; return; }
+      if (!tbody) return;
+
+      if (!shown.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:24px;">No matching runs.</td></tr>`;
+        return;
+      }
+
       const thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
-      tbody.innerHTML = history.map(r => {
-        const date = new Date(r.run_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const time = new Date(r.run_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const regime = (r.regime || '—').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const conf = Math.round((r.confidence || 0) * 100) + '%'; const conv = r.conviction || '—';
+
+      tbody.innerHTML = shown.map((r, i) => {
+        const conf = Math.round((r.confidence || 0) * 100);
+        const conviction = r.conviction || '—';
         const _alloc = (typeof r.allocation === 'string') ? JSON.parse(r.allocation) : (r.allocation || {});
         const bias = _alloc.equity_bias || '—';
         const impliedAction = r.implied_action || _deriveImpliedAction(r.regime || '', r.conviction || '');
         const isOldEnough = new Date(r.run_at).getTime() < thirtyDaysAgo;
         const outcome = r.outcome || (isOldEnough ? 'Awaiting eval' : 'Pending');
+
+        const confColor = conf >= 65 ? 'var(--green)' : conf >= 50 ? 'var(--blue)' : 'var(--amber)';
+
+        const dateStr = r.run_at
+          ? new Date(r.run_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : '—';
+
         const outcomeCls =
           outcome.includes('Confirmed ✓') ? 'color:var(--green);font-weight:600;' :
             outcome.includes('Not Confirmed') ? 'color:var(--red);' :
               outcome === 'Awaiting eval' ? 'color:var(--amber);' :
                 'color:var(--text-3);';
-        return `<tr><td>${date}<br><span style="color:var(--text-3);font-size:10px;">${time}</span></td><td style="color:var(--text);">${regime}</td><td>${conf}</td><td><span class="conviction-badge ${conv}">${conv}</span></td><td>${bias}</td><td style="font-size:11px;color:var(--text-2);">${impliedAction}</td><td style="font-size:11px;${outcomeCls}">${outcome}</td></tr>`;
+
+        const isOpen = _openArchiveRows.has(i);
+
+        return `<tr class="archive-row${isOpen ? ' archive-row-open' : ''}"
+            data-regime="${r.regime || ''}"
+            data-conviction="${conviction}"
+            data-index="${i}"
+            onclick="toggleArchiveRow(${i})">
+          <td class="archive-date">${dateStr}</td>
+          <td><span class="archive-regime-badge">${(r.regime || '').replace(/_/g, ' ')}</span></td>
+          <td>
+            <div class="archive-conf-wrap">
+              <div class="archive-conf-bar-outer">
+                <div class="archive-conf-bar-inner" style="width:${conf}%;background:${confColor};"></div>
+              </div>
+              <span style="font-family:var(--font-mono);font-size:11px;color:${confColor};min-width:32px;">${conf}%</span>
+            </div>
+          </td>
+          <td><span class="archive-tag conviction-tag-${conviction}">${conviction}</span></td>
+          <td><span class="archive-tag bias-tag-${bias}">${bias}</span></td>
+          <td style="font-size:11px;color:var(--text-2);">${impliedAction}</td>
+          <td><span class="archive-outcome-tag" style="${outcomeCls}">${outcome}</span></td>
+          <td style="text-align:center;width:28px;">
+            <span id="toggle-icon-${i}" style="transition:transform 0.2s ease;display:inline-block;color:var(--text-3);font-size:14px;${isOpen ? 'transform:rotate(90deg)' : ''}">›</span>
+          </td>
+        </tr>
+        <tr class="archive-detail-row" id="archive-detail-${i}" style="display:${isOpen ? 'table-row' : 'none'};">
+          <td colspan="8" style="padding:0;background:var(--bg-3);border-bottom:1px solid var(--border);">
+            <div class="archive-detail-content">
+              <div class="archive-detail-grid">
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">REGIME</div>
+                  <div class="archive-detail-value">${(r.regime || '—').replace(/_/g, ' ')}</div>
+                </div>
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">CONFIDENCE</div>
+                  <div class="archive-detail-value" style="color:${confColor}">${conf}%</div>
+                </div>
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">EQUITY BIAS</div>
+                  <div class="archive-detail-value">${bias}</div>
+                </div>
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">CONVICTION</div>
+                  <div class="archive-detail-value">${conviction}</div>
+                </div>
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">IMPLIED ACTION</div>
+                  <div class="archive-detail-value">${impliedAction}</div>
+                </div>
+                <div class="archive-detail-item">
+                  <div class="archive-detail-label">OUTCOME</div>
+                  <div class="archive-detail-value" style="${outcomeCls}">${outcome}</div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>`;
       }).join('');
+    }
+
+    function toggleArchiveRow(index) {
+      if (_openArchiveRows.has(index)) {
+        _openArchiveRows.delete(index);
+      } else {
+        _openArchiveRows.add(index);
+      }
+      renderArchiveWithFilters();
+    }
+
+    function resetArchiveFilters() {
+      const regime = document.getElementById('archiveRegimeFilter');
+      const conv   = document.getElementById('archiveConvictionFilter');
+      const show   = document.getElementById('archiveShowFilter');
+      if (regime) regime.value = '';
+      if (conv)   conv.value   = '';
+      if (show)   show.value   = '20';
+      _openArchiveRows.clear();
+      renderArchiveWithFilters();
     }
 
     async function triggerOutcomeEvaluation() {
@@ -5859,6 +6208,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
+
+      ['archiveRegimeFilter', 'archiveConvictionFilter', 'archiveShowFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', renderArchiveWithFilters);
+      });
     });
   </script>
 </body>
