@@ -139,7 +139,7 @@
     .aurora {
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: 1;
       pointer-events: none;
       overflow: hidden;
     }
@@ -186,7 +186,7 @@
       z-index: 0;
     }
 
-    section, nav, footer { position: relative; z-index: 1; }
+    section, nav, footer { position: relative; z-index: 2; }
 
     /* ══ NAV ══ */
     nav {
@@ -877,6 +877,10 @@
     .nav-links a.active { color: var(--text); }
     .nav-links a.active::after { transform: scaleX(1); }
 
+    @media (max-width: 768px) {
+      #neuralBg { opacity: 0.4; }
+    }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
@@ -901,6 +905,14 @@
   </style>
 </head>
 <body>
+
+  <canvas id="neuralBg" style="
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    z-index:0;
+    pointer-events:none;
+  "></canvas>
 
   <!-- aurora -->
   <div class="aurora">
@@ -1440,6 +1452,141 @@
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
     });
+  </script>
+  <script>
+(function(){
+  const canvas = document.getElementById('neuralBg');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize(){
+    canvas.width  = innerWidth;
+    canvas.height = innerHeight;
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  const center = () => ({
+    x: innerWidth  / 2,
+    y: innerHeight / 2,
+  });
+
+  const labels = [
+    'FII', 'Credit', 'Liquidity',
+    'Growth', 'Inflation', 'Fiscal',
+    'Volatility', 'RBI', 'Yield'
+  ];
+
+  let nodes = [];
+
+  function buildNodes(){
+    nodes = [];
+    for (let i = 0; i < labels.length; i++){
+      const a = (Math.PI * 2 / labels.length) * i;
+      nodes.push({
+        label:  labels[i],
+        angle:  a,
+        radius: 220,
+      });
+    }
+  }
+  buildNodes();
+
+  let pulses = [];
+
+  setInterval(() => {
+    const i = Math.floor(Math.random() * nodes.length);
+    pulses.push({ node: i, progress: 0 });
+  }, 450);
+
+  function draw(){
+    requestAnimationFrame(draw);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const c = center();
+
+    // Radial glow
+    const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 500);
+    grad.addColorStop(0, 'rgba(79,131,255,.10)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Update node positions
+    nodes.forEach(n => {
+      n.angle += 0.001;
+      n.x = c.x + Math.cos(n.angle) * n.radius;
+      n.y = c.y + Math.sin(n.angle) * n.radius;
+    });
+
+    // Lines from center to nodes
+    ctx.strokeStyle = 'rgba(79,131,255,.15)';
+    ctx.lineWidth = 1;
+    nodes.forEach(n => {
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    });
+
+    // Lines between nodes
+    for (let i = 0; i < nodes.length; i++){
+      for (let j = i+1; j < nodes.length; j++){
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+
+    // Central regime engine node
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 70, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(79,131,255,.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(79,131,255,.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('REGIME ENGINE', c.x, c.y+4);
+
+    // Outer nodes
+    nodes.forEach(n => {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 14, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(79,131,255,.35)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(79,131,255,.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(219,228,255,0.65)';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(n.label, n.x, n.y - 22);
+    });
+
+    // Animated pulses
+    pulses.forEach((p, idx) => {
+      p.progress += 0.015;
+      const n = nodes[p.node];
+      const x = n.x + (c.x - n.x) * p.progress;
+      const y = n.y + (c.y - n.y) * p.progress;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = '#00d4aa';
+      ctx.fill();
+
+      if (p.progress >= 1) pulses.splice(idx, 1);
+    });
+  }
+
+  draw();
+})();
   </script>
 </body>
 </html>
