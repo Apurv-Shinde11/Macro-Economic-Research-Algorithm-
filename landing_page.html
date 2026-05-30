@@ -101,20 +101,21 @@
     html.light .how-card,
     html.light .feature-card,
     html.light .bs-card,
-    html.light .backtest-note { background: #ffffff; }
+    html.light .pricing-card,
+    html.light .backtest-note { background: rgba(255,255,255,0.90); }
     html.light .how-card:hover,
     html.light .feature-card:hover,
-    html.light .bs-card:hover { background: #f4f6fc; }
-    html.light .problem-card:hover { background: #f0f4ff; }
+    html.light .bs-card:hover { background: rgba(244,246,252,0.92); }
+    html.light .problem-card:hover { background: rgba(240,244,255,0.92); }
     html.light .t-action-item { background: rgba(37,99,235,0.04); }
     html.light .t-action-item:hover { background: rgba(37,99,235,0.08); border-color: var(--border); }
     html.light .t-pill { background: rgba(37,99,235,0.06); }
     html.light .feature-detail { background: rgba(244,246,252,0.8); }
-    html.light .backtest-note { background: linear-gradient(135deg, #fff 0%, rgba(37,99,235,0.03) 100%); }
+    html.light .backtest-note { background: linear-gradient(135deg, rgba(255,255,255,0.90) 0%, rgba(37,99,235,0.03) 100%); }
     html.light .cta-badge { background: rgba(180,83,9,0.07); }
-    html.light footer { background: #eaf0fb; }
-    html.light #problem { background: linear-gradient(180deg, #eaf0fb 0%, #f4f6fc 100%); }
-    html.light #features { background: linear-gradient(180deg, #ffffff 0%, #f4f6fc 100%); }
+    html.light footer { background: rgba(234,240,251,0.92); }
+    html.light #problem { background: transparent; }
+    html.light #features { background: transparent; }
 
     /* Smooth theme transition */
     body, nav, .terminal, .problem-card, .how-card, .feature-card,
@@ -497,7 +498,7 @@
 
     /* ══ WHAT WE DELIVER ══ */
     #problem {
-      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      background: transparent;
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
@@ -508,7 +509,7 @@
       margin-top: 60px;
     }
     .problem-card {
-      background: var(--bg-2); padding: 40px 34px;
+      background: rgba(8,13,28,0.88); padding: 40px 34px;
       transition: background 0.3s;
       position: relative; overflow: hidden;
     }
@@ -518,7 +519,7 @@
       transform: scaleX(0); transform-origin: left;
       transition: transform 0.4s ease;
     }
-    .problem-card:hover { background: var(--bg-3); }
+    .problem-card:hover { background: rgba(13,20,40,0.92); }
     .problem-card:hover::before { transform: scaleX(1); }
     .problem-num {
       font-family: var(--font-serif); font-size: 60px; font-weight: 600;
@@ -535,10 +536,10 @@
       border-radius: 14px; overflow: hidden;
     }
     .how-card {
-      background: var(--bg); padding: 40px 30px;
+      background: rgba(4,6,15,0.88); padding: 40px 30px;
       position: relative; transition: background 0.3s;
     }
-    .how-card:hover { background: var(--bg-2); }
+    .how-card:hover { background: rgba(8,13,28,0.92); }
     .how-card::after {
       content: attr(data-step);
       position: absolute; top: 28px; right: 28px;
@@ -568,7 +569,7 @@
 
     /* ══ FEATURES ══ */
     #features {
-      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+      background: transparent;
       border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
     .features-grid {
@@ -577,7 +578,7 @@
       border-radius: 14px; overflow: hidden;
     }
     .feature-card {
-      background: var(--bg-2); padding: 40px 36px;
+      background: rgba(8,13,28,0.88); padding: 40px 36px;
       transition: background 0.3s, box-shadow 0.3s;
       border: 1px solid transparent; position: relative; overflow: hidden;
     }
@@ -586,7 +587,7 @@
       background: linear-gradient(135deg, rgba(79,131,255,0.03), rgba(139,92,246,0.03));
       opacity: 0; transition: opacity 0.4s;
     }
-    .feature-card:hover { background: var(--bg-3); }
+    .feature-card:hover { background: rgba(13,20,40,0.92); }
     .feature-card:hover::after { opacity: 1; }
     .feature-icon-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
     .feature-icon {
@@ -627,14 +628,14 @@
       gap: 1px; background: var(--border); border-radius: 14px; overflow: hidden;
     }
     .bs-card {
-      background: var(--bg-2); padding: 30px 26px;
+      background: rgba(8,13,28,0.88); padding: 30px 26px;
       transition: background 0.3s; position: relative; overflow: hidden;
     }
     .bs-card::before {
       content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
       background: linear-gradient(90deg, transparent, rgba(79,131,255,0.2), transparent);
     }
-    .bs-card:hover { background: var(--bg-3); }
+    .bs-card:hover { background: rgba(13,20,40,0.92); }
     .bs-num {
       font-family: var(--font-serif); font-size: 44px; font-weight: 600;
       line-height: 1; margin-bottom: 8px;
@@ -643,9 +644,9 @@
     .bs-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); margin-top: 5px; letter-spacing: 0.06em; }
 
     .backtest-note {
-      background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px;
+      background: rgba(8,13,28,0.88); border: 1px solid var(--border); border-radius: 14px;
       padding: 36px;
-      background: linear-gradient(135deg, var(--bg-2) 0%, rgba(79,131,255,0.04) 100%);
+      background: linear-gradient(135deg, rgba(8,13,28,0.88) 0%, rgba(79,131,255,0.04) 100%);
     }
     .backtest-note h3 {
       font-family: var(--font-serif); font-size: 28px; font-weight: 600;
@@ -740,7 +741,7 @@
       padding: 36px 52px;
       border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
-      background: var(--bg);
+      background: rgba(4,6,15,0.92);
     }
     .footer-left { display: flex; align-items: center; gap: 24px; }
     .footer-logo { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.22em; color: var(--text-3); font-weight: 600; }
@@ -780,7 +781,7 @@
 
     /* ══ PRICING ══ */
     #pricing {
-      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      background: transparent;
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
     }
@@ -791,11 +792,11 @@
       margin-top: 60px;
     }
     .pricing-card {
-      background: var(--bg-2); padding: 40px 34px;
+      background: rgba(8,13,28,0.88); padding: 40px 34px;
       transition: background 0.3s, box-shadow 0.3s;
       position: relative; overflow: hidden;
     }
-    .pricing-card:hover { background: var(--bg-3); }
+    .pricing-card:hover { background: rgba(13,20,40,0.92); }
     .pricing-card.featured {
       border: 1px solid var(--blue);
       box-shadow: inset 0 0 40px rgba(79,131,255,0.06);
@@ -1499,15 +1500,29 @@
     pulses.push({ node: i, progress: 0 });
   }, 450);
 
+  function getThemeColors() {
+    const isDark = !document.documentElement.classList.contains('light');
+    return {
+      nodeLabel:    isDark ? 'rgba(219,228,255,0.65)' : 'rgba(15,25,60,0.75)',
+      engineLabel:  isDark ? 'rgba(255,255,255,0.55)' : 'rgba(15,25,60,0.70)',
+      nodeFill:     isDark ? 'rgba(79,131,255,.35)'   : 'rgba(79,131,255,.25)',
+      lineStroke:   isDark ? 'rgba(79,131,255,.15)'   : 'rgba(79,131,255,.20)',
+      engineFill:   isDark ? 'rgba(79,131,255,.15)'   : 'rgba(79,131,255,.12)',
+      engineStroke: isDark ? 'rgba(79,131,255,.6)'    : 'rgba(79,131,255,.5)',
+      glowStart:    isDark ? 'rgba(79,131,255,.10)'   : 'rgba(79,131,255,.06)',
+    };
+  }
+
   function draw(){
     requestAnimationFrame(draw);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const c = center();
+    const tc = getThemeColors();
 
     // Radial glow
     const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 500);
-    grad.addColorStop(0, 'rgba(79,131,255,.10)');
+    grad.addColorStop(0, tc.glowStart);
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1520,7 +1535,7 @@
     });
 
     // Lines from center to nodes
-    ctx.strokeStyle = 'rgba(79,131,255,.15)';
+    ctx.strokeStyle = tc.lineStroke;
     ctx.lineWidth = 1;
     nodes.forEach(n => {
       ctx.beginPath();
@@ -1530,6 +1545,7 @@
     });
 
     // Lines between nodes
+    ctx.strokeStyle = tc.lineStroke;
     for (let i = 0; i < nodes.length; i++){
       for (let j = i+1; j < nodes.length; j++){
         ctx.beginPath();
@@ -1542,13 +1558,13 @@
     // Central regime engine node
     ctx.beginPath();
     ctx.arc(c.x, c.y, 70, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(79,131,255,.15)';
+    ctx.fillStyle = tc.engineFill;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(79,131,255,.6)';
+    ctx.strokeStyle = tc.engineStroke;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillStyle = tc.engineLabel;
     ctx.font = '11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('REGIME ENGINE', c.x, c.y+4);
@@ -1557,13 +1573,13 @@
     nodes.forEach(n => {
       ctx.beginPath();
       ctx.arc(n.x, n.y, 14, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(79,131,255,.35)';
+      ctx.fillStyle = tc.nodeFill;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(79,131,255,.6)';
+      ctx.strokeStyle = tc.engineStroke;
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(219,228,255,0.65)';
+      ctx.fillStyle = tc.nodeLabel;
       ctx.font = '10px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(n.label, n.x, n.y - 22);
