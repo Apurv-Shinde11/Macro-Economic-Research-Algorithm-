@@ -1,81 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EconIq — Global Macro Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     /* ══ DARK THEME (default) ══ */
     :root {
-      --bg:         #04060f;
-      --bg-2:       #080d1c;
-      --bg-3:       #0d1428;
-      --bg-4:       #111d38;
-      --bg-glass:   rgba(8,13,28,0.70);
-      --border:     rgba(99,132,255,0.10);
-      --border-2:   rgba(99,132,255,0.20);
-      --text:       #e8eeff;
-      --text-2:     #7a8baa;
-      --text-3:     #2e3d58;
-      --blue:       #4f83ff;
+      --bg: #04060f;
+      --bg-2: #080d1c;
+      --bg-3: #0d1428;
+      --bg-4: #111d38;
+      --bg-glass: rgba(8, 13, 28, 0.70);
+      --border: rgba(99, 132, 255, 0.10);
+      --border-2: rgba(99, 132, 255, 0.20);
+      --text: #e8eeff;
+      --text-2: #7a8baa;
+      --text-3: #2e3d58;
+      --blue: #4f83ff;
       --blue-light: #7aa3ff;
-      --blue-dim:   rgba(79,131,255,0.10);
-      --indigo:     #6366f1;
-      --violet:     #8b5cf6;
-      --cyan:       #22d3ee;
-      --green:      #10d48a;
-      --green-dim:  rgba(16,212,138,0.10);
-      --amber:      #fbbf24;
-      --amber-dim:  rgba(251,191,36,0.10);
-      --red:        #f87171;
-      --red-dim:    rgba(248,113,113,0.10);
+      --blue-dim: rgba(79, 131, 255, 0.10);
+      --indigo: #6366f1;
+      --violet: #8b5cf6;
+      --cyan: #22d3ee;
+      --green: #10d48a;
+      --green-dim: rgba(16, 212, 138, 0.10);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.10);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.10);
       --font-serif: 'Cormorant Garamond', Georgia, serif;
-      --font-sans:  'DM Sans', sans-serif;
-      --font-mono:  'JetBrains Mono', monospace;
-      --nav-h:      64px;
-      --radius:     8px;
-      --radius-lg:  14px;
-      --card-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06);
+      --font-sans: 'DM Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --nav-h: 64px;
+      --radius: 8px;
+      --radius-lg: 14px;
+      --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
     }
 
     /* ══ LIGHT THEME ══ */
     html.light {
-      --bg:         #f4f6fc;
-      --bg-2:       #ffffff;
-      --bg-3:       #eaf0fb;
-      --bg-4:       #dde8f8;
-      --bg-glass:   rgba(255,255,255,0.80);
-      --border:     rgba(79,131,255,0.12);
-      --border-2:   rgba(79,131,255,0.22);
-      --text:       #0d1120;
-      --text-2:     #4a5872;
-      --text-3:     #9aaabb;
-      --blue:       #2563eb;
+      --bg: #f4f6fc;
+      --bg-2: #ffffff;
+      --bg-3: #eaf0fb;
+      --bg-4: #dde8f8;
+      --bg-glass: rgba(255, 255, 255, 0.80);
+      --border: rgba(79, 131, 255, 0.12);
+      --border-2: rgba(79, 131, 255, 0.22);
+      --text: #0d1120;
+      --text-2: #4a5872;
+      --text-3: #9aaabb;
+      --blue: #2563eb;
       --blue-light: #3b82f6;
-      --blue-dim:   rgba(37,99,235,0.08);
-      --indigo:     #4f46e5;
-      --violet:     #7c3aed;
-      --cyan:       #0891b2;
-      --green:      #059669;
-      --green-dim:  rgba(5,150,105,0.09);
-      --amber:      #b45309;
-      --amber-dim:  rgba(180,83,9,0.08);
-      --red:        #dc2626;
-      --red-dim:    rgba(220,38,38,0.08);
-      --card-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(79,131,255,0.08);
+      --blue-dim: rgba(37, 99, 235, 0.08);
+      --indigo: #4f46e5;
+      --violet: #7c3aed;
+      --cyan: #0891b2;
+      --green: #059669;
+      --green-dim: rgba(5, 150, 105, 0.09);
+      --amber: #b45309;
+      --amber-dim: rgba(180, 83, 9, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(79, 131, 255, 0.08);
     }
 
     /* ══ TRANSITIONS ══ */
-    body, nav, .detail-card, .detail-panel, .summary-card {
+    body,
+    nav,
+    .detail-card,
+    .detail-panel,
+    .summary-card {
       transition: background 0.32s ease, color 0.32s ease, border-color 0.32s ease;
     }
 
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
       background: var(--bg);
@@ -93,16 +108,17 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(79,131,255,0.028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(79,131,255,0.028) 1px, transparent 1px);
+        linear-gradient(rgba(79, 131, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 131, 255, 0.028) 1px, transparent 1px);
       background-size: 36px 36px;
       pointer-events: none;
       z-index: 0;
     }
+
     html.light body::before {
       background-image:
-        linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px);
+        linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
     }
 
     /* ══ AURORA ══ */
@@ -113,6 +129,7 @@
       pointer-events: none;
       overflow: hidden;
     }
+
     .aurora-blob {
       position: absolute;
       border-radius: 50%;
@@ -120,47 +137,79 @@
       opacity: 0.10;
       animation: auroraFloat 22s ease-in-out infinite;
     }
+
     .aurora-blob:nth-child(1) {
-      width: 800px; height: 600px;
+      width: 800px;
+      height: 600px;
       background: radial-gradient(circle, #4f83ff 0%, #6366f1 50%, transparent 70%);
-      top: -250px; left: -200px; animation-duration: 24s;
+      top: -250px;
+      left: -200px;
+      animation-duration: 24s;
     }
+
     .aurora-blob:nth-child(2) {
-      width: 500px; height: 500px;
+      width: 500px;
+      height: 500px;
       background: radial-gradient(circle, #8b5cf6 0%, #4f83ff 50%, transparent 70%);
-      top: 40%; right: -100px; animation-duration: 19s; animation-delay: -8s;
+      top: 40%;
+      right: -100px;
+      animation-duration: 19s;
+      animation-delay: -8s;
     }
+
     .aurora-blob:nth-child(3) {
-      width: 400px; height: 400px;
+      width: 400px;
+      height: 400px;
       background: radial-gradient(circle, #10d48a 0%, #22d3ee 50%, transparent 70%);
-      bottom: -100px; left: 35%; animation-duration: 28s; animation-delay: -16s;
+      bottom: -100px;
+      left: 35%;
+      animation-duration: 28s;
+      animation-delay: -16s;
     }
-    html.light .aurora-blob { opacity: 0.06; }
+
+    html.light .aurora-blob {
+      opacity: 0.06;
+    }
+
     @keyframes auroraFloat {
-      0%,100% { transform: translate(0,0) scale(1); }
-      33%      { transform: translate(60px,-40px) scale(1.06); }
-      66%      { transform: translate(-40px,55px) scale(0.96); }
+
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate(60px, -40px) scale(1.06);
+      }
+
+      66% {
+        transform: translate(-40px, 55px) scale(0.96);
+      }
     }
 
     /* ══ NAV ══ */
     .nav {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       height: var(--nav-h);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 28px;
-      background: rgba(4,6,15,0.65);
+      background: rgba(4, 6, 15, 0.65);
       backdrop-filter: blur(24px) saturate(180%);
       -webkit-backdrop-filter: blur(24px) saturate(180%);
       border-bottom: 1px solid var(--border);
     }
+
     html.light .nav {
-      background: rgba(244,246,252,0.80);
+      background: rgba(244, 246, 252, 0.80);
       border-bottom: 1px solid var(--border);
     }
+
     .nav-logo {
       font-family: var(--font-mono);
       font-size: 15px;
@@ -172,45 +221,79 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+
     .nav-right {
       display: flex;
       align-items: center;
       gap: 10px;
     }
+
     .theme-toggle {
-      width: 36px; height: 36px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       border: 1px solid var(--border-2);
-      background: rgba(79,131,255,0.07);
+      background: rgba(79, 131, 255, 0.07);
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 16px;
       transition: background 0.2s, border-color 0.2s, transform 0.25s;
-      position: relative; overflow: hidden;
+      position: relative;
+      overflow: hidden;
     }
-    .theme-toggle:hover { border-color: var(--blue); transform: rotate(15deg); }
+
+    .theme-toggle:hover {
+      border-color: var(--blue);
+      transform: rotate(15deg);
+    }
+
     .theme-toggle .icon-sun,
     .theme-toggle .icon-moon {
       position: absolute;
       transition: opacity 0.3s ease, transform 0.4s ease;
     }
-    .theme-toggle .icon-sun  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
-    .theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
-    html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
-    html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+
+    .theme-toggle .icon-sun {
+      opacity: 0;
+      transform: rotate(-90deg) scale(0.6);
+    }
+
+    .theme-toggle .icon-moon {
+      opacity: 1;
+      transform: rotate(0deg) scale(1);
+    }
+
+    html.light .theme-toggle .icon-sun {
+      opacity: 1;
+      transform: rotate(0deg) scale(1);
+    }
+
+    html.light .theme-toggle .icon-moon {
+      opacity: 0;
+      transform: rotate(90deg) scale(0.6);
+    }
+
     .btn-sentinel {
       font-family: var(--font-sans);
-      font-size: 13px; font-weight: 600;
+      font-size: 13px;
+      font-weight: 600;
       padding: 8px 18px;
       border-radius: var(--radius);
       background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
       color: #fff;
       text-decoration: none;
-      border: none; cursor: pointer;
+      border: none;
+      cursor: pointer;
       transition: opacity 0.2s, transform 0.2s;
       white-space: nowrap;
     }
-    .btn-sentinel:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-sentinel:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
 
     /* ══ PAGE MAIN ══ */
     .page-main {
@@ -227,6 +310,7 @@
       max-width: 760px;
       margin: 0 auto;
     }
+
     .page-eyebrow {
       font-family: var(--font-mono);
       font-size: 11px;
@@ -235,6 +319,7 @@
       color: var(--blue);
       margin-bottom: 12px;
     }
+
     .page-title {
       font-family: var(--font-serif);
       font-size: clamp(28px, 4vw, 42px);
@@ -243,6 +328,7 @@
       color: var(--text);
       margin-bottom: 12px;
     }
+
     .page-subtitle {
       font-size: 14px;
       color: var(--text-2);
@@ -256,6 +342,7 @@
       max-width: 1100px;
       margin: 0 auto 32px;
     }
+
     .map-wrap {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -264,11 +351,13 @@
       box-shadow: var(--card-shadow);
       position: relative;
     }
+
     #world-map {
       width: 100%;
       height: auto;
       display: block;
     }
+
     .map-loading {
       position: absolute;
       inset: 0;
@@ -284,10 +373,17 @@
       z-index: 2;
       border-radius: var(--radius-lg);
     }
+
     @keyframes mapSkeleton {
-      0%   { background-position: 100% 50%; }
-      100% { background-position: 0%   50%; }
+      0% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
     }
+
     /* Country paths */
     .country-path {
       fill: var(--bg-3);
@@ -295,7 +391,11 @@
       stroke-width: 0.4;
       transition: fill 0.15s;
     }
-    .country-path:not(.highlighted):hover { fill: var(--bg-4); }
+
+    .country-path:not(.highlighted):hover {
+      fill: var(--bg-4);
+    }
+
     .country-path.highlighted {
       fill: var(--cf25, var(--bg-3));
       stroke: var(--country-stroke, var(--border));
@@ -303,10 +403,12 @@
       cursor: pointer;
       transition: fill 0.15s, filter 0.15s, stroke-width 0.15s;
     }
+
     .country-path.highlighted:hover {
       fill: var(--cf40, var(--bg-4));
       filter: drop-shadow(0 0 6px var(--country-stroke, transparent));
     }
+
     .country-path.highlighted.selected,
     .country-path.highlighted.selected:hover {
       fill: var(--cf50, var(--bg-4));
@@ -320,6 +422,7 @@
       margin: 0 auto 40px;
       padding: 0 20px;
     }
+
     .detail-empty {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -333,6 +436,7 @@
       justify-content: center;
       gap: 10px;
     }
+
     .detail-inner {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -341,9 +445,17 @@
       box-shadow: var(--card-shadow);
       animation: panelIn 0.25s ease;
     }
+
     @keyframes panelIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Strip */
@@ -356,12 +468,18 @@
       gap: 12px;
       flex-wrap: wrap;
     }
+
     .detail-left {
       display: flex;
       align-items: center;
       gap: 14px;
     }
-    .detail-flag { font-size: 28px; line-height: 1; }
+
+    .detail-flag {
+      font-size: 28px;
+      line-height: 1;
+    }
+
     .detail-name {
       font-family: var(--font-serif);
       font-size: 22px;
@@ -371,22 +489,25 @@
       align-items: center;
       gap: 8px;
     }
+
     .home-badge {
       font-family: var(--font-mono);
       font-size: 9px;
       letter-spacing: 0.12em;
       padding: 2px 7px;
       border-radius: 4px;
-      background: rgba(245,158,11,0.15);
+      background: rgba(245, 158, 11, 0.15);
       color: #F59E0B;
-      border: 1px solid rgba(245,158,11,0.3);
+      border: 1px solid rgba(245, 158, 11, 0.3);
       vertical-align: middle;
     }
+
     .detail-updated {
       font-size: 11px;
       color: var(--text-3);
       margin-top: 2px;
     }
+
     .signal-badge {
       padding: 5px 14px;
       border-radius: 20px;
@@ -405,17 +526,23 @@
       gap: 0;
       border-bottom: 1px solid var(--border);
     }
+
     .detail-secondary {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0;
       border-bottom: 1px solid var(--border);
     }
+
     .detail-card {
       padding: 18px 22px;
       border-right: 1px solid var(--border);
     }
-    .detail-card:last-child { border-right: none; }
+
+    .detail-card:last-child {
+      border-right: none;
+    }
+
     .card-label {
       font-size: 11px;
       letter-spacing: 0.06em;
@@ -426,6 +553,7 @@
       align-items: center;
       gap: 6px;
     }
+
     .card-value {
       font-family: var(--font-mono);
       font-size: 22px;
@@ -433,11 +561,16 @@
       line-height: 1;
       margin-bottom: 4px;
     }
-    .card-value.mono-sm { font-size: 16px; }
+
+    .card-value.mono-sm {
+      font-size: 16px;
+    }
+
     .card-sub {
       font-size: 11px;
       color: var(--text-3);
     }
+
     .live-badge {
       background: var(--red-dim);
       color: var(--red);
@@ -448,15 +581,24 @@
       letter-spacing: 0.08em;
       animation: livePulse 2s ease-in-out infinite;
     }
+
     @keyframes livePulse {
-      0%,100% { opacity: 1; }
-      50%      { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
 
     /* Summary card */
     .detail-summary {
       padding: 20px 24px;
     }
+
     .summary-label {
       font-size: 11px;
       letter-spacing: 0.08em;
@@ -464,6 +606,7 @@
       color: var(--text-3);
       margin-bottom: 8px;
     }
+
     .summary-text {
       font-size: 14px;
       color: var(--text-2);
@@ -504,6 +647,7 @@
       padding: 14px 24px 18px;
       border-top: 1px solid var(--border);
     }
+
     .size-chart-label {
       font-size: 11px;
       letter-spacing: 0.08em;
@@ -519,6 +663,7 @@
       padding: 0 20px;
       text-align: center;
     }
+
     .cta-inner {
       background: var(--bg-2);
       border: 1px solid var(--border-2);
@@ -526,6 +671,7 @@
       padding: 40px 32px;
       box-shadow: var(--card-shadow);
     }
+
     .cta-title {
       font-family: var(--font-serif);
       font-size: 26px;
@@ -533,11 +679,13 @@
       color: var(--text);
       margin-bottom: 10px;
     }
+
     .cta-sub {
       font-size: 14px;
       color: var(--text-2);
       margin-bottom: 24px;
     }
+
     .cta-btn {
       display: inline-block;
       font-family: var(--font-sans);
@@ -550,7 +698,11 @@
       text-decoration: none;
       transition: opacity 0.2s, transform 0.2s;
     }
-    .cta-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .cta-btn:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
 
     /* ══ FOOTER ══ */
     footer {
@@ -564,6 +716,7 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+
     .footer-logo {
       font-family: var(--font-mono);
       font-size: 12px;
@@ -571,6 +724,7 @@
       letter-spacing: 0.12em;
       color: var(--text-3);
     }
+
     .footer-sources {
       font-size: 11px;
       color: var(--text-3);
@@ -578,22 +732,64 @@
 
     /* ══ RESPONSIVE ══ */
     @media (max-width: 768px) {
-      .nav { padding: 0 16px; }
-      .page-main { padding-top: calc(var(--nav-h) + 16px); }
-      .map-section, .detail-panel, .cta-section { padding: 0 12px; }
-      .detail-primary { grid-template-columns: repeat(3, 1fr); }
-      .detail-primary .detail-card:nth-child(3) { border-right: none; }
+      .nav {
+        padding: 0 16px;
+      }
+
+      .page-main {
+        padding-top: calc(var(--nav-h) + 16px);
+      }
+
+      .map-section,
+      .detail-panel,
+      .cta-section {
+        padding: 0 12px;
+      }
+
+      .detail-primary {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .detail-primary .detail-card:nth-child(3) {
+        border-right: none;
+      }
+
       .detail-primary .detail-card:nth-child(4),
-      .detail-primary .detail-card:nth-child(5) { border-top: 1px solid var(--border); }
-      .detail-secondary { grid-template-columns: repeat(3, 1fr); }
-      .card-value { font-size: 18px; }
-      .card-value.mono-sm { font-size: 13px; }
-      .detail-strip { flex-direction: column; align-items: flex-start; }
+      .detail-primary .detail-card:nth-child(5) {
+        border-top: 1px solid var(--border);
+      }
+
+      .detail-secondary {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .card-value {
+        font-size: 18px;
+      }
+
+      .card-value.mono-sm {
+        font-size: 13px;
+      }
+
+      .detail-strip {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
+
     @media (max-width: 520px) {
-      .detail-secondary { grid-template-columns: repeat(1, 1fr); }
-      .detail-secondary .detail-card { border-right: none; border-top: 1px solid var(--border); }
-      .detail-secondary .detail-card:first-child { border-top: none; }
+      .detail-secondary {
+        grid-template-columns: repeat(1, 1fr);
+      }
+
+      .detail-secondary .detail-card {
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+
+      .detail-secondary .detail-card:first-child {
+        border-top: none;
+      }
     }
 
     /* ══ ECONOMY SIZE STANDALONE ══ */
@@ -602,6 +798,7 @@
       margin: 0 auto 32px;
       padding: 0 20px;
     }
+
     .economy-size-standalone-inner {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -609,6 +806,7 @@
       padding: 20px 24px;
       box-shadow: var(--card-shadow);
     }
+
     .economy-size-standalone-title {
       font-family: var(--font-serif);
       font-size: 17px;
@@ -616,6 +814,7 @@
       color: var(--text);
       margin-bottom: 3px;
     }
+
     .economy-size-standalone-sub {
       font-size: 11px;
       color: var(--text-3);
@@ -631,6 +830,7 @@
       scrollbar-width: thin;
       scrollbar-color: var(--border-2) transparent;
     }
+
     .eco-compare-row {
       display: flex;
       align-items: center;
@@ -641,11 +841,16 @@
       transition: background 0.12s;
       border-left: 2px solid transparent;
     }
-    .eco-compare-row:hover { background: var(--bg-3); }
+
+    .eco-compare-row:hover {
+      background: var(--bg-3);
+    }
+
     .eco-compare-row.selected {
       border-left-color: var(--row-sig-color, var(--blue));
       background: var(--bg-3);
     }
+
     .eco-compare-label {
       display: flex;
       align-items: center;
@@ -653,6 +858,7 @@
       width: 170px;
       flex-shrink: 0;
     }
+
     .eco-compare-flag {
       font-size: 22px;
       line-height: 1;
@@ -661,6 +867,7 @@
       width: 28px;
       text-align: center;
     }
+
     .eco-compare-name {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -669,7 +876,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .eco-compare-row.selected .eco-compare-name { color: var(--text); font-weight: 600; }
+
+    .eco-compare-row.selected .eco-compare-name {
+      color: var(--text);
+      font-weight: 600;
+    }
+
     .eco-compare-bar-wrap {
       flex: 1;
       height: 7px;
@@ -678,7 +890,12 @@
       overflow: hidden;
       min-width: 0;
     }
-    .eco-compare-bar { height: 100%; border-radius: 3px; }
+
+    .eco-compare-bar {
+      height: 100%;
+      border-radius: 3px;
+    }
+
     .eco-compare-gdp {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -687,15 +904,19 @@
       text-align: right;
       flex-shrink: 0;
     }
-    .eco-compare-row.selected .eco-compare-gdp { color: var(--text-2); }
+
+    .eco-compare-row.selected .eco-compare-gdp {
+      color: var(--text-2);
+    }
 
     /* ══ RESTRICTED / INFO CURRENCY CARD ══ */
     .currency-chart-card.restricted {
-      border-color: rgba(251,191,36,0.30);
+      border-color: rgba(251, 191, 36, 0.30);
       background: var(--amber-dim);
     }
+
     .currency-chart-card.info {
-      border-color: rgba(79,131,255,0.30);
+      border-color: rgba(79, 131, 255, 0.30);
       background: var(--blue-dim);
     }
 
@@ -707,12 +928,14 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
+
     .currency-chart-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
     }
+
     .currency-chart-title {
       font-family: var(--font-mono);
       font-size: 10px;
@@ -721,13 +944,19 @@
       text-transform: uppercase;
       display: block;
     }
+
     .currency-chart-subtitle {
       font-family: var(--font-mono);
       font-size: 9px;
       color: var(--text-3);
       letter-spacing: 0.08em;
     }
-    .currency-perf-tabs { display: flex; gap: 3px; }
+
+    .currency-perf-tabs {
+      display: flex;
+      gap: 3px;
+    }
+
     .currency-tab {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -740,27 +969,70 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .currency-tab:hover { color: var(--text-2); border-color: var(--border-2); }
+
+    .currency-tab:hover {
+      color: var(--text-2);
+      border-color: var(--border-2);
+    }
+
     .currency-tab.active {
       background: var(--blue-dim);
-      border-color: rgba(79,131,255,0.3);
+      border-color: rgba(79, 131, 255, 0.3);
       color: var(--blue);
     }
-    .currency-return-strip { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
-    .currency-return-item { display: flex; flex-direction: column; gap: 2px; }
+
+    .currency-return-strip {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .currency-return-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .currency-return-period {
-      font-family: var(--font-mono); font-size: 8px;
-      color: var(--text-3); letter-spacing: 0.12em; text-transform: uppercase;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
-    .currency-return-value { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
-    .currency-return-value.positive { color: var(--green); }
-    .currency-return-value.negative { color: var(--red); }
-    .currency-return-value.flat { color: var(--text-3); }
-    .currency-sparkline-container { width: 100%; overflow: hidden; }
+
+    .currency-return-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .currency-return-value.positive {
+      color: var(--green);
+    }
+
+    .currency-return-value.negative {
+      color: var(--red);
+    }
+
+    .currency-return-value.flat {
+      color: var(--text-3);
+    }
+
+    .currency-sparkline-container {
+      width: 100%;
+      overflow: hidden;
+    }
+
     .currency-chart-footer {
-      font-family: var(--font-mono); font-size: 9px;
-      color: var(--text-3); margin-top: 6px; letter-spacing: 0.04em;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      margin-top: 6px;
+      letter-spacing: 0.04em;
     }
+
     .currency-regime-badge {
       display: inline-flex;
       align-items: center;
@@ -774,30 +1046,35 @@
       text-transform: uppercase;
       margin-bottom: 12px;
     }
+
     .currency-regime-badge.pegged {
-      background: rgba(79,131,255,0.12);
+      background: rgba(79, 131, 255, 0.12);
       color: var(--blue);
-      border: 1px solid rgba(79,131,255,0.25);
+      border: 1px solid rgba(79, 131, 255, 0.25);
     }
+
     .currency-regime-badge.restricted {
-      background: rgba(251,191,36,0.12);
+      background: rgba(251, 191, 36, 0.12);
       color: var(--amber);
-      border: 1px solid rgba(251,191,36,0.25);
+      border: 1px solid rgba(251, 191, 36, 0.25);
     }
 
     /* ══ SKELETON ══ */
     @keyframes shimmer {
-      0%   { background-position: -200% 0; }
-      100% { background-position:  200% 0; }
+      0% {
+        background-position: -200% 0;
+      }
+
+      100% {
+        background-position: 200% 0;
+      }
     }
 
     .skeleton {
-      background: linear-gradient(
-        90deg,
-        var(--bg-3) 25%,
-        rgba(79,131,255,0.06) 50%,
-        var(--bg-3) 75%
-      );
+      background: linear-gradient(90deg,
+          var(--bg-3) 25%,
+          rgba(79, 131, 255, 0.06) 50%,
+          var(--bg-3) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
       border-radius: 4px;
@@ -811,17 +1088,41 @@
     }
 
     /* ══ NAV LINKS ══ */
-    .nav-left { display: flex; align-items: center; gap: 14px; }
-    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .nav-link {
-      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
-      color: var(--text-2); text-decoration: none;
-      padding: 6px 10px; border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
       border: 1px solid transparent;
       transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
-    .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
-    .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
+
+    .nav-link:hover {
+      color: var(--blue);
+      border-color: var(--border);
+      background: var(--bg-3);
+    }
+
+    .nav-link.active {
+      color: var(--blue);
+      border-color: var(--border-2);
+      background: var(--blue-dim);
+    }
 
     /* ══ HAMBURGER / MOBILE NAV ══ */
     .nav-hamburger {
@@ -835,6 +1136,7 @@
       z-index: 110;
       flex-shrink: 0;
     }
+
     .nav-hamburger span {
       display: block;
       width: 22px;
@@ -843,38 +1145,75 @@
       border-radius: 2px;
       transition: transform 0.25s ease, opacity 0.25s ease;
     }
-    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
-    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-hamburger.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .nav-hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .nav-hamburger.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
     .nav-mobile-menu {
       position: fixed;
-      top: var(--nav-h); left: 0; right: 0; bottom: 0;
+      top: var(--nav-h);
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: var(--bg-2);
       z-index: 99;
       padding: 32px 24px;
       border-top: 1px solid var(--border);
       overflow-y: auto;
     }
+
     .nav-mobile-links {
-      list-style: none; padding: 0; margin: 0;
-      display: flex; flex-direction: column; gap: 0;
-    }
-    .nav-mobile-links li { border-bottom: 1px solid var(--border); }
-    .nav-mobile-links a {
-      display: block; padding: 18px 0;
-      font-size: 16px; font-weight: 500;
-      color: var(--text-2); text-decoration: none;
-      transition: color 0.2s;
-    }
-    .nav-mobile-links a:hover { color: var(--text); }
-    @media (max-width: 768px) {
-      .nav-hamburger { display: flex; }
-      .nav-links { display: none; }
-      .btn-sentinel { display: none; }
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
     }
 
+    .nav-mobile-links li {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-mobile-links a {
+      display: block;
+      padding: 18px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-mobile-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .nav-hamburger {
+        display: flex;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .btn-sentinel {
+        display: none;
+      }
+    }
   </style>
 </head>
+
 <body>
 
   <div class="aurora">
@@ -922,7 +1261,8 @@
     <div class="page-header">
       <div class="page-eyebrow">Live Intelligence</div>
       <h1 class="page-title">Global Macro Intelligence</h1>
-      <p class="page-subtitle">Click any economy on the map to explore GDP, inflation, policy rates, and macro regime signals.</p>
+      <p class="page-subtitle">Click any economy on the map to explore GDP, inflation, policy rates, and macro regime
+        signals.</p>
     </div>
 
     <!-- ══ MAP ══ -->
@@ -930,7 +1270,7 @@
       <div class="map-wrap">
         <div class="map-loading" id="map-loading">Loading macro data…</div>
         <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-          <rect width="1000" height="500" fill="var(--bg)"/>
+          <rect width="1000" height="500" fill="var(--bg)" />
           <g id="countries-group"></g>
           <g id="labels-group"></g>
         </svg>
@@ -955,7 +1295,8 @@
     <section class="cta-section">
       <div class="cta-inner">
         <div class="cta-title">Run India Regime Analysis</div>
-        <p class="cta-sub">Access the full SENTINEL engine — real-time regime detection, allocation signals, and FII/DII flow analytics.</p>
+        <p class="cta-sub">Access the full SENTINEL engine — real-time regime detection, allocation signals, and FII/DII
+          flow analytics.</p>
         <a class="cta-btn" href="login.html">Access Sentinel →</a>
       </div>
     </section>
@@ -968,8 +1309,8 @@
   </footer>
 
   <script>
-    const RAIL    = 'https://macro-economic-research-algorithm-production.up.railway.app';
-    const GEO_URL    = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson';
+    const RAIL = 'https://macro-economic-research-algorithm.onrender.com';
+    const GEO_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson';
     const GEO_URL_FB = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
     const ECONOMIES_META = {
@@ -1052,74 +1393,74 @@
     // GeoJSON name → economy code (multi-field fallback via resolveEconomyCode)
     const COUNTRY_NAME_MAP = {
       'United States of America': 'US',
-      'United States':            'US',
-      'China':                    'CN',
-      'Germany':                  'DE',
-      'India':                    'IN',
-      'Japan':                    'JP',
-      'United Kingdom':           'GB',
-      'France':                   'FR',
-      'Italy':                    'IT',
-      'Brazil':                   'BR',
-      'Canada':                   'CA',
-      'Russia':                   'RU',
-      'Russian Federation':       'RU',
-      'South Korea':              'KR',
-      'Korea, Republic of':       'KR',
-      'Republic of Korea':        'KR',
-      'Australia':                'AU',
-      'Mexico':                   'MX',
-      'Indonesia':                'ID',
-      'Netherlands':              'NL',
-      'Saudi Arabia':             'SA',
-      'Turkey':                   'TR',
-      'Türkiye':                  'TR',
-      'Switzerland':              'CH',
-      'Taiwan':                   'TW',
-      'Chinese Taipei':           'TW',
-      'Poland':                   'PL',
-      'Sweden':                   'SE',
-      'Belgium':                  'BE',
-      'Argentina':                'AR',
-      'Norway':                   'NO',
-      'United Arab Emirates':     'AE',
-      'Israel':                   'IL',
-      'Austria':                  'AT',
-      'Singapore':                'SG',
-      'Nigeria':                  'NG',
-      'South Africa':             'ZA',
-      'Malaysia':                 'MY',
-      'Denmark':                  'DK',
-      'Philippines':              'PH',
-      'Ireland':                  'IE',
-      'Thailand':                 'TH',
-      'Bangladesh':               'BD',
-      'Vietnam':                  'VN',
-      'Viet Nam':                 'VN',
-      'Pakistan':                 'PK',
-      'Colombia':                 'CO',
-      'Chile':                    'CL',
-      'Finland':                  'FI',
-      'Czech Republic':           'CZ',
-      'Czechia':                  'CZ',
-      'Romania':                  'RO',
-      'New Zealand':              'NZ',
-      'Portugal':                 'PT',
-      'Greece':                   'GR',
-      'Qatar':                    'QA',
-      'Kazakhstan':               'KZ',
-      'Hungary':                  'HU',
+      'United States': 'US',
+      'China': 'CN',
+      'Germany': 'DE',
+      'India': 'IN',
+      'Japan': 'JP',
+      'United Kingdom': 'GB',
+      'France': 'FR',
+      'Italy': 'IT',
+      'Brazil': 'BR',
+      'Canada': 'CA',
+      'Russia': 'RU',
+      'Russian Federation': 'RU',
+      'South Korea': 'KR',
+      'Korea, Republic of': 'KR',
+      'Republic of Korea': 'KR',
+      'Australia': 'AU',
+      'Mexico': 'MX',
+      'Indonesia': 'ID',
+      'Netherlands': 'NL',
+      'Saudi Arabia': 'SA',
+      'Turkey': 'TR',
+      'Türkiye': 'TR',
+      'Switzerland': 'CH',
+      'Taiwan': 'TW',
+      'Chinese Taipei': 'TW',
+      'Poland': 'PL',
+      'Sweden': 'SE',
+      'Belgium': 'BE',
+      'Argentina': 'AR',
+      'Norway': 'NO',
+      'United Arab Emirates': 'AE',
+      'Israel': 'IL',
+      'Austria': 'AT',
+      'Singapore': 'SG',
+      'Nigeria': 'NG',
+      'South Africa': 'ZA',
+      'Malaysia': 'MY',
+      'Denmark': 'DK',
+      'Philippines': 'PH',
+      'Ireland': 'IE',
+      'Thailand': 'TH',
+      'Bangladesh': 'BD',
+      'Vietnam': 'VN',
+      'Viet Nam': 'VN',
+      'Pakistan': 'PK',
+      'Colombia': 'CO',
+      'Chile': 'CL',
+      'Finland': 'FI',
+      'Czech Republic': 'CZ',
+      'Czechia': 'CZ',
+      'Romania': 'RO',
+      'New Zealand': 'NZ',
+      'Portugal': 'PT',
+      'Greece': 'GR',
+      'Qatar': 'QA',
+      'Kazakhstan': 'KZ',
+      'Hungary': 'HU',
     };
     const ISO_A2_MAP = {
-      US:'US', CN:'CN', DE:'DE', IN:'IN', JP:'JP', GB:'GB',
-      FR:'FR', IT:'IT', BR:'BR', CA:'CA', RU:'RU', KR:'KR',
-      AU:'AU', MX:'MX', ID:'ID', NL:'NL', SA:'SA', TR:'TR',
-      CH:'CH', TW:'TW',
-      PL:'PL', SE:'SE', BE:'BE', AR:'AR', NO:'NO', AE:'AE',
-      IL:'IL', AT:'AT', SG:'SG', NG:'NG', ZA:'ZA', MY:'MY',
-      DK:'DK', PH:'PH', IE:'IE', TH:'TH', BD:'BD', VN:'VN',
-      PK:'PK', CO:'CO', CL:'CL', FI:'FI', CZ:'CZ', RO:'RO',
-      NZ:'NZ', PT:'PT', GR:'GR', QA:'QA', KZ:'KZ', HU:'HU',
+      US: 'US', CN: 'CN', DE: 'DE', IN: 'IN', JP: 'JP', GB: 'GB',
+      FR: 'FR', IT: 'IT', BR: 'BR', CA: 'CA', RU: 'RU', KR: 'KR',
+      AU: 'AU', MX: 'MX', ID: 'ID', NL: 'NL', SA: 'SA', TR: 'TR',
+      CH: 'CH', TW: 'TW',
+      PL: 'PL', SE: 'SE', BE: 'BE', AR: 'AR', NO: 'NO', AE: 'AE',
+      IL: 'IL', AT: 'AT', SG: 'SG', NG: 'NG', ZA: 'ZA', MY: 'MY',
+      DK: 'DK', PH: 'PH', IE: 'IE', TH: 'TH', BD: 'BD', VN: 'VN',
+      PK: 'PK', CO: 'CO', CL: 'CL', FI: 'FI', CZ: 'CZ', RO: 'RO',
+      NZ: 'NZ', PT: 'PT', GR: 'GR', QA: 'QA', KZ: 'KZ', HU: 'HU',
     };
 
     function resolveEconomyCode(props) {
@@ -1133,45 +1474,45 @@
     }
 
     const SIG_COLOR = {
-      EXPANDING:          'var(--green)',
-      STABLE_GROWTH:      'var(--blue)',
+      EXPANDING: 'var(--green)',
+      STABLE_GROWTH: 'var(--blue)',
       INFLATION_PRESSURE: 'var(--amber)',
-      SLOWDOWN:           'var(--amber)',
-      CONTRACTION:        'var(--red)',
-      MONITORING:         'var(--text-3)',
+      SLOWDOWN: 'var(--amber)',
+      CONTRACTION: 'var(--red)',
+      MONITORING: 'var(--text-3)',
     };
     const SIG_BG = {
-      EXPANDING:          'var(--green-dim)',
-      STABLE_GROWTH:      'var(--blue-dim)',
+      EXPANDING: 'var(--green-dim)',
+      STABLE_GROWTH: 'var(--blue-dim)',
       INFLATION_PRESSURE: 'var(--amber-dim)',
-      SLOWDOWN:           'var(--amber-dim)',
-      CONTRACTION:        'var(--red-dim)',
-      MONITORING:         'rgba(46,61,88,0.3)',
+      SLOWDOWN: 'var(--amber-dim)',
+      CONTRACTION: 'var(--red-dim)',
+      MONITORING: 'rgba(46,61,88,0.3)',
     };
     const SIG_LABEL = {
-      EXPANDING:          'Expanding',
-      STABLE_GROWTH:      'Stable Growth',
+      EXPANDING: 'Expanding',
+      STABLE_GROWTH: 'Stable Growth',
       INFLATION_PRESSURE: 'Inflation Pressure',
-      SLOWDOWN:           'Slowdown',
-      CONTRACTION:        'Contraction',
-      MONITORING:         'Monitoring',
+      SLOWDOWN: 'Slowdown',
+      CONTRACTION: 'Contraction',
+      MONITORING: 'Monitoring',
     };
     // Resolved hex values for SVG inline styles (CSS vars don't work in SVG presentation attrs)
     const SIG_COLOR_RAW = {
-      EXPANDING:          '#10d48a',
-      STABLE_GROWTH:      '#4f83ff',
+      EXPANDING: '#10d48a',
+      STABLE_GROWTH: '#4f83ff',
       INFLATION_PRESSURE: '#fbbf24',
-      SLOWDOWN:           '#fbbf24',
-      CONTRACTION:        '#f87171',
-      MONITORING:         '#2e3d58',
+      SLOWDOWN: '#fbbf24',
+      CONTRACTION: '#f87171',
+      MONITORING: '#2e3d58',
     };
     const SIG_COLOR_RAW_LIGHT = {
-      EXPANDING:          '#059669',
-      STABLE_GROWTH:      '#2563eb',
+      EXPANDING: '#059669',
+      STABLE_GROWTH: '#2563eb',
       INFLATION_PRESSURE: '#b45309',
-      SLOWDOWN:           '#b45309',
-      CONTRACTION:        '#dc2626',
-      MONITORING:         '#9aaabb',
+      SLOWDOWN: '#b45309',
+      CONTRACTION: '#dc2626',
+      MONITORING: '#9aaabb',
     };
 
     function getSignalColor(signal) {
@@ -1234,8 +1575,8 @@
     function infColor(v) {
       if (v == null) return 'var(--text-2)';
       if (v <= 2.5) return 'var(--green)';
-      if (v <= 4)   return 'var(--blue)';
-      if (v <= 6)   return 'var(--amber)';
+      if (v <= 4) return 'var(--blue)';
+      if (v <= 6) return 'var(--amber)';
       return 'var(--red)';
     }
     function pmiColor(v) {
@@ -1247,12 +1588,12 @@
     }
     function buildSummary(eco) {
       const meta = ECONOMIES_META[eco.code];
-      const cb   = meta ? meta.cb : 'The central bank';
-      const nm   = eco.name;
-      const gdp  = eco.gdp_growth  != null ? eco.gdp_growth.toFixed(1)  + '%' : 'n/a';
-      const inf  = eco.inflation   != null ? eco.inflation.toFixed(1)   + '%' : 'n/a';
+      const cb = meta ? meta.cb : 'The central bank';
+      const nm = eco.name;
+      const gdp = eco.gdp_growth != null ? eco.gdp_growth.toFixed(1) + '%' : 'n/a';
+      const inf = eco.inflation != null ? eco.inflation.toFixed(1) + '%' : 'n/a';
       const rate = eco.policy_rate != null ? eco.policy_rate.toFixed(2) + '%' : 'n/a';
-      const pmi  = eco.pmi         != null ? eco.pmi.toFixed(1)         : 'n/a';
+      const pmi = eco.pmi != null ? eco.pmi.toFixed(1) : 'n/a';
 
       if (eco.code === 'RU') {
         return `Russia's economy shows resilience despite sanctions — GDP at ${gdp} supported by energy revenues and import substitution. Central Bank of Russia holds at ${rate} (highest since 2003) to contain inflation at ${inf}. Capital controls remain active; RUB convertibility suspended for non-residents. Key risk: energy price dependency and long-term technology access.`;
@@ -1267,7 +1608,7 @@
         return `The UAE maintains robust growth — GDP at ${gdp} supported by diversification beyond oil and strong tourism and finance sectors. AED pegged to USD at 3.67 eliminates currency risk. Policy rate follows the Fed at ${rate}. Dubai's status as a global financial hub attracts sustained FDI.`;
       }
       if (eco.code === 'SG') {
-        const sigLabel = (eco.macro_signal || 'Stable').replace(/_/g,' ').toLowerCase();
+        const sigLabel = (eco.macro_signal || 'Stable').replace(/_/g, ' ').toLowerCase();
         return `Singapore's trade-dependent economy shows ${sigLabel} — GDP at ${gdp} with MAS managing monetary policy via exchange rate rather than interest rates. Inflation at ${inf} within MAS tolerance. PMI at ${pmi} reflects regional manufacturing demand. Watch US-China trade dynamics as the primary external risk.`;
       }
 
@@ -1301,7 +1642,7 @@
     /* ── GeoJSON projection ── */
     function projectPoint(lon, lat) {
       const x = (lon + 180) * (1000 / 360);
-      const y = (90 - lat)  * (500  / 180);
+      const y = (90 - lat) * (500 / 180);
       return [x, y];
     }
 
@@ -1398,8 +1739,8 @@
       try {
         if (!geojson) { renderFallbackMap(); return; }
 
-        const grp      = document.getElementById('countries-group');
-        const frag     = document.createDocumentFragment();
+        const grp = document.getElementById('countries-group');
+        const frag = document.createDocumentFragment();
         const matchLog = {};
 
         for (const feature of geojson.features) {
@@ -1412,7 +1753,7 @@
           if (!d.trim()) continue;
 
           const code = resolveEconomyCode(props);
-          const el   = document.createElementNS(NS, 'path');
+          const el = document.createElementNS(NS, 'path');
           el.setAttribute('d', d);
           el.setAttribute('class', code ? 'country-path highlighted' : 'country-path');
 
@@ -1458,22 +1799,22 @@
     /* ── Apply signal colours (25/40/50% opacity levels) to the 6 economy paths ── */
     function highlightEconomyCountries(economies) {
       const isLight = document.documentElement.classList.contains('light');
-      const ecoMap  = {};
+      const ecoMap = {};
       economies.forEach(eco => { ecoMap[eco.code] = eco; });
 
       document.querySelectorAll('.country-path.highlighted[data-code]').forEach(el => {
         const code = el.getAttribute('data-code');
-        const eco  = ecoMap[code];
+        const eco = ecoMap[code];
         if (!eco) return;
         // India always uses gold; all others use signal colour
         const raw = code === 'IN'
           ? '#F59E0B'
           : (isLight
-              ? (SIG_COLOR_RAW_LIGHT[eco.macro_signal] || '#9aaabb')
-              : (SIG_COLOR_RAW[eco.macro_signal]       || '#2e3d58'));
-        el.style.setProperty('--cf25',           hexToRgba(raw, 0.25));
-        el.style.setProperty('--cf40',           hexToRgba(raw, 0.40));
-        el.style.setProperty('--cf50',           hexToRgba(raw, 0.50));
+            ? (SIG_COLOR_RAW_LIGHT[eco.macro_signal] || '#9aaabb')
+            : (SIG_COLOR_RAW[eco.macro_signal] || '#2e3d58'));
+        el.style.setProperty('--cf25', hexToRgba(raw, 0.25));
+        el.style.setProperty('--cf40', hexToRgba(raw, 0.40));
+        el.style.setProperty('--cf50', hexToRgba(raw, 0.50));
         el.style.setProperty('--country-stroke', raw);
       });
     }
@@ -1497,17 +1838,17 @@
         renderDetail(eco);
         if (scrollToDetail) {
           const panel = document.querySelector('.detail-panel');
-          if (panel) panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+          if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }
     }
 
     function buildEconomyListHtml(currentCode) {
       const GDP_FALLBACK = {
-        US: 29.2, CN: 18.6, DE: 4.6,  IN: 4.3,  JP: 4.1,  GB: 3.6,
-        FR: 3.2,  IT: 2.3,  BR: 2.3,  CA: 2.2,  RU: 2.1,  KR: 1.9,
-        AU: 1.8,  MX: 1.6,  ID: 1.5,  NL: 1.2,  SA: 1.1,  TR: 1.1,
-        CH: 0.9,  TW: 0.8,
+        US: 29.2, CN: 18.6, DE: 4.6, IN: 4.3, JP: 4.1, GB: 3.6,
+        FR: 3.2, IT: 2.3, BR: 2.3, CA: 2.2, RU: 2.1, KR: 1.9,
+        AU: 1.8, MX: 1.6, ID: 1.5, NL: 1.2, SA: 1.1, TR: 1.1,
+        CH: 0.9, TW: 0.8,
         PL: 0.77, SE: 0.70, BE: 0.65, AR: 0.62, NO: 0.60,
         AE: 0.57, IL: 0.55, AT: 0.54, SG: 0.50, NG: 0.49,
         ZA: 0.48, BD: 0.46, MY: 0.44, DK: 0.43, PH: 0.43,
@@ -1516,18 +1857,18 @@
         NZ: 0.25, GR: 0.24, QA: 0.23, KZ: 0.22, HU: 0.22,
       };
       const ORDER = [
-        'US','CN','DE','IN','JP','GB','FR','IT','BR','CA',
-        'RU','KR','AU','MX','ID','NL','SA','TR','CH','TW',
-        'PL','SE','BE','AR','NO','AE','IL','AT','SG','NG',
-        'ZA','BD','MY','DK','PH','VN','IE','TH','PK','CZ',
-        'CO','RO','CL','FI','PT','NZ','GR','QA','KZ','HU',
+        'US', 'CN', 'DE', 'IN', 'JP', 'GB', 'FR', 'IT', 'BR', 'CA',
+        'RU', 'KR', 'AU', 'MX', 'ID', 'NL', 'SA', 'TR', 'CH', 'TW',
+        'PL', 'SE', 'BE', 'AR', 'NO', 'AE', 'IL', 'AT', 'SG', 'NG',
+        'ZA', 'BD', 'MY', 'DK', 'PH', 'VN', 'IE', 'TH', 'PK', 'CZ',
+        'CO', 'RO', 'CL', 'FI', 'PT', 'NZ', 'GR', 'QA', 'KZ', 'HU',
       ];
       const isLight = document.documentElement.classList.contains('light');
 
       const rows = ORDER.map(code => {
-        const eco  = economiesData[code];
-        const gdp  = (eco && eco.gdp_nominal_trillion) || GDP_FALLBACK[code] || 0;
-        const sig  = eco ? eco.macro_signal : 'MONITORING';
+        const eco = economiesData[code];
+        const gdp = (eco && eco.gdp_nominal_trillion) || GDP_FALLBACK[code] || 0;
+        const sig = eco ? eco.macro_signal : 'MONITORING';
         const flag = eco ? (eco.flag || '') : '';
         const name = eco ? eco.name : code;
         return { code, gdp, sig, flag, name };
@@ -1538,12 +1879,12 @@
       const maxGdp = rows[0].gdp;
 
       return rows.map(e => {
-        const raw    = isLight
+        const raw = isLight
           ? (SIG_COLOR_RAW_LIGHT[e.sig] || '#9aaabb')
-          : (SIG_COLOR_RAW[e.sig]       || '#2e3d58');
-        const isSel  = e.code === currentCode;
-        const pct    = Math.max(0.8, (e.gdp / maxGdp) * 100).toFixed(1);
-        const opac   = isSel ? '1' : '0.35';
+          : (SIG_COLOR_RAW[e.sig] || '#2e3d58');
+        const isSel = e.code === currentCode;
+        const pct = Math.max(0.8, (e.gdp / maxGdp) * 100).toFixed(1);
+        const opac = isSel ? '1' : '0.35';
         return `<div class="eco-compare-row${isSel ? ' selected' : ''}" onclick="selectEconomy('${e.code}',true)" style="--row-sig-color:${raw};">
           <div class="eco-compare-label">
             <span class="eco-compare-flag">${e.flag}</span>
@@ -1572,12 +1913,12 @@
     }
 
     function renderDetail(eco) {
-      const meta   = ECONOMIES_META[eco.code];
-      const sigCol = SIG_COLOR[eco.macro_signal]  || 'var(--text-3)';
-      const sigBg  = SIG_BG[eco.macro_signal]     || 'rgba(0,0,0,0.1)';
-      const sigLbl = SIG_LABEL[eco.macro_signal]  || (eco.macro_signal || 'Unknown').replace(/_/g, ' ');
+      const meta = ECONOMIES_META[eco.code];
+      const sigCol = SIG_COLOR[eco.macro_signal] || 'var(--text-3)';
+      const sigBg = SIG_BG[eco.macro_signal] || 'rgba(0,0,0,0.1)';
+      const sigLbl = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || 'Unknown').replace(/_/g, ' ');
       const isHome = meta && meta.home;
-      const gdpT   = eco.gdp_nominal_trillion;
+      const gdpT = eco.gdp_nominal_trillion;
 
       document.getElementById('detail-content').innerHTML = `
         <div class="detail-inner">
@@ -1600,22 +1941,22 @@
           <div class="detail-primary">
             <div class="detail-card">
               <div class="card-label">GDP Growth</div>
-              <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth,1,'%')}</div>
+              <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
               <div class="card-sub">Annual (latest)</div>
             </div>
             <div class="detail-card">
               <div class="card-label">Inflation</div>
-              <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation,1,'%')}</div>
+              <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
               <div class="card-sub">CPI YoY</div>
             </div>
             <div class="detail-card">
               <div class="card-label">Policy Rate</div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.policy_rate,2,'%')}</div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.policy_rate, 2, '%')}</div>
               <div class="card-sub">${(meta && meta.cb) || 'Central Bank'}</div>
             </div>
             <div class="detail-card">
               <div class="card-label">PMI</div>
-              <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi,1)}</div>
+              <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi, 1)}</div>
               <div class="card-sub">Manufacturing</div>
             </div>
             <div class="detail-card">
@@ -1627,7 +1968,7 @@
           <div class="detail-secondary">
             <div class="detail-card">
               <div class="card-label">Unemployment</div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment,1,'%')}</div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
               <div class="card-sub">Latest</div>
             </div>
             <div class="detail-card">
@@ -1637,7 +1978,7 @@
             </div>
             <div class="detail-card">
               <div class="card-label">Yield 10Y <span class="live-badge">LIVE</span></div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.yield_10y,2,'%')}</div>
+              <div class="card-value" style="color:var(--text)">${fmt(eco.yield_10y, 2, '%')}</div>
               <div class="card-sub">Government Bond</div>
             </div>
           </div>
@@ -1671,7 +2012,7 @@
 
     async function fetchWithTimeout(url, ms = 8000) {
       const ctrl = new AbortController();
-      const id   = setTimeout(() => ctrl.abort(), ms);
+      const id = setTimeout(() => ctrl.abort(), ms);
       try {
         const res = await fetch(url, { signal: ctrl.signal });
         clearTimeout(id);
@@ -1710,7 +2051,7 @@
         `;
       }
       try {
-        const res  = await fetchWithTimeout(`${RAIL}/api/global-macro`);
+        const res = await fetchWithTimeout(`${RAIL}/api/global-macro`);
         const data = await res.json();
         const economies = data.economies || [];
         economies.forEach(eco => { economiesData[eco.code] = eco; });
@@ -1744,19 +2085,19 @@
     let _currencyCache = {};
 
     async function loadCurrencyChart(code) {
-      const card       = document.getElementById('currencyChartCard');
-      const titleEl    = document.getElementById('currencyChartTitle');
+      const card = document.getElementById('currencyChartCard');
+      const titleEl = document.getElementById('currencyChartTitle');
       const subtitleEl = document.getElementById('currencyChartSubtitle');
-      const stripEl    = document.getElementById('currencyReturnStrip');
-      const svgEl      = document.getElementById('currencySparklineSVG');
+      const stripEl = document.getElementById('currencyReturnStrip');
+      const svgEl = document.getElementById('currencySparklineSVG');
 
       if (code === 'US') { card.style.display = 'none'; return; }
 
       // SA — pegged currency note
       if (code === 'SA') {
         card.style.display = 'block';
-        card.className     = 'currency-chart-card info';
-        titleEl.textContent    = 'SAR — Saudi Riyal';
+        card.className = 'currency-chart-card info';
+        titleEl.textContent = 'SAR — Saudi Riyal';
         subtitleEl.textContent = 'Fixed 3.75 SAR/USD since 1986 · Backed by $450B FX reserves';
         const tabsSA = document.getElementById('currencyPerfTabs');
         if (tabsSA) tabsSA.style.display = 'none';
@@ -1790,8 +2131,8 @@
       // RU — capital controls note
       if (code === 'RU') {
         card.style.display = 'block';
-        card.className     = 'currency-chart-card restricted';
-        titleEl.textContent    = 'RUB — Russian Ruble';
+        card.className = 'currency-chart-card restricted';
+        titleEl.textContent = 'RUB — Russian Ruble';
         subtitleEl.textContent = 'No market rate on international feeds · CBR official rate only';
         const tabsRU = document.getElementById('currencyPerfTabs');
         if (tabsRU) tabsRU.style.display = 'none';
@@ -1827,8 +2168,8 @@
       // AE — pegged to USD at 3.67
       if (code === 'AE') {
         card.style.display = 'block';
-        card.className     = 'currency-chart-card info';
-        titleEl.textContent    = 'AED — UAE Dirham';
+        card.className = 'currency-chart-card info';
+        titleEl.textContent = 'AED — UAE Dirham';
         subtitleEl.textContent = 'Fixed 3.67 AED/USD since 1997 · No currency risk for USD investors';
         const tabsAE = document.getElementById('currencyPerfTabs');
         if (tabsAE) tabsAE.style.display = 'none';
@@ -1862,8 +2203,8 @@
       // QA — pegged to USD at 3.64
       if (code === 'QA') {
         card.style.display = 'block';
-        card.className     = 'currency-chart-card info';
-        titleEl.textContent    = 'QAR — Qatari Riyal';
+        card.className = 'currency-chart-card info';
+        titleEl.textContent = 'QAR — Qatari Riyal';
         subtitleEl.textContent = 'Fixed 3.64 QAR/USD · Backed by QIA sovereign wealth fund';
         const tabsQA = document.getElementById('currencyPerfTabs');
         if (tabsQA) tabsQA.style.display = 'none';
@@ -1897,8 +2238,8 @@
       // AR — dual exchange rate / capital controls
       if (code === 'AR') {
         card.style.display = 'block';
-        card.className     = 'currency-chart-card restricted';
-        titleEl.textContent    = 'ARS — Argentine Peso';
+        card.className = 'currency-chart-card restricted';
+        titleEl.textContent = 'ARS — Argentine Peso';
         subtitleEl.textContent = 'Official ~1,000 ARS/USD · Parallel rate diverges significantly';
         const tabsAR = document.getElementById('currencyPerfTabs');
         if (tabsAR) tabsAR.style.display = 'none';
@@ -1929,14 +2270,14 @@
         return;
       }
 
-      card.style.display     = 'block';
-      titleEl.textContent    = `${code} Currency Performance`;
+      card.style.display = 'block';
+      titleEl.textContent = `${code} Currency Performance`;
       subtitleEl.textContent = 'Loading…';
 
       if (_currencyCache[code]) { renderCurrencyChart(_currencyCache[code]); return; }
 
       try {
-        const res  = await fetch(`${RAIL}/api/currency-history?code=${code}`);
+        const res = await fetch(`${RAIL}/api/currency-history?code=${code}`);
         const data = await res.json();
         if (!data.available) { card.style.display = 'none'; return; }
         _currencyCache[code] = data;
@@ -1949,17 +2290,17 @@
 
     function renderCurrencyChart(data) {
       const subtitleEl = document.getElementById('currencyChartSubtitle');
-      const stripEl    = document.getElementById('currencyReturnStrip');
-      const svgEl      = document.getElementById('currencySparklineSVG');
-      const footerEl   = document.getElementById('currencyChartFooter');
-      const isLight    = document.documentElement.classList.contains('light');
+      const stripEl = document.getElementById('currencyReturnStrip');
+      const svgEl = document.getElementById('currencySparklineSVG');
+      const footerEl = document.getElementById('currencyChartFooter');
+      const isLight = document.documentElement.classList.contains('light');
 
       // Return strip — all 4 timeframes
       const periods = ['1W', '1M', '3M', '1Y'];
       stripEl.innerHTML = periods.map(p => {
         const val = data.returns?.[p];
         if (val == null) return `<div class="currency-return-item"><span class="currency-return-period">${p}</span><span class="currency-return-value flat">—</span></div>`;
-        const cls  = val > 0.1 ? 'positive' : val < -0.1 ? 'negative' : 'flat';
+        const cls = val > 0.1 ? 'positive' : val < -0.1 ? 'negative' : 'flat';
         const sign = val > 0 ? '+' : '';
         return `<div class="currency-return-item"><span class="currency-return-period">${p}</span><span class="currency-return-value ${cls}">${sign}${val.toFixed(2)}%</span></div>`;
       }).join('');
@@ -1968,8 +2309,8 @@
       const sparkline = data.sparkline_90d || [];
       if (sparkline.length >= 2) {
         const W = 600, H = 80, PAD = 8;
-        const min   = Math.min(...sparkline);
-        const max   = Math.max(...sparkline);
+        const min = Math.min(...sparkline);
+        const max = Math.max(...sparkline);
         const range = max - min || 1;
 
         const pts = sparkline.map((v, i) => {
@@ -2066,19 +2407,19 @@
 
     /* ── Map marker tooltip (delegated) ── */
     const _mapSvg = document.getElementById('world-map');
-    const _tt     = document.getElementById('country-tooltip');
+    const _tt = document.getElementById('country-tooltip');
     _mapSvg.addEventListener('mousemove', (e) => {
       const path = e.target.closest && e.target.closest('.country-path.highlighted[data-code]');
       if (path && _tt) {
         const code = path.getAttribute('data-code');
-        const eco  = economiesData[code];
+        const eco = economiesData[code];
         if (eco) {
           const gdp = eco.gdp_nominal_trillion;
           const sig = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || '').replace(/_/g, ' ');
           _tt.textContent = `${eco.flag} ${eco.name}${gdp != null ? ' | $' + gdp + 'T' : ''} | ${sig}`;
           _tt.style.display = 'block';
-          _tt.style.left    = (e.clientX + 16) + 'px';
-          _tt.style.top     = (e.clientY - 8)  + 'px';
+          _tt.style.left = (e.clientX + 16) + 'px';
+          _tt.style.top = (e.clientY - 8) + 'px';
         }
       } else if (_tt) {
         _tt.style.display = 'none';
@@ -2090,7 +2431,7 @@
 
     function toggleMobileMenu() {
       const menu = document.getElementById('navMobileMenu');
-      const btn  = document.getElementById('navHamburger');
+      const btn = document.getElementById('navHamburger');
       if (!menu || !btn) return;
       const isOpen = menu.style.display !== 'none';
       menu.style.display = isOpen ? 'none' : 'block';
@@ -2099,7 +2440,7 @@
     }
     function closeMobileMenu() {
       const menu = document.getElementById('navMobileMenu');
-      const btn  = document.getElementById('navHamburger');
+      const btn = document.getElementById('navHamburger');
       if (menu) menu.style.display = 'none';
       if (btn) btn.classList.remove('open');
       document.body.style.overflow = '';
@@ -2111,4 +2452,5 @@
   </script>
 
 </body>
+
 </html>

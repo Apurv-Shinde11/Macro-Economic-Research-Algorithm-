@@ -4092,7 +4092,7 @@
 
     // Keep Railway container warm
     function keepAlive() {
-      const RAIL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+      const RAIL = 'https://macro-economic-research-algorithm.onrender.com';
       fetch(`${RAIL}/api/ping`)
         .then(() => console.log('[KeepAlive] pinged'))
         .catch(() => {});
@@ -4113,7 +4113,7 @@
     /* ════════════════════════════════════════════════
        CONFIGURATION
     ════════════════════════════════════════════════ */
-    const RAILWAY_URL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+    const RAILWAY_URL = 'https://macro-economic-research-algorithm.onrender.com';
     const SUPABASE_URL = 'https://nurqjuywtypqvciyjlrw.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
     const { createClient } = supabase;
@@ -5203,7 +5203,7 @@
 
     async function loadActivitySignals() {
       try {
-        const RAILWAY_URL = 'https://macro-economic-research-algorithm-production.up.railway.app';
+        const RAILWAY_URL = 'https://macro-economic-research-algorithm.onrender.com';
         const res = await fetch(RAILWAY_URL + '/api/india-activity');
         const data = await res.json();
         if (data.activity) renderActivity(data.activity);
