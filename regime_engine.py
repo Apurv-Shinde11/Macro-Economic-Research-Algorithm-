@@ -73,6 +73,137 @@ class MacroRegimeEngine:
         # Shared by persistence scorer AND change detector.
         self._sb_url, self._sb_key = _load_supabase_credentials()
 
+    def health_check(self) -> dict:
+        """
+        Startup probe — call once before first pipeline run to confirm
+        all critical systems are reachable.
+
+        Returns dict:
+        {
+            "healthy":  bool,
+            "checks":   list[dict],
+            "warnings": list[str],
+            "errors":   list[str],
+        }
+        """
+        checks   = []
+        warnings = []
+        errors   = []
+
+        # ── Check 1: Supabase reachable ──────────────────────────────
+        sb_ok = False
+        try:
+            if self._sb_url and self._sb_key:
+                runs  = _fetch_recent_runs(
+                    self._sb_url, self._sb_key, limit=1
+                )
+                sb_ok = isinstance(runs, list)
+                checks.append({
+                    "name":   "Supabase connectivity",
+                    "status": "PASS" if sb_ok else "FAIL",
+                    "detail": (
+                        f"Returned {len(runs)} rows"
+                        if sb_ok
+                        else "No data returned"
+                    ),
+                })
+            else:
+                errors.append(
+                    "Supabase URL or key missing — "
+                    "run history unavailable"
+                )
+                checks.append({
+                    "name":   "Supabase connectivity",
+                    "status": "FAIL",
+                    "detail": "Credentials not found",
+                })
+        except Exception as e:
+            errors.append(f"Supabase check failed: {e}")
+            checks.append({
+                "name":   "Supabase connectivity",
+                "status": "ERROR",
+                "detail": str(e),
+            })
+
+        # ── Check 2: RBI data fetcher ─────────────────────────────────
+        rbi_ok = False
+        try:
+            rbi_signals = self._rbi_fetcher.get_rbi_signals()
+            rbi_ok      = isinstance(rbi_signals, dict)
+            checks.append({
+                "name":   "RBI data fetcher",
+                "status": "PASS" if rbi_ok else "WARN",
+                "detail": (
+                    f"repo_rate={rbi_signals.get('repo_rate', '?')}"
+                    if rbi_ok
+                    else "Fallback data in use"
+                ),
+            })
+            if not rbi_ok:
+                warnings.append(
+                    "RBI DBIE unreachable — "
+                    "using hardcoded fallback values"
+                )
+        except Exception as e:
+            warnings.append(
+                f"RBI fetcher warning: {e} — fallback will be used"
+            )
+            checks.append({
+                "name":   "RBI data fetcher",
+                "status": "WARN",
+                "detail": str(e),
+            })
+
+        # ── Check 3: NLP source quality ───────────────────────────────
+        # Cannot test LLM keys here without an actual API call —
+        # instead advise the caller to verify nlp_source on first run.
+        try:
+            checks.append({
+                "name":   "NLP layer",
+                "status": "ADVISORY",
+                "detail": (
+                    "Cannot probe LLM keys without a live call. "
+                    "Verify nlp_source='llm+keyword' on first run output."
+                ),
+            })
+            warnings.append(
+                "NLP health advisory: confirm "
+                "nlp_source=llm+keyword on first "
+                "live run. If nlp_source=keyword, "
+                "confidence will be suppressed ~8% "
+                "and equity_bias defaults to NEUTRAL."
+            )
+        except Exception as e:
+            checks.append({
+                "name":   "NLP layer",
+                "status": "ADVISORY",
+                "detail": str(e),
+            })
+
+        healthy = len(errors) == 0
+
+        print(
+            f"  [HEALTH] Overall: "
+            f"{'HEALTHY' if healthy else 'UNHEALTHY'} — "
+            f"{len(checks)} checks, "
+            f"{len(warnings)} warnings, "
+            f"{len(errors)} errors",
+            flush=True
+        )
+        for c in checks:
+            print(
+                f"  [HEALTH] {c['name']}: "
+                f"{c['status']} — {c['detail']}",
+                flush=True
+            )
+
+        return {
+            "healthy":  healthy,
+            "checks":   checks,
+            "warnings": warnings,
+            "errors":   errors,
+        }
+
     # =========================
     # ✅ REGIME PERSISTENCE SCORER
     # Reads last 10 runs, counts consecutive same-regime
@@ -1346,6 +1477,21 @@ class MacroRegimeEngine:
         challenger_pressure  = round(min(0.10, challenger_ratio * 0.12), 4)
         confidence          -= challenger_pressure
 
+        # Challenger delta in raw score points
+        # If winner beats runner-up by < 1.0pt the regime classification is unstable
+        challenger_delta  = round(primary_score_val - challenger_score_val, 2)
+        regime_is_unstable = challenger_delta < 1.0
+        # Note: scores are on a 0-10 scale, so 1.0 point = 10% gap threshold
+
+        if regime_is_unstable:
+            print(
+                f"  [UNSTABLE] Regime gap only "
+                f"{challenger_delta:.2f} pts "
+                f"({regime} vs {challenger}) — "
+                f"flagging as unstable",
+                flush=True
+            )
+
         # Time decay: GDP (quarterly) and CPI (monthly) erode confidence
         # as they age; fresh release = spike back up
         staleness_penalty = self._compute_data_staleness_penalty()
@@ -1517,7 +1663,28 @@ class MacroRegimeEngine:
         # change_info flows to scheduler.py for alert firing
         # and to main.py for the in-app banner (future use)
         # -------------------------
+        if confidence < 0.60:
+            print(
+                f"  [GATE] Briefing BLOCKED — "
+                f"confidence {confidence:.0%} below 0.60 gate",
+                flush=True
+            )
+        else:
+            print(
+                f"  [GATE] Briefing ALLOWED — "
+                f"confidence {confidence:.0%} above 0.60 gate",
+                flush=True
+            )
+
         return {
+            # ── Premortem safety gates ──────────────
+            "briefing_allowed": confidence >= 0.60,
+            "briefing_blocked_reason": (
+                None if confidence >= 0.60
+                else f"Confidence {confidence:.0%} below 60% gate — "
+                     f"briefing suppressed to prevent low-conviction advice"
+            ),
+
             "regime":     regime,
             "confidence": confidence,
             "narrative":  narrative,
@@ -1573,6 +1740,20 @@ class MacroRegimeEngine:
             "regime_scores": scores,
             "challenger":    challenger,
             "challenger_confidence": round(challenger_ratio, 3),
+
+            "regime_stability_flag": {
+                "is_unstable":      regime_is_unstable,
+                "challenger_delta": challenger_delta,
+                "primary_score":    round(primary_score_val, 2),
+                "challenger_score": round(challenger_score_val, 2),
+                "warning": (
+                    f"Regime gap {challenger_delta:.1f}pts — "
+                    f"below 1.0pt stability threshold. "
+                    f"Hold briefing or add instability warning."
+                    if regime_is_unstable else None
+                ),
+            },
+
             "drivers":       drivers,
             "rbi_data":      rbi_data_out,
 
