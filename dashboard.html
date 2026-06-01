@@ -4902,6 +4902,29 @@
       el.textContent = `${tf.data_points} trading sessions · ${dataSource} · Net combined: ${sign}₹${Math.abs(tf.net_combined).toLocaleString('en-IN')} Cr`;
     }
 
+    function renderFIIFreshness(dataDate) {
+      const dateEl = document.getElementById('flowDate');
+      if (!dateEl || !dataDate) return;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const data = new Date(dataDate);
+      data.setHours(0, 0, 0, 0);
+      const diffMs   = today - data;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) {
+        dateEl.style.color = 'var(--green)';
+      } else if (diffDays === 1) {
+        dateEl.textContent += ' (yesterday)';
+        dateEl.style.color = 'var(--amber)';
+      } else if (diffDays <= 3) {
+        dateEl.textContent += ` (${diffDays} days ago — weekend/holiday)`;
+        dateEl.style.color = 'var(--amber)';
+      } else {
+        dateEl.textContent += ` (${diffDays} days ago — check data feed)`;
+        dateEl.style.color = 'var(--red)';
+      }
+    }
+
     function renderFlows(nse) {
       _lastNseData = nse;
       const fiiRaw = nse.fii_dii || {};
@@ -4944,6 +4967,7 @@
       document.getElementById('diiSignal').textContent = diiSigText + staleSuffix;
       document.getElementById('diiSignal').className = 'flow-signal ' + (diiNet > 0 ? 'risk-on' : diiNet < 0 ? 'risk-off' : 'neutral');
       document.getElementById('flowDate').textContent = dateLabel ? 'Data: ' + dateLabel + staleSuffix : '';
+      renderFIIFreshness(cachedAt);
       const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
       const diiAbs = Math.abs(Math.round(diiNet)).toLocaleString('en-IN');
       const fiiDir = fiiNet < 0 ? 'sold' : 'bought';

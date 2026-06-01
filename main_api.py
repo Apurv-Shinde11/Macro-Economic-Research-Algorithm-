@@ -798,6 +798,27 @@ def _detect_signal_correlation(
         }
 
 
+def _get_next_watchpoint(calendar_events: list) -> dict | None:
+    """Returns the next upcoming calendar event. Skips events whose date has passed."""
+    import datetime as _dt
+    today = _dt.date.today()
+    for event in (calendar_events or []):
+        ed = event.get("event_date")
+        if ed is None:
+            date_str = event.get("date")
+            if not date_str:
+                continue
+            try:
+                ed = _dt.datetime.strptime(date_str, "%Y-%m-%d").date()
+            except Exception:
+                continue
+        if hasattr(ed, "date"):
+            ed = ed.date()
+        if ed >= today:
+            return event
+    return None
+
+
 def _build_narrative_delta(
     current_regime: str,
     current_confidence: float,
@@ -805,9 +826,10 @@ def _build_narrative_delta(
     prev_run,
     nse_snapshot: dict,
     intel: dict,
-    run_history: list | None = None,
-    stability:   dict | None = None,
-    transition:  dict | None = None,
+    run_history:     list | None = None,
+    stability:       dict | None = None,
+    transition:      dict | None = None,
+    calendar_events: list | None = None,
 ) -> dict:
     try:
         if not prev_run:
@@ -930,14 +952,37 @@ def _build_narrative_delta(
             watch_next.append(
                 f"GDP tracking at {gdp}% — below the 7%+ "
                 f"threshold that anchors the current regime. "
-                f"Watch Q4 GDP advance print on 29 May."
+                f"Watch for the next GDP advance print."
             )
 
-        watch_next.append(
-            "Next key event: GDP Growth Q4 FY26 (Advance) "
-            "on 29 May — this single print could materially "
-            "shift regime confidence in either direction."
-        )
+        _next_event = _get_next_watchpoint(calendar_events or [])
+        if _next_event:
+            _ev_name  = _next_event.get("name", "Macro event")
+            _ev_date  = _next_event.get("event_date")
+            _ev_days  = _next_event.get("days_until", 0)
+            _ev_note  = _next_event.get("impact_note", "")
+            _date_str = _ev_date.strftime("%d %b").lstrip("0") if _ev_date else ""
+            if _ev_days > 1:
+                _days_lbl = f"in {_ev_days}d"
+            elif _ev_days == 1:
+                _days_lbl = "tomorrow"
+            else:
+                _days_lbl = "today"
+            _note_short = (_ev_note[:100] + "…") if len(_ev_note) > 100 else _ev_note
+            if _note_short:
+                watch_next.append(
+                    f"Next key event: {_ev_name} on {_date_str} "
+                    f"({_days_lbl}) — {_note_short}"
+                )
+            else:
+                watch_next.append(
+                    f"Next key event: {_ev_name} on {_date_str} ({_days_lbl})."
+                )
+        else:
+            watch_next.append(
+                "No major macro events in the next 30 days "
+                "— monitor live signals daily."
+            )
 
         # Headline
         if not changes:
@@ -2211,6 +2256,11 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             print(f"[TRANSITION] Error: {_te}", flush=True)
 
         # Build narrative delta — never crashes
+        _cal_events: list = []
+        try:
+            _cal_events = get_events_by_window(days_ahead=30)
+        except Exception:
+            pass
         narrative_delta = {"has_delta": False}
         try:
             narrative_delta = _build_narrative_delta(
@@ -2223,6 +2273,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 run_history       =run_history,
                 stability         =stability,
                 transition        =transition,
+                calendar_events   =_cal_events,
             )
         except Exception:
             pass
