@@ -109,6 +109,60 @@ def get_secret(key, default=None):
     return secrets.get(key, default)
 
 
+# ── Mandatory disclaimers — do not remove ──────────────────────────────────
+DISCLAIMER = """
+<div style="
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.6;
+  font-family: Arial, sans-serif;
+">
+  <strong>Important Disclaimer:</strong>
+  This briefing is produced by Sentinel,
+  an automated macroeconomic research
+  system operated by EconIq. It is
+  provided for informational purposes
+  only and does not constitute investment
+  advice, financial advice, or any
+  recommendation to buy or sell any
+  security or asset. Past regime
+  classifications do not guarantee future
+  results. Users are solely responsible
+  for their own investment decisions.
+  EconIq is not registered as a SEBI
+  Research Analyst and does not provide
+  regulated investment advisory services.
+  <br><br>
+  &copy; EconIq &middot; Sentinel Macro Intelligence &middot;
+  Not investment advice.
+</div>
+"""
+
+DISCLAIMER_TEXT = (
+    "\n\n" + "─" * 56 + "\n"
+    "IMPORTANT DISCLAIMER\n"
+    "This briefing is produced by Sentinel, an automated macroeconomic\n"
+    "research system operated by EconIq. It is provided for informational\n"
+    "purposes only and does not constitute investment advice, financial\n"
+    "advice, or any recommendation to buy or sell any security or asset.\n"
+    "Past regime classifications do not guarantee future results. Users\n"
+    "are solely responsible for their own investment decisions. EconIq\n"
+    "is not registered as a SEBI Research Analyst and does not provide\n"
+    "regulated investment advisory services.\n\n"
+    "© EconIq · Sentinel Macro Intelligence · Not investment advice.\n"
+    + "─" * 56
+)
+
+WHATSAPP_DISCLAIMER = (
+    "\n\n_Disclaimer: This is automated "
+    "macro research for informational "
+    "purposes only. Not investment advice. "
+    "— EconIq Sentinel_"
+)
+
 # =========================
 # 🔄 DAILY DATA REFRESH
 # Runs at 6:00 AM IST (00:30 UTC) — separate Windows Task Scheduler entry:
@@ -395,7 +449,7 @@ def build_personalized_wa_briefing(user_profile, run_data,
         f"{mandate_line}"
         f"{url_line}\n"
         f"_Not investment advice._"
-    )
+    ) + WHATSAPP_DISCLAIMER
 
 
 def build_whatsapp_briefing(pipeline, firm_name, upcoming_events, dashboard_url=""):
@@ -428,7 +482,7 @@ def build_whatsapp_briefing(pipeline, firm_name, upcoming_events, dashboard_url=
         f"Watchpoint: {watchpoint}"
         f"{url_line}\n"
         f"_Not investment advice._"
-    )
+    ) + WHATSAPP_DISCLAIMER
 
 
 def already_alerted_today(supabase_url, service_key, new_regime):
@@ -906,7 +960,7 @@ informational purposes only. Not investment advice.
 SEBI registration not required for internal research tools.
 {"─" * 56}
 """
-    return body.strip()
+    return body.strip() + DISCLAIMER_TEXT
 
 
 # =========================
@@ -1086,7 +1140,7 @@ This is an automated regime change alert.
 Not investment advice. For informational purposes only.
 {"─" * 56}
 """
-    return subject, body
+    return subject, body + DISCLAIMER_TEXT
 
 
 def build_whatsapp_message(change_info, regime_output):
@@ -1117,7 +1171,7 @@ def build_whatsapp_message(change_info, regime_output):
         f"{drv_txt}\n"
         f"_Full briefing in your email._\n"
         f"_SENTINEL · Not investment advice._"
-    )
+    ) + WHATSAPP_DISCLAIMER
 
 
 # =========================
@@ -1311,6 +1365,56 @@ def main():
         print(f"  [Error] Pipeline failed: {e}")
         traceback.print_exc()
         sys.exit(1)
+
+    # ── Confidence gate ──────────────────────────────────────────────────
+    briefing_allowed        = pipeline["regime"].get("briefing_allowed", True)
+    briefing_blocked_reason = pipeline["regime"].get("briefing_blocked_reason", None)
+    regime_is_unstable      = (
+        pipeline["regime"]
+        .get("regime_stability_flag", {})
+        .get("is_unstable", False)
+    )
+
+    if not briefing_allowed:
+        if dry_run:
+            print(
+                f"[DRY RUN] [SCHEDULER] Briefing would be SUPPRESSED — "
+                f"{briefing_blocked_reason}",
+                flush=True
+            )
+            print(
+                "[DRY RUN] [SCHEDULER] No email or WhatsApp "
+                "would be sent this run.",
+                flush=True
+            )
+        else:
+            print(
+                f"[SCHEDULER] Briefing SUPPRESSED — "
+                f"{briefing_blocked_reason}",
+                flush=True
+            )
+            print(
+                "[SCHEDULER] No email or WhatsApp "
+                "sent this run.",
+                flush=True
+            )
+            try:
+                supabase.table("notification_logs").insert({
+                    "type":    "briefing_suppressed",
+                    "reason":  briefing_blocked_reason,
+                    "sent_at": datetime.datetime.utcnow().isoformat(),
+                }).execute()
+            except Exception:
+                pass
+            return
+
+    # ── Instability warning ──────────────────────────────────────────────
+    if regime_is_unstable:
+        print(
+            "[SCHEDULER] Regime unstable — "
+            "adding instability warning to briefing",
+            flush=True
+        )
 
     # ══════════════════════════════════════════════════════════════
     # Step 2b — NOTIFICATION ENGINE
