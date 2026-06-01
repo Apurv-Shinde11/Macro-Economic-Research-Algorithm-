@@ -125,6 +125,38 @@ async def lifespan(app: FastAPI):
     }
     print(f"[SENTINEL API] {len(_engines)} engines ready.", flush=True)
 
+    # ── Premortem health check ───────────────────────────────────────────
+    try:
+        from regime_engine import MacroRegimeEngine
+        _health_engine = MacroRegimeEngine()
+        health = _health_engine.health_check()
+
+        if health["healthy"]:
+            print(
+                "[HEALTH] Startup check PASSED — "
+                "all critical systems reachable",
+                flush=True
+            )
+        else:
+            print(
+                "[HEALTH] Startup check FAILED — "
+                f"errors: {health['errors']}",
+                flush=True
+            )
+
+        for w in health.get("warnings", []):
+            print(
+                f"[HEALTH WARNING] {w}",
+                flush=True
+            )
+
+    except Exception as _hc_err:
+        print(
+            f"[HEALTH] Health check skipped: "
+            f"{_hc_err}",
+            flush=True
+        )
+
     yield
 
     print("[SENTINEL API] Shutting down.", flush=True)
@@ -2053,6 +2085,34 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             eng["regime"].detect_regime(intel, liq, nse_snapshot)
         )
         regime = rep.repair(regime, REGIME_SCHEMA)
+
+        # ── Confidence gate ──────────────────────────────────────────────
+        _briefing_allowed = regime.get("briefing_allowed", True)
+        _briefing_blocked_reason = regime.get("briefing_blocked_reason", None)
+
+        if not _briefing_allowed:
+            print(
+                f"[GATE] Run confidence gate "
+                f"TRIGGERED — scheduler will "
+                f"be suppressed this run. "
+                f"Reason: {_briefing_blocked_reason}",
+                flush=True
+            )
+
+        # ── Instability flag ─────────────────────────────────────────────
+        _stability_flag   = regime.get("regime_stability_flag", {})
+        _is_unstable      = _stability_flag.get("is_unstable", False)
+        _challenger_delta = _stability_flag.get("challenger_delta", None)
+
+        if _is_unstable:
+            print(
+                f"[UNSTABLE] Challenger delta "
+                f"{_challenger_delta:.2f}pts — "
+                f"regime classification unstable. "
+                f"Flagging in run output.",
+                flush=True
+            )
+
         # Market stress overlay — adjusts confidence based on live crude/VIX/FII
         _base_conf = regime.get("confidence", 0)
         _adj_conf  = _apply_market_stress_overlay(
@@ -2168,6 +2228,22 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception:
             pass
 
+        # ── Instability note → narrative delta ───────────────────────────
+        if _is_unstable and _challenger_delta:
+            instability_note = (
+                f"⚠️ Regime classification unstable — "
+                f"gap between {regime.get('regime', '')} "
+                f"and challenger is only "
+                f"{_challenger_delta:.1f} points. "
+                f"Hold positions until gap widens."
+            )
+            existing = narrative_delta.get("headline", "")
+            narrative_delta["headline"] = (
+                instability_note + " " + existing
+                if existing
+                else instability_note
+            )
+
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
@@ -2199,7 +2275,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         except Exception as e:
             print(f"[API] save_run failed: {e}")
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
