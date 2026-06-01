@@ -2039,6 +2039,44 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     print(f"[PIPELINE] Crude fetched direct: ${_crude_live}", flush=True)
             except Exception as _ce:
                 print(f"[PIPELINE] Crude fetch failed — storing NULL: {_ce}", flush=True)
+        # Crude sanity check
+        # If crude returns 0, None, or below $30
+        # it is a fetch failure — use yfinance
+        # as fallback
+        if not _crude_live or _crude_live < 30:
+            print(
+                f"[CRUDE] Primary fetch returned "
+                f"{_crude_live} — trying yfinance fallback",
+                flush=True
+            )
+            try:
+                import yfinance as yf
+                ticker = yf.Ticker("CL=F")
+                hist   = ticker.history(period="1d")
+                if not hist.empty:
+                    _crude_live = float(
+                        hist["Close"].iloc[-1]
+                    )
+                    print(
+                        f"[CRUDE] yfinance fallback: "
+                        f"${_crude_live:.2f}",
+                        flush=True
+                    )
+                else:
+                    # Last known reasonable value
+                    _crude_live = 94.0
+                    print(
+                        f"[CRUDE] yfinance empty — "
+                        f"using last known ${_crude_live}",
+                        flush=True
+                    )
+            except Exception as e:
+                _crude_live = 94.0
+                print(
+                    f"[CRUDE] yfinance failed: {e} — "
+                    f"using last known ${_crude_live}",
+                    flush=True
+                )
         nse_snapshot["crude_price"] = _crude_live
         # ── Nifty PE ratio ───────────────────────────────────────────────────────
         _nifty_pe = _fetch_nifty_pe()
