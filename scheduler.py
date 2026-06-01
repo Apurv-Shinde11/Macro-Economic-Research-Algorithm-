@@ -575,20 +575,10 @@ def run_pipeline(repo=5.25, deficit=4.3, capex=12.2):
     reg = ensure_dict(regime_eng.detect_regime(intel, liq), "Regime")
     reg = repair.repair(reg, REGIME_SCHEMA)
 
-    _PRO_RISK = {
-        "LIQUIDITY_DRIVEN_EXPANSION",
-        "EARLY_CYCLE_RECOVERY",
-        "STABLE_GROWTH"
-    }
-    _RISK_OFF = {
-        "LIQUIDITY_TIGHTENING", "MONETARY_TIGHTENING",
-        "GROWTH_SLOWDOWN_SUPPORT", "STAGFLATION_RISK",
-        "INFLATION_PRESSURE_WITH_EXTERNAL_RISK"
-    }
-    if reg.get("regime") in _PRO_RISK and reg.get("confidence", 0) > 0.65:
-        reg.setdefault("components", {})["equity_bias"] = "RISK_ON"
-    elif reg.get("regime") in _RISK_OFF and reg.get("confidence", 0) > 0.65:
-        reg.setdefault("components", {})["equity_bias"] = "RISK_OFF"
+    # equity_bias is set by regime_engine.py
+    # using a weighted NLP + regime blend.
+    # Hard override removed — premortem fix.
+    # See regime_engine.py lines 1480-1489.
 
     cse       = ensure_dict(cause.analyze(intel, reg), "Cause")
     scen      = ensure_dict(
@@ -1366,53 +1356,86 @@ def main():
         traceback.print_exc()
         sys.exit(1)
 
-    # ── Confidence gate ──────────────────────────────────────────────────
-    briefing_allowed        = pipeline["regime"].get("briefing_allowed", True)
-    briefing_blocked_reason = pipeline["regime"].get("briefing_blocked_reason", None)
-    regime_is_unstable      = (
-        pipeline["regime"]
-        .get("regime_stability_flag", {})
-        .get("is_unstable", False)
+    # ── Premortem confidence gate ────────────
+    _regime_out = pipeline.get("regime", {})
+    _briefing_allowed = _regime_out.get(
+        "briefing_allowed", True
+    )
+    _briefing_blocked_reason = _regime_out.get(
+        "briefing_blocked_reason", None
+    )
+    _regime_is_unstable = _regime_out.get(
+        "regime_is_unstable", False
     )
 
-    if not briefing_allowed:
+    if not _briefing_allowed:
         if dry_run:
             print(
-                f"[DRY RUN] [SCHEDULER] Briefing would be SUPPRESSED — "
-                f"{briefing_blocked_reason}",
-                flush=True
-            )
-            print(
-                "[DRY RUN] [SCHEDULER] No email or WhatsApp "
-                "would be sent this run.",
+                f"  [DRY RUN] Briefing would be "
+                f"SUPPRESSED — {_briefing_blocked_reason}",
                 flush=True
             )
         else:
             print(
-                f"[SCHEDULER] Briefing SUPPRESSED — "
-                f"{briefing_blocked_reason}",
+                f"\n{'=' * 56}",
                 flush=True
             )
             print(
-                "[SCHEDULER] No email or WhatsApp "
-                "sent this run.",
+                f"  [GATE] BRIEFING SUPPRESSED",
                 flush=True
             )
-            try:
-                supabase.table("notification_logs").insert({
-                    "type":    "briefing_suppressed",
-                    "reason":  briefing_blocked_reason,
-                    "sent_at": datetime.datetime.utcnow().isoformat(),
-                }).execute()
-            except Exception:
-                pass
-            return
+            print(
+                f"  Reason: {_briefing_blocked_reason}",
+                flush=True
+            )
+            print(
+                f"  No emails or WhatsApp sent.",
+                flush=True
+            )
+            print(
+                f"{'=' * 56}\n",
+                flush=True
+            )
 
-    # ── Instability warning ──────────────────────────────────────────────
-    if regime_is_unstable:
+            # Log suppression to Supabase
+            try:
+                supabase_url = get_secret(
+                    "SUPABASE_URL", ""
+                )
+                service_key  = get_secret(
+                    "SUPABASE_SERVICE_KEY", ""
+                )
+                if supabase_url and service_key:
+                    import json as _json
+                    url = (
+                        f"{supabase_url.rstrip('/')}"
+                        f"/rest/v1/notification_logs"
+                    )
+                    requests.post(
+                        url,
+                        headers=_sb_headers(service_key),
+                        json={
+                            "type":    "briefing_suppressed",
+                            "reason":  _briefing_blocked_reason,
+                            "sent_at": datetime.datetime
+                                       .utcnow().isoformat(),
+                        },
+                        timeout=10
+                    )
+            except Exception as _log_err:
+                print(
+                    f"  [GATE] Suppression log failed: "
+                    f"{_log_err}",
+                    flush=True
+                )
+
+            return  # Exit main() without sending
+
+    if _regime_is_unstable:
         print(
-            "[SCHEDULER] Regime unstable — "
-            "adding instability warning to briefing",
+            f"  [GATE] Regime unstable — "
+            f"instability warning will be "
+            f"prepended to briefing",
             flush=True
         )
 
