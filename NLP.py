@@ -72,6 +72,14 @@ class IndianMacroNLP:
         mistral_key    = _get_key("MISTRAL_API_KEY")
         openai_key     = _get_key("OPENAI_API_KEY")
 
+        print(
+            f"[NLP] Key check — "
+            f"gemini={'found' if gemini_key else 'MISSING'} "
+            f"openrouter={'found' if openrouter_key else 'MISSING'} "
+            f"groq={'found' if groq_key else 'MISSING'}",
+            flush=True
+        )
+
         if gemini_key:
             providers.append({
                 "name":   "gemini",
