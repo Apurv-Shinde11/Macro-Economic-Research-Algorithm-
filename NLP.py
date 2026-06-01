@@ -399,10 +399,10 @@ Return ONLY this JSON structure, no other text:
             "source":                 scores.get("source",    "keyword"),
             "provider":               scores.get("provider",  "none"),
             "hard_data": {
-                "repo_rate":      6.5,
-                "fiscal_deficit": 4.5,
-                "capex_lakh_cr":  10.0,
-                "gdp_growth":     7.0,
-                "cpi":            5.0
+                "repo_rate":      5.25,
+                "fiscal_deficit": 4.9,
+                "capex_lakh_cr":  12.2,
+                "gdp_growth":     7.2,
+                "cpi":            4.8
             }
         }
