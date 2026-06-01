@@ -127,7 +127,6 @@ async def lifespan(app: FastAPI):
 
     # ── Premortem health check ───────────────────────────────────────────
     try:
-        from regime_engine import MacroRegimeEngine
         _health_engine = MacroRegimeEngine()
         health = _health_engine.health_check()
 
