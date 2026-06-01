@@ -1466,23 +1466,27 @@ class MacroRegimeEngine:
         # -------------------------
         # EQUITY BIAS OVERRIDE
         # -------------------------
-        PRO_RISK_REGIMES = {
-            "LIQUIDITY_DRIVEN_EXPANSION",
-            "EARLY_CYCLE_RECOVERY",
-            "STABLE_GROWTH"
-        }
-        RISK_OFF_REGIMES = {
-            "LIQUIDITY_TIGHTENING",
-            "MONETARY_TIGHTENING",
-            "GROWTH_SLOWDOWN_SUPPORT",
-            "STAGFLATION_RISK",
-            "INFLATION_PRESSURE_WITH_EXTERNAL_RISK"
+        REGIME_BIAS_MAP = {
+            "LIQUIDITY_DRIVEN_EXPANSION":              0.7,
+            "EARLY_CYCLE_RECOVERY":                    0.75,
+            "STABLE_GROWTH":                           0.6,
+            "GROWTH_SLOWDOWN_SUPPORT":                 0.35,
+            "MONETARY_TIGHTENING":                     0.2,
+            "LIQUIDITY_TIGHTENING":                    0.2,
+            "STAGFLATION_RISK":                        0.1,
+            "INFLATION_PRESSURE_WITH_EXTERNAL_RISK":   0.15,
         }
 
-        if regime in PRO_RISK_REGIMES and confidence > 0.65:
+        nlp_score    = {"RISK_ON": 1.0, "NEUTRAL": 0.5, "RISK_OFF": 0.0}.get(equity_bias, 0.5)
+        regime_score = REGIME_BIAS_MAP.get(regime, 0.5)
+        blend        = (nlp_score * 0.4) + (regime_score * 0.6)
+
+        if blend >= 0.65:
             equity_bias = "RISK_ON"
-        elif regime in RISK_OFF_REGIMES and confidence > 0.65:
+        elif blend <= 0.35:
             equity_bias = "RISK_OFF"
+        else:
+            equity_bias = "NEUTRAL"
 
         # -------------------------
         # Narrative + Drivers
