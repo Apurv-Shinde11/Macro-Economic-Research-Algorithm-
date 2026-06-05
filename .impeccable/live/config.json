@@ -1,0 +1,11 @@
+{
+  "files": ["*.html"],
+  "exclude": [
+    "Macro-Economic-Research-Algorithm-*.html",
+    "economic-machine-2d.html",
+    "sentinel-v2-neural-network-home.html"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}

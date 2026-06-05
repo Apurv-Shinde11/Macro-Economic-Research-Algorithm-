@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-05T00:00:00Z",
+  "title": "Design System: EconIq · Sentinel",
+  "extensions": {
+    "colorMeta": {
+      "midnight-vault":  { "role": "neutral",   "displayName": "Midnight Vault",      "canonical": "#04060f", "tonalRamp": ["#04060f","#080d1c","#0d1428","#111d38","#1a2a4a","#263756","#374f72","#506090"] },
+      "surface-deep":    { "role": "neutral",   "displayName": "Surface Deep",        "canonical": "#080d1c", "tonalRamp": ["#04060f","#080d1c","#0d1428","#111d38","#1a2a4a","#263756","#374f72","#506090"] },
+      "surface-panel":   { "role": "neutral",   "displayName": "Surface Panel",       "canonical": "#0d1428", "tonalRamp": ["#04060f","#080d1c","#0d1428","#111d38","#1a2a4a","#263756","#374f72","#506090"] },
+      "surface-raised":  { "role": "neutral",   "displayName": "Surface Raised",      "canonical": "#111d38", "tonalRamp": ["#04060f","#080d1c","#0d1428","#111d38","#1a2a4a","#263756","#374f72","#506090"] },
+      "signal-blue":     { "role": "primary",   "displayName": "Signal Blue",         "canonical": "#4f83ff", "tonalRamp": ["#0a1a40","#1030a0","#2050d0","#3060e8","#4f83ff","#7aa3ff","#a0c0ff","#d0e0ff"] },
+      "signal-blue-light":{ "role": "primary",  "displayName": "Signal Blue (Light)", "canonical": "#7aa3ff", "tonalRamp": ["#0a1a40","#1030a0","#2050d0","#3060e8","#4f83ff","#7aa3ff","#a0c0ff","#d0e0ff"] },
+      "signal-indigo":   { "role": "secondary", "displayName": "Signal Indigo",       "canonical": "#6366f1", "tonalRamp": ["#1a1060","#2820a8","#3c38d0","#5050e4","#6366f1","#8080f5","#a0a0f8","#d0d0fc"] },
+      "signal-violet":   { "role": "secondary", "displayName": "Signal Violet",       "canonical": "#8b5cf6", "tonalRamp": ["#200840","#3c1080","#5828b8","#7040d8","#8b5cf6","#a880f8","#c4a4fa","#e4d4fd"] },
+      "signal-green":    { "role": "tertiary",  "displayName": "Signal Green",        "canonical": "#10d48a", "tonalRamp": ["#051f14","#093c28","#0f6040","#0e8a5c","#10d48a","#3fe0a0","#70ebc0","#b0f4df"] },
+      "signal-amber":    { "role": "tertiary",  "displayName": "Signal Amber",        "canonical": "#fbbf24", "tonalRamp": ["#201400","#4a3000","#7a5000","#b07800","#fbbf24","#fcd060","#fde090","#fef3cc"] },
+      "signal-red":      { "role": "tertiary",  "displayName": "Signal Red",          "canonical": "#f87171", "tonalRamp": ["#200808","#4a1010","#7a1818","#b03030","#f87171","#fa9090","#fcb0b0","#fdd8d8"] },
+      "signal-gold":     { "role": "tertiary",  "displayName": "Signal Gold",         "canonical": "#f5c542", "tonalRamp": ["#1e1000","#463800","#7a6000","#b09010","#f5c542","#f8d570","#fae498","#fdf2cc"] },
+      "text-primary":    { "role": "neutral",   "displayName": "Text Primary",        "canonical": "#e8eeff", "tonalRamp": ["#1a1e30","#2e3d58","#4a5872","#7a8baa","#a8b6cc","#c8d2e4","#e0e6f2","#e8eeff"] },
+      "text-secondary":  { "role": "neutral",   "displayName": "Text Secondary",      "canonical": "#7a8baa", "tonalRamp": ["#1a1e30","#2e3d58","#4a5872","#7a8baa","#a8b6cc","#c8d2e4","#e0e6f2","#e8eeff"] },
+      "text-ghost":      { "role": "neutral",   "displayName": "Text Ghost",          "canonical": "#2e3d58", "tonalRamp": ["#1a1e30","#2e3d58","#4a5872","#7a8baa","#a8b6cc","#c8d2e4","#e0e6f2","#e8eeff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Heading", "purpose": "Section headings, marketing display. Cormorant Garamond 600." },
+      "hero":    { "displayName": "Hero Heading",    "purpose": "Landing page hero only. Hard ceiling 86px." },
+      "body":    { "displayName": "Body",            "purpose": "All descriptive copy. DM Sans 400. Cap at 65–75ch." },
+      "label":   { "displayName": "Label",           "purpose": "Machine labels, field names. JetBrains Mono uppercase." },
+      "data":    { "displayName": "Data Value",      "purpose": "Live values: prices, percentages, regime codes." }
+    },
+    "shadows": [
+      { "name": "card-resting",    "value": "0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06)", "purpose": "Primary dashboard cards at rest." },
+      { "name": "nav-floating",    "value": "0 1px 0 rgba(79,131,255,0.12), 0 8px 32px rgba(0,0,0,0.4)",  "purpose": "Nav bar when scrolled; combined with backdrop-filter." },
+      { "name": "button-hover",    "value": "0 8px 26px rgba(79,131,255,0.45)",                            "purpose": "Primary button on hover. Blue-matched glow." },
+      { "name": "input-focus",     "value": "0 0 0 3px rgba(79,131,255,0.10)",                             "purpose": "Input focus ring. Soft glow, not hard outline." },
+      { "name": "signal-dot-glow", "value": "0 0 8px #10d48a",                                            "purpose": "Live data pulse indicators. Semantic green only." }
+    ],
+    "motion": [
+      { "name": "state-change",   "value": "0.2s ease",                        "purpose": "Color, border, background transitions on hover/active." },
+      { "name": "lift",           "value": "transform 0.18s, box-shadow 0.2s", "purpose": "Button and card interactive lift." },
+      { "name": "theme-switch",   "value": "0.32s ease",                       "purpose": "Global theme transition (background, color, border-color)." },
+      { "name": "aurora",         "value": "22s ease-in-out infinite",         "purpose": "Background blur orbs. Landing page only; never in product UI." }
+    ],
+    "breakpoints": [
+      { "name": "mobile",  "value": "640px" },
+      { "name": "tablet",  "value": "1024px" },
+      { "name": "desktop", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main CTA. Used for Access Sentinel, Run Pipeline, Submit actions.",
+      "html": "<button class=\"ds-btn-primary\">Access Sentinel</button>",
+      "css": ".ds-btn-primary { background: #4f83ff; color: #ffffff; padding: 12px 28px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s, transform 0.18s, box-shadow 0.2s; } .ds-btn-primary:hover { background: #7aa3ff; transform: translateY(-2px); box-shadow: 0 8px 26px rgba(79,131,255,0.45); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,131,255,0.30); } .ds-btn-primary:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action. Paired with Primary Button for two-CTA rows.",
+      "html": "<button class=\"ds-btn-outline\">See how it works ↓</button>",
+      "css": ".ds-btn-outline { background: transparent; color: #7a8baa; padding: 12px 28px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400; border: 1px solid rgba(99,132,255,0.20); border-radius: 8px; cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s; } .ds-btn-outline:hover { color: #4f83ff; border-color: #4f83ff; background: rgba(37,99,235,0.06); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,131,255,0.15); }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Top navigation link. Active state uses surface-raised pill.",
+      "html": "<a class=\"ds-nav-link ds-nav-link--active\" href=\"#\">Dashboard</a>",
+      "css": ".ds-nav-link { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #7a8baa; padding: 6px 10px; border-radius: 6px; text-decoration: none; transition: color 0.2s, background 0.2s; } .ds-nav-link:hover { color: #e8eeff; } .ds-nav-link--active { color: #e8eeff; background: #111d38; }"
+    },
+    {
+      "name": "Data Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Regime driver labels, key signal pills, filter tags.",
+      "html": "<span class=\"ds-chip\">FII Inflow</span>",
+      "css": ".ds-chip { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: #7a8baa; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(99,132,255,0.20); background: rgba(79,131,255,0.05); transition: border-color 0.2s, background 0.2s; } .ds-chip:hover { border-color: rgba(99,132,255,0.35); background: rgba(79,131,255,0.10); }"
+    },
+    {
+      "name": "Dashboard Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary container for regime data, flow data, scenario panels.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-label\">CURRENT REGIME</div><div class=\"ds-card-title\">Stable Growth</div></div>",
+      "css": ".ds-card { background: #080d1c; border-radius: 14px; padding: 30px 26px; box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06); transition: background 0.2s; } .ds-card:hover { background: #111d38; } .ds-card-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.22em; color: #2e3d58; text-transform: uppercase; margin-bottom: 8px; } .ds-card-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 27px; font-weight: 600; color: #e8eeff; line-height: 1.2; }"
+    },
+    {
+      "name": "Signal Indicator",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Equity bias / conviction / RBI signal value. Color is semantic only.",
+      "html": "<div class=\"ds-signal\"><div class=\"ds-signal-label\">EQUITY BIAS</div><div class=\"ds-signal-value ds-signal-value--green\">OVERWEIGHT</div></div>",
+      "css": ".ds-signal { padding: 8px 0; } .ds-signal-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.18em; color: #2e3d58; text-transform: uppercase; margin-bottom: 4px; } .ds-signal-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; } .ds-signal-value--green { color: #10d48a; } .ds-signal-value--amber { color: #fbbf24; } .ds-signal-value--red { color: #f87171; } .ds-signal-value--blue { color: #4f83ff; } .ds-signal-value--neutral { color: #7a8baa; }"
+    },
+    {
+      "name": "Confidence Bar",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Regime confidence percentage bar. Always Signal Blue fill.",
+      "html": "<div class=\"ds-conf-row\"><div class=\"ds-conf-bar-wrap\"><div class=\"ds-conf-bar\" style=\"width:72%\"></div></div><span class=\"ds-conf-pct\">72%</span></div>",
+      "css": ".ds-conf-row { display: flex; align-items: center; gap: 12px; } .ds-conf-bar-wrap { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; } .ds-conf-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #4f83ff, #6366f1); transition: width 0.9s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 8px rgba(79,131,255,0.5); } .ds-conf-pct { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: #4f83ff; min-width: 40px; text-align: right; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Institutional Terminal",
+    "overview": "EconIq is a precision instrument for professionals who read data for a living. The interface behaves like a sealed intelligence room: dark, focused, and organized. Every element has a specific job. Nothing decorates; everything informs. The visual density is controlled — data-rich without feeling cluttered — because the audience are advisors who need a defensible answer in 30 seconds, not analysts who enjoy data exploration for its own sake.\n\nThe palette is a near-black navy anchored in Midnight Vault with a blue-tinted depth progression across four surface levels. Color appears only when it carries signal: green for positive regime conditions, amber for caution, red for stress, blue for primary actions and active state. Monospace type handles all live data values, percentages, labels, and regime codes. Cormorant Garamond serif provides institutional weight for headings; DM Sans delivers clean body copy.\n\nThe system explicitly rejects: consumer fintech (Zerodha/Groww), generic AI-SaaS cream, news/media noise, and the dense legacy terminal look.",
+    "keyCharacteristics": [
+      "Dark-first, data-forward: dark mode is canonical; light mode mirrors the same token structure",
+      "Two-font system: serif for authority, mono for data, sans for clarity — never crossed",
+      "Signal colors carry information, never decoration",
+      "Monochrome-adjacent surfaces with controlled accent saturation",
+      "Institutional tone: no marketing flair in the product UI, no consumer patterns in either surface"
+    ],
+    "rules": [
+      { "name": "The Signal Color Rule",        "body": "Green, amber, red, and gold appear only when a data value warrants them. Never use these colors for decoration, background tints on non-signal elements, or marketing emphasis.",    "section": "colors" },
+      { "name": "The Blue Discipline Rule",      "body": "Signal Blue (#4f83ff) is the only accent on any given screen. Indigo and violet exist only inside gradient expressions. On product surfaces: no gradient text, no violet standalone.",     "section": "colors" },
+      { "name": "The Mono-Means-Machine Rule",   "body": "JetBrains Mono is reserved for data output and labels — items the engine generates. Narrative copy is always DM Sans.",                                                                       "section": "typography" },
+      { "name": "The Serif Ceiling Rule",        "body": "Cormorant Garamond headings stop at 86px (clamp max). Above that the page is announcing, not informing.",                                                                                       "section": "typography" },
+      { "name": "The No-Ambient-Shadow Rule",    "body": "Static surfaces carry no drop shadow. Depth is communicated through the background progression and 1px ring. Shadows appear only in response to state (hover, floating, focus).",              "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Cormorant Garamond exclusively for headings (Display / Title hierarchy). Serif body text is prohibited.",
+      "Do use JetBrains Mono for all machine-generated values: percentages, prices, regime codes, dates, tickers, label text.",
+      "Do apply semantic signal colors (green/amber/red) only when a data value warrants the color.",
+      "Do express card depth through the background progression and the 1px blue border ring.",
+      "Do maintain backdrop-filter: blur(24px) exclusively on the nav.",
+      "Do provide @media (prefers-reduced-motion: reduce) fallbacks on every animation.",
+      "Do use text-wrap: balance on all Display and Title headings.",
+      "Do verify contrast on monospace label text at 9–11px — highest-risk surface in both themes."
+    ],
+    "donts": [
+      "Don't use retail fintech patterns (Zerodha/Groww aesthetic): color saturation on navigation, progress-bar reward loops, emoji-heavy copy.",
+      "Don't use the generic AI-SaaS cream aesthetic: warm near-white backgrounds, purple-to-blue gradient CTAs, identical icon+heading+text card grids.",
+      "Don't use background-clip: text gradient text. Gradient text is an absolute ban across both surfaces.",
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on cards or list items.",
+      "Don't apply box-shadow to static resting cards. Shadows communicate state change (hover, floating).",
+      "Don't nest cards. Use a divider, data row, or background-shift instead.",
+      "Don't introduce a fourth typeface. The three-family system is complete.",
+      "Don't use Text Ghost (#2e3d58) for body copy — it fails 4.5:1 contrast on Surface Deep."
+    ]
+  }
+}
