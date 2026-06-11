@@ -3539,6 +3539,119 @@
         min-width: 100px;
       }
     }
+
+    /* ── Signal Visual Summary ── */
+    .signal-visual-summary {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 14px 0 16px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .signal-donut-wrap {
+      flex-shrink: 0;
+    }
+
+    .signal-donut {
+      width: 80px;
+      height: 80px;
+    }
+
+    .signal-donut circle {
+      transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .signal-visual-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .signal-count-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .signal-count-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .signal-count-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .dot-green { background: var(--green); }
+    .dot-red   { background: var(--red);   }
+    .dot-amber { background: var(--amber); }
+
+    .signal-count-num {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .signal-count-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .signal-plain-read {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.65;
+      padding: 8px 10px;
+      background: var(--bg-3);
+      border-radius: 6px;
+      border-left: 2px solid var(--blue);
+    }
+
+    .signal-trend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .signal-trend-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .signal-trend-value {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 768px) {
+      .signal-visual-summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .signal-donut-wrap {
+        align-self: center;
+      }
+      .signal-count-row {
+        gap: 20px;
+      }
+    }
   </style>
 </head>
 
@@ -4019,6 +4132,47 @@
       <!-- Signal Intelligence Card -->
       <div class="card signal-intel-card" id="signalIntelCard" style="display:none;">
         <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Signal Intelligence</div>
+
+        <div class="signal-visual-summary" id="signalVisualSummary">
+          <!-- Left: Donut chart -->
+          <div class="signal-donut-wrap">
+            <svg class="signal-donut" viewBox="0 0 80 80" id="signalDonutSvg">
+              <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--green)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutSupportive" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--red)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutStressed" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--amber)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutNeutral" transform="rotate(-90 40 40)"/>
+              <text x="40" y="36" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="var(--text)" id="donutCenterScore">—</text>
+              <text x="40" y="48" text-anchor="middle" font-family="var(--font-mono)" font-size="7" fill="var(--text-3)" letter-spacing="1">SCORE</text>
+            </svg>
+          </div>
+
+          <!-- Right: Signal counts and plain language read -->
+          <div class="signal-visual-right">
+            <div class="signal-count-row">
+              <div class="signal-count-item">
+                <div class="signal-count-dot dot-green"></div>
+                <div class="signal-count-num" id="countSupportive">—</div>
+                <div class="signal-count-label">Supportive</div>
+              </div>
+              <div class="signal-count-item">
+                <div class="signal-count-dot dot-red"></div>
+                <div class="signal-count-num" id="countStressed">—</div>
+                <div class="signal-count-label">Stressed</div>
+              </div>
+              <div class="signal-count-item">
+                <div class="signal-count-dot dot-amber"></div>
+                <div class="signal-count-num" id="countNeutral">—</div>
+                <div class="signal-count-label">Neutral</div>
+              </div>
+            </div>
+            <div class="signal-plain-read" id="signalPlainRead">—</div>
+            <div class="signal-trend-row">
+              <span class="signal-trend-label">SIGNAL TREND</span>
+              <span class="signal-trend-value" id="signalTrendValue">—</span>
+            </div>
+          </div>
+        </div>
+
         <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
         <div class="signal-grid" id="signalGrid"></div>
         <div class="signal-intel-footer">
@@ -4752,6 +4906,7 @@
       }
       // Signal Intelligence card
       renderSignalIntelCard(data);
+      renderSignalVisual(data);
       if (!fromHistory && data.transition) {
         renderTransition(data.transition);
       }
@@ -6502,6 +6657,93 @@
       }).join('');
 
       card.style.display = 'block';
+    }
+
+    /* ── SIGNAL VISUAL SUMMARY ── */
+    function renderSignalVisual(result) {
+      const leading = result?.leading_intelligence;
+      if (!leading || !leading.signals) return;
+
+      const signals = leading.signals;
+      const total   = signals.length;
+      if (total === 0) return;
+
+      const supportive = signals.filter(s => s.score >= 0.65).length;
+      const stressed   = signals.filter(s => s.score <= 0.35).length;
+      const neutral    = total - supportive - stressed;
+
+      const avgScore = signals.reduce((a, b) => a + (b.score || 0), 0) / total;
+      const scorePct = Math.round(avgScore * 100);
+      const trend    = leading.trend || 'STABLE';
+
+      const cs = document.getElementById('countSupportive');
+      const cr = document.getElementById('countStressed');
+      const cn = document.getElementById('countNeutral');
+      if (cs) cs.textContent = supportive;
+      if (cr) cr.textContent = stressed;
+      if (cn) cn.textContent = neutral;
+
+      const center = document.getElementById('donutCenterScore');
+      if (center) {
+        center.textContent = scorePct;
+        center.style.fill =
+          scorePct >= 65 ? 'var(--green)' :
+          scorePct >= 45 ? 'var(--blue)'  :
+          'var(--red)';
+      }
+
+      const circ          = 2 * Math.PI * 30;
+      const supportiveLen = (supportive / total) * circ;
+      const stressedLen   = (stressed   / total) * circ;
+      const neutralLen    = (neutral    / total) * circ;
+
+      const supportiveOffset = 0;
+      const stressedOffset   = (supportive / total) * 360;
+      const neutralOffset    = ((supportive + stressed) / total) * 360;
+
+      setTimeout(() => {
+        const dSup = document.getElementById('donutSupportive');
+        const dStr = document.getElementById('donutStressed');
+        const dNeu = document.getElementById('donutNeutral');
+        if (dSup) {
+          dSup.setAttribute('stroke-dasharray', `${Math.max(0, supportiveLen - 2)} ${circ}`);
+          dSup.setAttribute('transform', `rotate(${-90 + supportiveOffset} 40 40)`);
+        }
+        if (dStr) {
+          dStr.setAttribute('stroke-dasharray', `${Math.max(0, stressedLen - 2)} ${circ}`);
+          dStr.setAttribute('transform', `rotate(${-90 + stressedOffset} 40 40)`);
+        }
+        if (dNeu) {
+          dNeu.setAttribute('stroke-dasharray', `${Math.max(0, neutralLen - 2)} ${circ}`);
+          dNeu.setAttribute('transform', `rotate(${-90 + neutralOffset} 40 40)`);
+        }
+      }, 400);
+
+      const plainEl = document.getElementById('signalPlainRead');
+      if (plainEl) {
+        let plainText = '';
+        if (supportive >= 6) {
+          plainText = 'Strong macro environment — most signals supportive. Good time to maintain or increase client equity exposure.';
+        } else if (supportive >= 4 && stressed <= 2) {
+          plainText = 'Generally positive environment with some caution areas. Maintain existing SIP allocations — no need to reduce exposure.';
+        } else if (stressed >= 4) {
+          plainText = 'Multiple stress signals active. Advise clients to hold existing positions and pause new lump-sum investments until signals improve.';
+        } else if (stressed >= 2 && supportive >= 2) {
+          plainText = 'Mixed signals — economy in transition. Continue SIPs as planned. Avoid large lump-sum additions until clarity improves.';
+        } else {
+          plainText = 'Neutral environment. Maintain existing allocations. Monitor for directional shift.';
+        }
+        plainEl.textContent = plainText;
+      }
+
+      const trendEl = document.getElementById('signalTrendValue');
+      if (trendEl) {
+        trendEl.textContent = trend;
+        trendEl.style.color =
+          trend === 'IMPROVING'    ? 'var(--green)' :
+          trend === 'DETERIORATING'? 'var(--red)'   :
+          'var(--amber)';
+      }
     }
 
     /* ── SECTOR HEATMAP ── */
