@@ -1164,6 +1164,220 @@
       line-height: 1.55;
     }
 
+    /* ── Scenario Visual Layer ── */
+    .scenario-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 14px;
+      padding: 16px;
+      background: var(--bg-3);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .scenario-prob-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scenario-prob-bar-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 44px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .scenario-prob-bar-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+
+    .scenario-prob-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-baseline { background: var(--blue); }
+    .dot-bullish  { background: var(--green); }
+    .dot-bearish  { background: var(--red); }
+
+    .scenario-prob-bar-track {
+      height: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .scenario-prob-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fill-baseline {
+      background: linear-gradient(90deg, var(--blue), #7aa3ff);
+    }
+    .fill-bullish {
+      background: linear-gradient(90deg, var(--green), #34d399);
+    }
+    .fill-bearish {
+      background: linear-gradient(90deg, var(--red), #f87171);
+    }
+
+    .scenario-prob-bar-pct {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: right;
+      color: var(--text);
+    }
+
+    /* ── Dominant Scenario Callout ── */
+    .scenario-dominant {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--blue);
+    }
+    .dominant-baseline {
+      background: rgba(79,131,255,0.08);
+      border-left-color: var(--blue);
+    }
+    .dominant-bullish {
+      background: rgba(16,212,138,0.08);
+      border-left-color: var(--green);
+    }
+    .dominant-bearish {
+      background: rgba(248,113,113,0.08);
+      border-left-color: var(--red);
+    }
+
+    .scenario-dominant-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      color: var(--text-3);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .scenario-dominant-name {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .scenario-dominant-sub {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* ── Scenario Cards Redesign ── */
+    .scenario-card {
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      padding: 10px 14px;
+      border-radius: 8px;
+      transition: background 0.2s;
+      position: relative;
+      overflow: visible;
+      box-shadow: none;
+    }
+    .scenario-card::before { display: none; }
+
+    .scenario-card.base,
+    .scenario-card.baseline {
+      background: transparent;
+      border-left-color: var(--blue);
+      border-color: var(--border);
+    }
+    .scenario-card.bullish {
+      background: transparent;
+      border-left-color: var(--green);
+      border-color: var(--border);
+    }
+    .scenario-card.bearish {
+      background: transparent;
+      border-left-color: var(--red);
+      border-color: var(--border);
+    }
+    .scenario-card:hover {
+      background: var(--bg-3);
+    }
+
+    .scenario-card .scenario-desc {
+      display: none;
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    .scenario-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .scenario-card-toggle {
+      font-size: 14px;
+      color: var(--text-3);
+      transition: transform 0.2s ease;
+      display: inline-block;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .scenario-card .scenario-name {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .scenario-card .scenario-prob {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+
+    /* CA/IFA context note */
+    .scenario-ca-note {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .scenario-prob-bar-row {
+        grid-template-columns: 110px 1fr 36px;
+      }
+      .scenario-prob-bar-label {
+        font-size: 9px;
+      }
+    }
+
     /* ══ FLOWS ══ */
     .flows-grid {
       display: grid;
@@ -3843,12 +4057,61 @@
       <div class="divider"></div>
 
       <div class="section-header"><span class="section-title">Scenario Outlook</span></div>
+
+      <div class="scenario-visual" id="scenarioVisual">
+        <div class="scenario-prob-bars">
+          <div class="scenario-prob-bar-row" id="scenarioProbBase">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-baseline"></span>
+              <span>Base Case</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase" style="width:0%"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBase">—</div>
+          </div>
+          <div class="scenario-prob-bar-row" id="scenarioProbBull">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-bullish"></span>
+              <span>Growth Upside</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull" style="width:0%"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBull">—</div>
+          </div>
+          <div class="scenario-prob-bar-row" id="scenarioProbBear">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-bearish"></span>
+              <span>External Shock</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear" style="width:0%"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBear">—</div>
+          </div>
+        </div>
+        <div class="scenario-dominant" id="scenarioDominant">
+          <div class="scenario-dominant-label">MOST LIKELY OUTCOME</div>
+          <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
+          <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
+        </div>
+      </div>
+
       <div class="scenario-grid" id="scenarioGrid">
-        <div class="scenario-card base">
-          <div class="scenario-name">Awaiting Run</div>
-          <div class="scenario-prob" style="font-size:24px;color:var(--text-3)">—%</div>
+        <div class="scenario-card base" data-expanded="false" onclick="toggleScenarioCard(this)">
+          <div class="scenario-card-header">
+            <div class="scenario-name">Awaiting Run</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="scenario-prob" style="font-size:11px;color:var(--text-3)">—%</span>
+              <span class="scenario-card-toggle">›</span>
+            </div>
+          </div>
           <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
         </div>
+      </div>
+      <div class="scenario-ca-note">
+        For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
       </div>
 
       <div class="divider"></div>
@@ -4462,7 +4725,7 @@
         renderDecisionPrompt(_hReg, _hStrat, { summary: data.summary });
         renderWtmfy(_hReg, _hStrat, { summary: data.summary }, _lastHistory);
       }
-      if (!fromHistory && scenarios?.scenarios) renderScenarios(scenarios.scenarios);
+      if (!fromHistory && scenarios?.scenarios) { renderScenarios(scenarios.scenarios); renderScenarioVisual(); }
       if (!fromHistory && data.sector_heatmap) renderHeatmap(data.sector_heatmap);
       if (!fromHistory) { const _rk = (regime?.regime || data.regime || '').toUpperCase(); if (_rk) loadBacktest(_rk); }
       if (!fromHistory && nse) {
@@ -4798,8 +5061,73 @@
       const grid = document.getElementById('scenarioGrid'); if (!scenarios?.length) return;
       grid.innerHTML = scenarios.slice(0, 3).map(sc => {
         const pct = Math.round((sc.probability || 0) * 100);
-        return `<div class="scenario-card ${sc.type || 'base'}"><div class="scenario-name">${sc.name || sc.type}</div><div class="scenario-prob">${pct}%</div><div class="scenario-desc">${sc.description || ''}</div></div>`;
+        return `<div class="scenario-card ${sc.type || 'base'}" data-expanded="false" onclick="toggleScenarioCard(this)"><div class="scenario-card-header"><div class="scenario-name">${sc.name || sc.type}</div><div style="display:flex;align-items:center;gap:6px;"><span class="scenario-prob">${pct}%</span><span class="scenario-card-toggle">›</span></div></div><div class="scenario-desc">${sc.description || ''}</div></div>`;
       }).join('');
+    }
+
+    function renderScenarioVisual() {
+      const baseCard = document.querySelector('.scenario-card.baseline, .scenario-card.base');
+      const bullCard = document.querySelector('.scenario-card.bullish');
+      const bearCard = document.querySelector('.scenario-card.bearish');
+
+      if (!baseCard || !bullCard || !bearCard) return;
+
+      const parseProb = card => {
+        const txt = card.querySelector('.scenario-prob')?.textContent || '0';
+        return parseInt(txt.replace('%', '')) || 0;
+      };
+
+      const basePct = parseProb(baseCard);
+      const bullPct = parseProb(bullCard);
+      const bearPct = parseProb(bearCard);
+
+      setTimeout(() => {
+        const fillBase = document.getElementById('fillBase');
+        const fillBull = document.getElementById('fillBull');
+        const fillBear = document.getElementById('fillBear');
+        const pctBase  = document.getElementById('pctBase');
+        const pctBull  = document.getElementById('pctBull');
+        const pctBear  = document.getElementById('pctBear');
+
+        if (fillBase) fillBase.style.width = basePct + '%';
+        if (fillBull) fillBull.style.width = bullPct + '%';
+        if (fillBear) fillBear.style.width = bearPct + '%';
+
+        if (pctBase) pctBase.textContent = basePct + '%';
+        if (pctBull) pctBull.textContent = bullPct + '%';
+        if (pctBear) pctBear.textContent = bearPct + '%';
+
+        const dominant    = document.getElementById('scenarioDominant');
+        const domName     = document.getElementById('scenarioDominantName');
+        const domSub      = document.getElementById('scenarioDominantSub');
+
+        if (!dominant || !domName || !domSub) return;
+
+        if (basePct >= bullPct && basePct >= bearPct) {
+          dominant.className = 'scenario-dominant dominant-baseline';
+          domName.textContent = 'Base Case';
+          domSub.textContent  = basePct + '% probability — Regime continues as expected. Maintain current positioning.';
+        } else if (bullPct > basePct && bullPct >= bearPct) {
+          dominant.className = 'scenario-dominant dominant-bullish';
+          domName.textContent = 'Growth Upside';
+          domSub.textContent  = bullPct + '% probability — Conditions improving. Consider adding risk exposure.';
+        } else {
+          dominant.className = 'scenario-dominant dominant-bearish';
+          domName.textContent = 'External Shock Risk';
+          domSub.textContent  = bearPct + '% probability — Stress signals elevated. Reduce exposure and raise cash.';
+        }
+      }, 300);
+    }
+
+    function toggleScenarioCard(card) {
+      const isExpanded = card.dataset.expanded === 'true';
+      const desc   = card.querySelector('.scenario-desc');
+      const toggle = card.querySelector('.scenario-card-toggle');
+
+      card.dataset.expanded = isExpanded ? 'false' : 'true';
+
+      if (desc)   desc.style.display   = isExpanded ? 'none' : 'block';
+      if (toggle) toggle.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
     }
 
     function _fmtFlowDate(raw) {
