@@ -45,9 +45,11 @@ GEMINI_MODELS = [
 ]
 
 OPENROUTER_MODELS = [
-    "z-ai/glm-4.5-air:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "openai/gpt-oss-20b:free",
+    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-3-4b-it:free",
+    "qwen/qwen3-8b:free",
     "meta-llama/llama-3.2-3b-instruct:free",
 ]
 

@@ -1493,6 +1493,44 @@ def _fetch_nse_snapshot_jugaad() -> dict:
     return result
 
 
+def _fetch_nse_snapshot_yf() -> dict:
+    """
+    Fetch VIX, Nifty, BankNifty via yfinance when NSE/jugaad is blocked.
+    """
+    try:
+        import yfinance as yf
+
+        vix_hist   = yf.Ticker("^INDIAVIX").history(period="1d")
+        vix        = float(vix_hist["Close"].iloc[-1]) if not vix_hist.empty else None
+
+        nifty_hist = yf.Ticker("^NSEI").history(period="1d")
+        nifty      = float(nifty_hist["Close"].iloc[-1]) if not nifty_hist.empty else None
+
+        bn_hist    = yf.Ticker("^NSEBANK").history(period="1d")
+        bank_nifty = float(bn_hist["Close"].iloc[-1]) if not bn_hist.empty else None
+
+        print(
+            f"[YF] VIX={vix} "
+            f"Nifty={nifty} "
+            f"BankNifty={bank_nifty}",
+            flush=True
+        )
+        return {
+            "vix":        vix,
+            "nifty":      nifty,
+            "bank_nifty": bank_nifty,
+            "src":        "yfinance",
+        }
+    except Exception as e:
+        print(f"[YF] Snapshot failed: {e}", flush=True)
+        return {
+            "vix":        None,
+            "nifty":      None,
+            "bank_nifty": None,
+            "src":        "unavailable",
+        }
+
+
 # 24-hour cache for PE ratio
 _pe_cache: dict = {"value": None, "fetched_at": None}
 
@@ -1935,8 +1973,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             nse_snapshot = eng["nse"].get_full_snapshot()
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
-        # ── NSE Snapshot — layered VIX fallback ──────────────────────────────────
-        # Layer 1: jugaad-data (confirmed on Railway)
+        # ── NSE Snapshot — layered fallback ──────────────────────────────────────
+        # Layer 1: jugaad-data
+        _jd = {"source": "jugaad_unavailable"}
         if JUGAAD_AVAILABLE:
             _jd = _fetch_nse_snapshot_jugaad()
             if _jd.get("india_vix") is not None:
@@ -1951,7 +1990,21 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             if _jd.get("bank_nifty"):
                 nse_snapshot["bank_nifty_last"]   = _jd["bank_nifty"]["last"]
                 nse_snapshot["bank_nifty_change"] = _jd["bank_nifty"]["percentChange"]
-        # Layer 2: ticker cache patch (fallback when jugaad VIX unavailable)
+        # Layer 2: yfinance fallback when jugaad is blocked/unavailable
+        if (not JUGAAD_AVAILABLE or
+                _jd.get("source") == "jugaad_failed" or
+                _jd.get("india_vix") is None):
+            print("[NSE] Falling back to yfinance", flush=True)
+            _yf_snap = _fetch_nse_snapshot_yf()
+            if _yf_snap.get("vix") is not None:
+                nse_snapshot["india_vix"] = _yf_snap["vix"]
+            if _yf_snap.get("nifty") is not None:
+                nse_snapshot["nifty_last"] = _yf_snap["nifty"]
+                nse_snapshot.setdefault("nifty_change", 0.0)
+            if _yf_snap.get("bank_nifty") is not None:
+                nse_snapshot["bank_nifty_last"] = _yf_snap["bank_nifty"]
+                nse_snapshot.setdefault("bank_nifty_change", 0.0)
+        # Layer 3: ticker cache patch (last resort for VIX)
         if not nse_snapshot.get("india_vix"):
             print(
                 "[NSE] jugaad VIX unavailable — trying ticker cache patch",
