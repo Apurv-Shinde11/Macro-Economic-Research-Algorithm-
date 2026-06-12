@@ -4898,6 +4898,7 @@
               .limit(100);
             const freshArr = freshData || [];
             _lastHistory = freshArr;
+            _lastRunTimestamp = freshArr[0]?.run_at || _lastRunTimestamp;
             renderHistoryTable(freshArr);
             renderConfSparkline(freshArr.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
             renderConfArrow(freshArr);
