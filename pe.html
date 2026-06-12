@@ -701,6 +701,40 @@
       .sector-detail-text { font-size: 13px; }
     }
 
+    /* ══ TIMELINE (Defence Budget) ══ */
+    .sector-timeline { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 80px 1fr;
+      align-items: center; gap: 8px;
+    }
+    .timeline-year {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-3); letter-spacing: 0.06em;
+    }
+    .timeline-bar-wrap {
+      height: 4px; background: rgba(255,255,255,0.06);
+      border-radius: 2px; overflow: hidden;
+    }
+    .timeline-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), #7aa3ff);
+      border-radius: 2px; transition: width 0.6s ease;
+    }
+    .timeline-value {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text); font-weight: 600;
+      text-align: right; white-space: nowrap;
+    }
+    .timeline-note { font-size: 10px; color: var(--text-3); line-height: 1.3; }
+    .sector-detail-multiple-current {
+      background: rgba(79,131,255,0.08); border-radius: 4px; padding: 2px 4px;
+    }
+    @media (max-width: 768px) {
+      .timeline-row { grid-template-columns: 36px 1fr 70px; }
+      .timeline-note { display: none; }
+    }
+
     /* ══ HAMBURGER / MOBILE NAV ══ */
     .nav-hamburger {
       display: none;
@@ -1191,6 +1225,49 @@
       },
     };
 
+    const SECTOR_TREND_DATA = {
+      'Consumer & Retail': [
+        { year: '2024', val: '10-18x EBITDA · Deal flow moderate' },
+        { year: '2025', val: '12-20x EBITDA · Premium brands re-rated' },
+        { year: '2026', val: '15-25x EBITDA · Current', current: true },
+      ],
+      'Financial Services & Fintech': [
+        { year: '2024', val: '1.5-2.2x P/B · Credit cycle early' },
+        { year: '2025', val: '1.8-2.8x P/B · NIM expansion priced in' },
+        { year: '2026', val: '2.0-3.0x P/B · Current', current: true },
+      ],
+      'Infrastructure & Logistics': [
+        { year: '2024', val: '8-11x EBITDA · Capex cycle begins' },
+        { year: '2025', val: '9-12x EBITDA · Order books filling' },
+        { year: '2026', val: '10-14x EBITDA · Current', current: true },
+      ],
+      'Healthcare & Pharma': [
+        { year: '2024', val: '12-18x EBITDA · CDMO thesis emerging' },
+        { year: '2025', val: '14-20x EBITDA · China+1 priced in' },
+        { year: '2026', val: '14-20x EBITDA · Current (stable)', current: true },
+      ],
+      'Technology & SaaS': [
+        { year: '2024', val: '4-7x ARR · Post-correction entry' },
+        { year: '2025', val: '5-8x ARR · AI premium emerging' },
+        { year: '2026', val: '5-8x ARR · Current (stable)', current: true },
+      ],
+      'Space & Deep Tech': [
+        { year: '2024', val: '3-5x revenue · Very early stage' },
+        { year: '2025', val: '4-7x revenue · IN-SPACe approvals' },
+        { year: '2026', val: '4-8x revenue · Current', current: true },
+      ],
+      'Defence & Aerospace': [
+        { year: '2024', val: '12-20x EBITDA · Policy tailwinds' },
+        { year: '2025', val: '15-24x EBITDA · Export momentum' },
+        { year: '2026', val: '18-28x EBITDA · Current (premium)', current: true },
+      ],
+      'Green Energy & Climate': [
+        { year: '2024', val: '7-10x EBITDA · Utility scale mature' },
+        { year: '2025', val: '8-11x EBITDA · Storage emerging' },
+        { year: '2026', val: '9-12x EBITDA · Current', current: true },
+      ],
+    };
+
     function _sectorDetailHtml(name) {
       const d = SECTOR_DETAIL_DATA[name];
       if (!d) return '';
@@ -1199,6 +1276,47 @@
       ).join('');
       const risksHtml    = d.risks.map(r   => `<li>${r}</li>`).join('');
       const signalsHtml  = d.signals.map(s => `<li>${s}</li>`).join('');
+
+      const trendRows = (SECTOR_TREND_DATA[name] || [
+        { year: '2024', val: 'Historical range · pre-2024 data' },
+        { year: '2025', val: 'Expanding · regime-driven re-rating' },
+        { year: '2026', val: 'Current range · see Entry Multiples above', current: true },
+      ]).map(t =>
+        `<div class="sector-detail-multiple-item${t.current ? ' sector-detail-multiple-current' : ''}">` +
+        `<span>${t.year}${t.current ? ' (Current)' : ''}</span><span>${t.val}</span></div>`
+      ).join('');
+
+      const defenceTimeline = name === 'Defence & Aerospace' ? `
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">India Defence Budget Trajectory</div>
+            <div class="sector-timeline">
+              <div class="timeline-row">
+                <div class="timeline-year">FY23</div>
+                <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:72%"></div></div>
+                <div class="timeline-value">₹5.94L Cr</div>
+                <div class="timeline-note">Private sector entry begins</div>
+              </div>
+              <div class="timeline-row">
+                <div class="timeline-year">FY24</div>
+                <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:78%"></div></div>
+                <div class="timeline-value">₹6.21L Cr</div>
+                <div class="timeline-note">Indigenisation mandate accelerates</div>
+              </div>
+              <div class="timeline-row">
+                <div class="timeline-year">FY25</div>
+                <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:88%"></div></div>
+                <div class="timeline-value">₹6.81L Cr</div>
+                <div class="timeline-note">First export revenues materialise</div>
+              </div>
+              <div class="timeline-row">
+                <div class="timeline-year">FY26</div>
+                <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:100%"></div></div>
+                <div class="timeline-value">₹7.06L Cr</div>
+                <div class="timeline-note">Mature deal flow — compressed multiples as sector matures</div>
+              </div>
+            </div>
+          </div>` : '';
+
       return `
         <div class="sector-detail">
           <div class="sector-detail-divider"></div>
@@ -1217,6 +1335,11 @@
           <div class="sector-detail-section">
             <div class="sector-detail-label">Watch Signals</div>
             <ul class="sector-detail-signals">${signalsHtml}</ul>
+          </div>
+          ${defenceTimeline}
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Entry Multiple Trend (3 Year)</div>
+            <div class="sector-detail-multiples">${trendRows}</div>
           </div>
         </div>`;
     }
