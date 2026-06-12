@@ -3733,6 +3733,17 @@
         grid-column: span 2;
       }
     }
+
+    /* ── Section Footnotes ── */
+    .section-footnote {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 9px;
+      color: var(--text-3);
+      line-height: 1.6;
+      font-family: var(--font-mono);
+    }
   </style>
 </head>
 
@@ -4258,6 +4269,9 @@
         <div class="signal-intel-footer">
           Leading score weights VIX, crude, FII flows, yield curve, PMI, PE ratio, volatility forecast, credit impulse, and FII trend momentum.
         </div>
+        <div class="section-footnote">
+          Scores are model outputs based on live market data and historical patterns. Not a guarantee of future market conditions. For informational purposes only.
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -4347,6 +4361,9 @@
       <div class="scenario-ca-note">
         For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
       </div>
+      <div class="section-footnote">
+        Scenario probabilities are model estimates based on current signal alignment. Actual outcomes may differ materially from projected scenarios.
+      </div>
 
       <div class="divider"></div>
 
@@ -4365,6 +4382,9 @@
         <div class="heatmap-legend-note">
           ↑ Portfolio overweight / underweight signals — not buy/sell recommendations
         </div>
+        <div class="section-footnote">
+          Sector positioning reflects regime-based portfolio allocation signals, not individual security recommendations. EconIq is not a SEBI-registered Research Analyst. Consult Screener.in links for company-level research.
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -4377,6 +4397,9 @@
         <div class="backtest-summary" id="backtestSummary"></div>
         <div class="backtest-grid" id="backtestGrid"></div>
         <div class="backtest-insight" id="backtestInsight"></div>
+        <div class="section-footnote">
+          Returns shown reflect Nifty/sector index performance during historical periods matching the current regime classification. Past performance does not guarantee future results.
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -4406,6 +4429,9 @@
         </div>
         <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
         <div class="flow-context" id="flowContext"></div>
+        <div class="section-footnote">
+          Data sourced from NSE. FII/DII figures represent equity segment cash market flows only and may be cached during non-trading days.
+        </div>
       </div>
 
       <div class="divider"></div>
