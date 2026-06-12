@@ -4517,6 +4517,11 @@
         <div class="section-footnote">
           Data sourced from NSE. FII/DII figures represent equity segment cash market flows only and may be cached during non-trading days.
         </div>
+        <div class="fii-data-note">
+          Daily FII/DII figures reflect the most recently reported NSE session. The
+          7-day trend and selling streak shown elsewhere on this dashboard update
+          independently and reflect current positioning momentum.
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -5623,27 +5628,11 @@
       el.textContent = `${tf.data_points} trading sessions · ${dataSource} · Net combined: ${sign}₹${Math.abs(tf.net_combined).toLocaleString('en-IN')} Cr`;
     }
 
-    function renderFIIFreshness(dataDate) {
-      const dateEl = document.getElementById('flowDate');
-      if (!dateEl || !dataDate) return;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const data = new Date(dataDate);
-      data.setHours(0, 0, 0, 0);
-      const diffMs   = today - data;
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      if (diffDays === 0) {
-        dateEl.style.color = 'var(--green)';
-      } else if (diffDays === 1) {
-        dateEl.textContent += ' (yesterday)';
-        dateEl.style.color = 'var(--amber)';
-      } else if (diffDays <= 3) {
-        dateEl.textContent += ` (${diffDays} days ago — weekend/holiday)`;
-        dateEl.style.color = 'var(--amber)';
-      } else {
-        dateEl.textContent += ` (${diffDays} days ago — check data feed)`;
-        dateEl.style.color = 'var(--red)';
-      }
+    function formatFIIDataLabel(tradeDate) {
+      const date = new Date(tradeDate);
+      const fmt = date.toLocaleDateString('en-IN',
+        { day: 'numeric', month: 'short', year: 'numeric' });
+      return `As of ${fmt} (last reported session)`;
     }
 
     function renderFlows(nse) {
@@ -5672,23 +5661,20 @@
 
       const flowSig = fiiRaw.combined_signal || 'NEUTRAL';
       const fmt = v => `${v >= 0 ? '▲' : '▼'} ₹${Math.abs(Math.round(v)).toLocaleString('en-IN')} Cr`;
-      const staleSuffix = (stale && source !== 'bse') ? ' (cached)' : '';
 
       const fiiEl = document.getElementById('fiiNet');
       fiiEl.textContent = fmt(fiiNet); fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
       const diiEl = document.getElementById('diiNet');
       diiEl.textContent = fmt(diiNet); diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
       const fiiSigText = (fiiRaw.fii_signal && fiiRaw.fii_signal !== 'UNKNOWN') ? fiiRaw.fii_signal : (fiiNet > 0 ? 'NET BUY' : fiiNet < 0 ? 'NET SELL' : '—');
-      document.getElementById('fiiSignal').textContent = fiiSigText + staleSuffix;
-      document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
+      document.getElementById('fiiSignal').textContent = fiiSigText;
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
       const diiSigText = (fiiRaw.dii_signal && fiiRaw.dii_signal !== 'UNKNOWN')
         ? fiiRaw.dii_signal
         : (diiNet > 0 ? 'NET BUY' : diiNet < 0 ? 'NET SELL' : '—');
-      document.getElementById('diiSignal').textContent = diiSigText + staleSuffix;
+      document.getElementById('diiSignal').textContent = diiSigText;
       document.getElementById('diiSignal').className = 'flow-signal ' + (diiNet > 0 ? 'risk-on' : diiNet < 0 ? 'risk-off' : 'neutral');
-      document.getElementById('flowDate').textContent = dateLabel ? 'Data: ' + dateLabel + staleSuffix : '';
-      renderFIIFreshness(cachedAt);
+      document.getElementById('flowDate').textContent = cachedAt ? formatFIIDataLabel(cachedAt) : '';
       const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
       const diiAbs = Math.abs(Math.round(diiNet)).toLocaleString('en-IN');
       const fiiDir = fiiNet < 0 ? 'sold' : 'bought';
