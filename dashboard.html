@@ -5411,11 +5411,31 @@
           'Gold: Hold structural 5% — no change at MEDIUM conviction',
           'INR: Partial hedge only — maintain existing coverage'
         ];
-        return [
+        // LOW conviction — direction matters
+        const _lrAlloc = window._lastRunResult?.allocation
+          ? (typeof window._lastRunResult.allocation === 'string' ? JSON.parse(window._lastRunResult.allocation) : window._lastRunResult.allocation)
+          : {};
+        const equityBias = window._lastRunResult?.regime?.equity_bias || _lrAlloc.equity_bias || 'NEUTRAL';
+        if (equityBias === 'RISK_ON') return [
+          'Equity: Hold current allocation — do not add aggressively, but no need to underweight given supportive direction',
+          'Debt: Neutral duration — balanced G-Sec and corporate credit',
+          'Gold: Maintain structural 5% — no change warranted',
+          'INR: Partial hedge — maintain existing coverage',
+          'Wait for 2 consecutive MEDIUM+ runs before increasing equity exposure'
+        ];
+        if (equityBias === 'RISK_OFF') return [
           'Equity: Reduce to underweight; raise cash buffer across all sleeves',
           'Debt: Short duration, G-Sec preferred over corporate credit',
           'Gold: Add 3–5% as safe-haven hedge — warranted in LOW conviction',
           'INR: Maximum hedge; reduce all unhedged foreign exposure'
+        ];
+        // NEUTRAL equity_bias
+        return [
+          'Equity: Hold current allocation — avoid new lump-sum deployment until conviction improves',
+          'Debt: Short-to-medium duration — avoid credit risk in LOW conviction environment',
+          'Gold: Hold structural 5% as hedge',
+          'INR: Maintain existing hedge coverage',
+          'Wait for 2 consecutive MEDIUM+ runs before any directional move'
         ];
       }
       return []; // equity mandate: existing regime/AI playbook is the default
