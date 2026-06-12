@@ -3788,6 +3788,28 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
+
+    /* ── Client Profile Note ── */
+    .client-profile-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: rgba(79,131,255,0.06);
+      border-left: 2px solid var(--blue);
+      border-radius: 6px;
+    }
+    .client-profile-note-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--blue-light, #7aa3ff);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .client-profile-note-text {
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -3879,6 +3901,17 @@
               <option value="balanced">Balanced</option>
               <option value="debt">Debt-Heavy</option>
               <option value="multi_asset">Multi-Asset</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Primary Client Profile</label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="clientProfile" data-field="client_profile">
+              <option value="young_accumulator">Young Accumulator (20s-30s, SIP-heavy)</option>
+              <option value="mid_career" selected>Mid-Career Balanced (30s-40s)</option>
+              <option value="pre_retirement">Pre-Retirement Conservative (50s+)</option>
+              <option value="hni_preservation">HNI Wealth Preservation</option>
             </select>
           </div>
         </div>
@@ -4983,6 +5016,7 @@
     }
 
     function renderRunResult(data, fromHistory) {
+      window._lastRunResult = data;
       const regime = fromHistory ? { regime: data.regime, confidence: data.confidence } : data.regime;
       const strategy = fromHistory ? { conviction: data.conviction } : data.strategy;
       const scenarios = fromHistory ? null : data.scenarios;
@@ -5053,6 +5087,7 @@
         renderDecisionPrompt(_hReg, _hStrat, { summary: data.summary });
         renderWtmfy(_hReg, _hStrat, { summary: data.summary }, _lastHistory);
       }
+      renderClientProfileNote(data);
       if (!fromHistory && scenarios?.scenarios) { renderScenarios(scenarios.scenarios); renderScenarioVisual(); }
       if (!fromHistory && data.sector_heatmap) renderHeatmap(data.sector_heatmap);
       if (!fromHistory) { const _rk = (regime?.regime || data.regime || '').toUpperCase(); if (_rk) loadBacktest(_rk); }
@@ -5966,6 +6001,7 @@
     function populateSidebar(profile) {
       setSegment('aum_size', profile.aum_size || 'mid');
       const mandateEl = document.getElementById('mandateType'); if (mandateEl) mandateEl.value = profile.mandate_type || 'equity';
+      const cpEl = document.getElementById('clientProfile'); if (cpEl) cpEl.value = profile.client_profile || 'mid_career';
       setSegment('risk_tolerance', profile.risk_tolerance || 'moderate');
       setSegment('investment_horizon', profile.investment_horizon || 'medium');
       const benchEl = document.getElementById('benchmark'); if (benchEl) benchEl.value = profile.benchmark || 'NIFTY50';
@@ -6001,7 +6037,7 @@
       const btn = document.getElementById('savePrefsBtn');
       const getSegVal = field => document.querySelector(`.segment-btn[data-field="${field}"].active`)?.dataset.val;
       const waNum = (document.getElementById('waNumber')?.value || '').trim();
-      const prefs = { aum_size: getSegVal('aum_size'), mandate_type: document.getElementById('mandateType')?.value, risk_tolerance: getSegVal('risk_tolerance'), investment_horizon: getSegVal('investment_horizon'), benchmark: document.getElementById('benchmark')?.value, pdf_delivery_time: document.getElementById('pdfTime')?.value, report_tone: getSegVal('report_tone'), whatsapp_number: waNum || null };
+      const prefs = { aum_size: getSegVal('aum_size'), mandate_type: document.getElementById('mandateType')?.value, client_profile: document.getElementById('clientProfile')?.value, risk_tolerance: getSegVal('risk_tolerance'), investment_horizon: getSegVal('investment_horizon'), benchmark: document.getElementById('benchmark')?.value, pdf_delivery_time: document.getElementById('pdfTime')?.value, report_tone: getSegVal('report_tone'), whatsapp_number: waNum || null };
       const notifPrefs = { vix_threshold: parseFloat(document.getElementById('threshVIX').textContent), inr_threshold: parseFloat(document.getElementById('threshINR').textContent), fii_consecutive_days: parseInt(document.getElementById('threshFII').textContent), confidence_breach_threshold: parseFloat(document.getElementById('threshChallenger').textContent) };
       try {
         btn.textContent = 'Saving...'; btn.disabled = true;
@@ -7060,6 +7096,62 @@
       if (btn) btn.classList.remove('open');
       document.body.style.overflow = '';
     }
+    /* ── Client Profile Note ── */
+    function renderClientProfileNote(data) {
+      const profile = document.getElementById('clientProfile')?.value || 'mid_career';
+      const _alloc = data.allocation
+        ? (typeof data.allocation === 'string' ? JSON.parse(data.allocation) : data.allocation)
+        : {};
+      const equityBias = data.regime?.equity_bias || _alloc.equity_bias || 'NEUTRAL';
+      const conviction = data.conviction || data.strategy?.conviction || data.regime?.conviction || 'LOW';
+
+      const NOTES = {
+        young_accumulator: {
+          RISK_ON:  'For SIP clients in their 20s-30s: regime supports continuing or increasing small/midcap-tilted SIPs. Historical data shows midcaps outperform in this regime.',
+          NEUTRAL:  'For SIP clients in their 20s-30s: continue existing SIP allocations as planned — no need to change small/midcap tilt. Avoid lump-sum additions until conviction improves.',
+          RISK_OFF: 'For SIP clients in their 20s-30s: continue SIPs (do not pause — rupee-cost averaging works in their favour), but defer any lump-sum or step-up additions until signals stabilise.',
+        },
+        mid_career: {
+          RISK_ON:  'For clients in their 30s-40s: regime supports current balanced allocation. Consider modest tilt toward favoured sectors (Banking, Infrastructure) within existing equity sleeve.',
+          NEUTRAL:  'For clients in their 30s-40s: maintain current balanced allocation. Hold off on rebalancing until 2 consecutive MEDIUM+ runs confirm direction.',
+          RISK_OFF: 'For clients in their 30s-40s: maintain existing allocations, raise cash buffer modestly. Avoid increasing equity exposure until conviction improves.',
+        },
+        pre_retirement: {
+          RISK_ON:  'For clients in their 50s+: regime is positive, but LOW/MEDIUM conviction does not warrant increasing equity exposure at this life stage. Maintain large-cap-heavy allocation.',
+          NEUTRAL:  'For clients in their 50s+: this regime read reinforces a conservative stance — no action needed. Continue capital-preservation-focused allocation.',
+          RISK_OFF: 'For clients in their 50s+: regime supports the conservative positioning already appropriate for this age group. Consider reviewing duration on debt holdings.',
+        },
+        hni_preservation: {
+          RISK_ON:  'For HNI wealth preservation mandates: regime is constructive but conviction is LOW — maintain current strategic allocation rather than tactical shifts. Use this read for client conversations on staying the course.',
+          NEUTRAL:  'For HNI wealth preservation mandates: no rebalancing action indicated. Use this period to review overall portfolio diversification with clients.',
+          RISK_OFF: 'For HNI wealth preservation mandates: regime supports defensive positioning already in place. Consider reviewing hedges and alternative allocations.',
+        },
+      };
+
+      const profileNotes = NOTES[profile] || NOTES.mid_career;
+      const noteText = profileNotes[equityBias] || profileNotes.NEUTRAL;
+
+      let noteEl = document.getElementById('clientProfileNote');
+      if (!noteEl) {
+        const playbookCard = document.querySelector('.playbook-card');
+        if (!playbookCard) return;
+        noteEl = document.createElement('div');
+        noteEl.id = 'clientProfileNote';
+        noteEl.className = 'client-profile-note';
+        playbookCard.appendChild(noteEl);
+      }
+      noteEl.innerHTML =
+        '<div class="client-profile-note-label">For Your Client Conversations</div>' +
+        '<div class="client-profile-note-text">' + noteText + '</div>';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('clientProfile')?.addEventListener('change', () => {
+        if (window._lastRunResult) renderClientProfileNote(window._lastRunResult);
+        savePreferences?.();
+      });
+    });
+
     /* ── Auto-refresh polling ── */
     let _lastRunTimestamp = null;
 
