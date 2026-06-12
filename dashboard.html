@@ -5718,6 +5718,7 @@
       if (!shown.length) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:24px;">No matching runs.</td></tr>`;
         renderArchiveSummary(shown);
+        renderConfidenceSparkline(_allArchiveRuns);
         return;
       }
 
@@ -5803,6 +5804,7 @@
         </tr>`;
       }).join('');
       renderArchiveSummary(shown);
+      renderConfidenceSparkline(_allArchiveRuns);
     }
 
     function renderArchiveSummary(rows) {
@@ -6231,6 +6233,14 @@
         + `</svg>`
         + `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${hexColor};">${arrow}</span>`;
       console.log('[Sparkline] rendered — trend:', trend, '| color:', hexColor, '| pts:', pts);
+    }
+
+    function renderConfidenceSparkline(archiveRows) {
+      if (!archiveRows || archiveRows.length === 0) return;
+      // Always uses the full unfiltered archive — last 15 runs oldest→newest
+      const recent = archiveRows.slice(0, 15).reverse();
+      const values = recent.map(r => (parseFloat(r.confidence) || 0) * 100);
+      renderConfSparkline(values);
     }
 
     function renderConfArrow(history) {
