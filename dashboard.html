@@ -602,6 +602,15 @@
       transition: background 0.15s, color 0.15s;
     }
 
+    .segment-sub {
+      display: block;
+      font-size: 8px;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
     .segment-btn.active {
       background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
       color: #fff;
@@ -3800,13 +3809,12 @@
         </div>
         <div class="form-row">
           <label class="form-label">AUM Size</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="aum_size" data-val="small">Small</button>
-            <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid</button>
-            <button class="segment-btn" data-field="aum_size" data-val="large">Large</button>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+            <button class="segment-btn" data-field="aum_size" data-val="individual">Individual<br><span class="segment-sub">&lt;₹50 Cr</span></button>
+            <button class="segment-btn" data-field="aum_size" data-val="small">Small<br><span class="segment-sub">₹50-200 Cr</span></button>
+            <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid<br><span class="segment-sub">₹200-500 Cr</span></button>
+            <button class="segment-btn" data-field="aum_size" data-val="large">Large<br><span class="segment-sub">₹500+ Cr</span></button>
           </div>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Small: ₹50–200 Cr
-            · Mid: ₹200–500 Cr · Large: 500 Cr+</div>
         </div>
         <div class="form-row">
           <label class="form-label">Mandate Type</label>
