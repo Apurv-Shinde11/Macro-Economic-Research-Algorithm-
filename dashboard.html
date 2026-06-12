@@ -6902,18 +6902,18 @@
     /* ── SECTOR SCREENER NOTE HELPER ── */
     function getSectorScreenerNote(sectorName, classification) {
       const SCREENER_MAP = {
-        'Banking & Financials':    'https://www.screener.in/screens/71920/banking-financials/',
-        'Infrastructure & Capex': 'https://www.screener.in/screens/71921/infrastructure/',
-        'Consumer Discretionary': 'https://www.screener.in/screens/71922/consumer-discretionary/',
-        'Real Estate':             'https://www.screener.in/screens/71923/real-estate/',
-        'Auto & Auto Ancillaries': 'https://www.screener.in/screens/71924/auto/',
-        'IT & Technology':         'https://www.screener.in/screens/71925/it-services/',
-        'Pharmaceuticals':         'https://www.screener.in/screens/71926/pharma/',
-        'Chemicals':               'https://www.screener.in/screens/71927/chemicals/',
-        'Telecom':                 'https://www.screener.in/screens/71928/telecom/',
-        'FMCG & Staples':          'https://www.screener.in/screens/71929/fmcg/',
-        'Utilities':               'https://www.screener.in/screens/71930/utilities/',
-        'Gold & Precious Metals':  'https://www.screener.in/screens/71931/gold/',
+        'Banking & Financials':    'https://www.screener.in/screens/new/?query=Bank',
+        'Infrastructure & Capex': 'https://www.screener.in/screens/new/?query=Infrastructure',
+        'Consumer Discretionary': 'https://www.screener.in/screens/new/?query=Consumer',
+        'Real Estate':             'https://www.screener.in/screens/new/?query=Real+Estate',
+        'Auto & Auto Ancillaries': 'https://www.screener.in/screens/new/?query=Auto',
+        'IT & Technology':         'https://www.screener.in/screens/new/?query=IT',
+        'Pharmaceuticals':         'https://www.screener.in/screens/new/?query=Pharma',
+        'Chemicals':               'https://www.screener.in/screens/new/?query=Chemicals',
+        'Telecom':                 'https://www.screener.in/screens/new/?query=Telecom',
+        'FMCG & Staples':          'https://www.screener.in/screens/new/?query=FMCG',
+        'Utilities':               'https://www.screener.in/screens/new/?query=Power',
+        'Gold & Precious Metals':  'https://www.screener.in/screens/new/?query=Gold',
       };
       const url = SCREENER_MAP[sectorName] || 'https://www.screener.in/';
       let actionText = '';
