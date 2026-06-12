@@ -3744,6 +3744,50 @@
       line-height: 1.6;
       font-family: var(--font-mono);
     }
+
+    /* ── Auto-refresh ── */
+    .live-update-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--green);
+      color: #0a1018;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 6px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .live-update-badge.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .auto-refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      letter-spacing: 0.06em;
+      margin-left: 8px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot-anim 2s infinite;
+    }
+    @keyframes pulse-dot-anim {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
   </style>
 </head>
 
@@ -4041,7 +4085,7 @@
             style="background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);cursor:pointer;letter-spacing:0.04em;padding:0;transition:color 0.2s;"
             onmouseover="this.style.color='var(--text-2)'" onmouseout="this.style.color='var(--text-3)'">How to use
             Sentinel ↗</button>
-          <span class="section-meta" id="lastRunMeta">—</span>
+          <span class="section-meta" id="lastRunMeta">—</span><span class="auto-refresh-indicator" id="autoRefreshIndicator"><span class="pulse-dot"></span>Auto-updating</span>
         </div>
       </div>
 
@@ -4762,6 +4806,7 @@
         const hero = document.getElementById('regimeHero');
         if (history.length > 0) {
           renderRunResult(history[0], true);
+          _lastRunTimestamp = history[0].run_at;
           if (history[0].sector_heatmap) renderHeatmap(history[0].sector_heatmap);
           if (history[0].regime) loadBacktest(history[0].regime);
           onboarding.classList.remove('visible');
@@ -7015,6 +7060,59 @@
       if (btn) btn.classList.remove('open');
       document.body.style.overflow = '';
     }
+    /* ── Auto-refresh polling ── */
+    let _lastRunTimestamp = null;
+
+    async function fetchLatestRunRow() {
+      if (!_session) return null;
+      try {
+        const { data, error } = await sb
+          .from('runs')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap')
+          .eq('user_id', _session.user.id)
+          .order('run_at', { ascending: false })
+          .limit(1);
+        if (error || !data || !data.length) return null;
+        return data[0];
+      } catch (e) {
+        console.error('[AutoRefresh] Latest run fetch failed:', e);
+        return null;
+      }
+    }
+
+    async function pollForNewRun() {
+      console.log('[AutoRefresh] Polling for new run...');
+      const latest = await fetchLatestRunRow();
+      if (!latest) return;
+      const latestTs = latest.run_at;
+      if (latestTs === _lastRunTimestamp) return;
+      _lastRunTimestamp = latestTs;
+      showLiveUpdateBadge();
+      renderRunResult(latest, true);
+      if (latest.sector_heatmap) renderHeatmap(latest.sector_heatmap);
+      if (latest.regime) loadBacktest(latest.regime);
+      const freshArr = [latest, ..._lastHistory.filter(r => r.id !== latest.id)].slice(0, 100);
+      _lastHistory = freshArr;
+      renderHistoryTable(freshArr);
+      renderConfSparkline(freshArr.slice(0, 7).reverse().map(r => (r.confidence || 0) * 100));
+      renderConfArrow(freshArr);
+    }
+
+    function showLiveUpdateBadge() {
+      let badge = document.getElementById('liveUpdateBadge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'liveUpdateBadge';
+        badge.className = 'live-update-badge';
+        document.body.appendChild(badge);
+      }
+      badge.textContent = '● New data loaded';
+      badge.classList.add('show');
+      setTimeout(() => badge.classList.remove('show'), 3000);
+    }
+
+    setInterval(pollForNewRun, 90000);
+
     document.addEventListener('DOMContentLoaded', () => {
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
