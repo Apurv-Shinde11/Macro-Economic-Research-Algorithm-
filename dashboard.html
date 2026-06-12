@@ -3652,6 +3652,78 @@
         gap: 20px;
       }
     }
+
+    /* ── Sector Dynamic Note ── */
+    .sector-dynamic-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 10px;
+    }
+    .sector-dynamic-action {
+      color: var(--text-3);
+      line-height: 1.4;
+      flex: 1;
+    }
+    .sector-screener-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sector-screener-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ── Archive Summary Bar ── */
+    .archive-summary-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      background: var(--bg-3);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .archive-summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .archive-summary-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .archive-summary-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 768px) {
+      .archive-summary-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .archive-summary-item:nth-child(5) {
+        grid-column: span 2;
+      }
+    }
   </style>
 </head>
 
@@ -4410,6 +4482,29 @@
         </div>
         <div class="archive-controls-right">
           <button class="archive-reset-btn" id="archiveResetBtn" onclick="resetArchiveFilters()">Reset</button>
+        </div>
+      </div>
+
+      <div class="archive-summary-bar" id="archiveSummaryBar">
+        <div class="archive-summary-item">
+          <div class="archive-summary-label">SHOWING</div>
+          <div class="archive-summary-value" id="archiveSummaryCount">—</div>
+        </div>
+        <div class="archive-summary-item">
+          <div class="archive-summary-label">DOMINANT REGIME</div>
+          <div class="archive-summary-value" id="archiveSummaryRegime">—</div>
+        </div>
+        <div class="archive-summary-item">
+          <div class="archive-summary-label">AVG CONFIDENCE</div>
+          <div class="archive-summary-value" id="archiveSummaryConf">—</div>
+        </div>
+        <div class="archive-summary-item">
+          <div class="archive-summary-label">CONFIDENCE RANGE</div>
+          <div class="archive-summary-value" id="archiveSummaryRange">—</div>
+        </div>
+        <div class="archive-summary-item">
+          <div class="archive-summary-label">TIMEFRAME</div>
+          <div class="archive-summary-value" id="archiveSummaryTimeframe">—</div>
         </div>
       </div>
 
@@ -5493,6 +5588,7 @@
 
       if (!shown.length) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:24px;">No matching runs.</td></tr>`;
+        renderArchiveSummary(shown);
         return;
       }
 
@@ -5577,6 +5673,63 @@
           </td>
         </tr>`;
       }).join('');
+      renderArchiveSummary(shown);
+    }
+
+    function renderArchiveSummary(rows) {
+      const summaryEl = document.getElementById('archiveSummaryBar');
+      if (!summaryEl) return;
+
+      if (!rows || rows.length === 0) {
+        ['archiveSummaryCount', 'archiveSummaryRegime', 'archiveSummaryConf',
+         'archiveSummaryRange', 'archiveSummaryTimeframe'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '—';
+        });
+        return;
+      }
+
+      const countEl = document.getElementById('archiveSummaryCount');
+      if (countEl) {
+        countEl.textContent = `${rows.length} run${rows.length !== 1 ? 's' : ''}`;
+      }
+
+      const regimeCounts = {};
+      rows.forEach(r => {
+        const reg = r.regime || 'UNKNOWN';
+        regimeCounts[reg] = (regimeCounts[reg] || 0) + 1;
+      });
+      const dominant = Object.entries(regimeCounts).sort((a, b) => b[1] - a[1])[0];
+      const regimeEl = document.getElementById('archiveSummaryRegime');
+      if (regimeEl && dominant) {
+        const pct = Math.round((dominant[1] / rows.length) * 100);
+        regimeEl.textContent = `${dominant[0].replace(/_/g, ' ')} (${pct}%)`;
+      }
+
+      const confidences = rows.map(r => Math.round((parseFloat(r.confidence) || 0) * 100));
+      const avgConf = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+      const avgEl = document.getElementById('archiveSummaryConf');
+      if (avgEl) {
+        avgEl.textContent = avgConf.toFixed(1) + '%';
+      }
+
+      const minConf = Math.min(...confidences);
+      const maxConf = Math.max(...confidences);
+      const rangeEl = document.getElementById('archiveSummaryRange');
+      if (rangeEl) {
+        rangeEl.textContent = `${minConf.toFixed(0)}% – ${maxConf.toFixed(0)}%`;
+      }
+
+      const dates = rows.map(r => r.run_at || r.date || r.created_at).filter(Boolean).sort();
+      const timeframeEl = document.getElementById('archiveSummaryTimeframe');
+      if (timeframeEl && dates.length > 0) {
+        const earliest = new Date(dates[0]);
+        const latest   = new Date(dates[dates.length - 1]);
+        const fmt = d => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        timeframeEl.textContent = dates.length === 1
+          ? fmt(earliest)
+          : `${fmt(earliest)} – ${fmt(latest)}`;
+      }
     }
 
     function toggleArchiveRow(index) {
@@ -6746,6 +6899,34 @@
       }
     }
 
+    /* ── SECTOR SCREENER NOTE HELPER ── */
+    function getSectorScreenerNote(sectorName, classification) {
+      const SCREENER_MAP = {
+        'Banking & Financials':    'https://www.screener.in/screens/71920/banking-financials/',
+        'Infrastructure & Capex': 'https://www.screener.in/screens/71921/infrastructure/',
+        'Consumer Discretionary': 'https://www.screener.in/screens/71922/consumer-discretionary/',
+        'Real Estate':             'https://www.screener.in/screens/71923/real-estate/',
+        'Auto & Auto Ancillaries': 'https://www.screener.in/screens/71924/auto/',
+        'IT & Technology':         'https://www.screener.in/screens/71925/it-services/',
+        'Pharmaceuticals':         'https://www.screener.in/screens/71926/pharma/',
+        'Chemicals':               'https://www.screener.in/screens/71927/chemicals/',
+        'Telecom':                 'https://www.screener.in/screens/71928/telecom/',
+        'FMCG & Staples':          'https://www.screener.in/screens/71929/fmcg/',
+        'Utilities':               'https://www.screener.in/screens/71930/utilities/',
+        'Gold & Precious Metals':  'https://www.screener.in/screens/71931/gold/',
+      };
+      const url = SCREENER_MAP[sectorName] || 'https://www.screener.in/';
+      let actionText = '';
+      if (classification === 'favour') {
+        actionText = 'Screen for quality names in this sector — consider for new SIP allocations or top-ups';
+      } else if (classification === 'neutral') {
+        actionText = 'No urgent action — review existing holdings if rebalancing';
+      } else if (classification === 'avoid') {
+        actionText = 'Avoid fresh allocations — review existing holdings for trimming opportunities';
+      }
+      return { text: actionText, url: url };
+    }
+
     /* ── SECTOR HEATMAP ── */
     function renderHeatmap(heatmap) {
       const col = document.getElementById('heatmapColumns');
@@ -6768,7 +6949,8 @@
         (heatmap[s.key] || []).map(sector => {
           const name = typeof sector === 'string' ? sector : sector.sector;
           const reason = typeof sector === 'string' ? null : sector.reason;
-          return `<div class="heatmap-sector"><div class="heatmap-dot"></div><div class="heatmap-sector-content"><span class="heatmap-sector-name">${name}</span>${reason ? `<span class="heatmap-sector-reason">${reason}</span>` : ''}</div></div>`;
+          const note = getSectorScreenerNote(name, s.cls);
+          return `<div class="heatmap-sector"><div class="heatmap-dot"></div><div class="heatmap-sector-content"><span class="heatmap-sector-name">${name}</span>${reason ? `<span class="heatmap-sector-reason">${reason}</span>` : ''}<div class="sector-dynamic-note"><span class="sector-dynamic-action">${note.text}</span><a href="${note.url}" target="_blank" rel="noopener" class="sector-screener-link">Find stocks →</a></div></div></div>`;
         }).join('') +
         `</div>`
       ).join('');
