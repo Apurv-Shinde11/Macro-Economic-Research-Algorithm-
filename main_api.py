@@ -1537,6 +1537,7 @@ _pe_cache: dict = {"value": None, "fetched_at": None}
 
 
 def _fetch_nifty_pe() -> float | None:
+    print("[PE] _fetch_nifty_pe() called", flush=True)
     from datetime import datetime, timedelta, date
     import pandas as pd
     from io import StringIO
