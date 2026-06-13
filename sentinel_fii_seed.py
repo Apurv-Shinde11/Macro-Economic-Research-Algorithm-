@@ -74,6 +74,15 @@ def fetch_nse_fii_month(from_date, to_date):
         data = resp.json()
         rows = []
 
+        def _signal(val, threshold=500):
+            if val is None:
+                return None
+            if val > threshold:
+                return "BUYING"
+            if val < -threshold:
+                return "SELLING"
+            return "NEUTRAL"
+
         for item in data:
             try:
                 # Parse date
@@ -98,15 +107,6 @@ def fetch_nse_fii_month(from_date, to_date):
                         item.get("netDII", 0)
                     )).replace(",", "")
                 )
-
-                def _signal(val, threshold=500):
-                    if val is None:
-                        return None
-                    if val > threshold:
-                        return "BUYING"
-                    if val < -threshold:
-                        return "SELLING"
-                    return "NEUTRAL"
 
                 rows.append({
                     "trade_date":      date_iso,
