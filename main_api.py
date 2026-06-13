@@ -12,6 +12,7 @@ import uuid
 import time
 import asyncio
 import traceback
+import requests
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Any
 from contextlib import asynccontextmanager
@@ -1536,11 +1537,9 @@ _pe_cache: dict = {"value": None, "fetched_at": None}
 
 
 def _fetch_nifty_pe() -> float | None:
-    """
-    Fetch Nifty 50 PE ratio from NSE daily reports via jugaad-data session.
-    Cached for 24 hours. Returns float PE ratio or None on failure.
-    """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, date
+    import pandas as pd
+    from io import StringIO
 
     if (
         _pe_cache["value"] is not None
@@ -1549,47 +1548,40 @@ def _fetch_nifty_pe() -> float | None:
     ):
         return _pe_cache["value"]
 
-    try:
-        import pandas as pd
-        from io import StringIO
-        from datetime import date
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/csv,*/*",
+    }
 
-        dr     = NSEDailyReports()
-        today  = date.today()
-        ddmmyy = today.strftime("%d%m%y")
-        url    = (
+    today = date.today()
+    for days_back in range(0, 5):
+        d = today - timedelta(days=days_back)
+        ddmmyy = d.strftime("%d%m%y")
+        url = (
             "https://nsearchives.nseindia.com"
             f"/content/equities/peDetail/PE_{ddmmyy}.csv"
         )
-        resp = dr.s.get(url, timeout=10)
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200 and len(resp.text) > 50:
+                df = pd.read_csv(StringIO(resp.text))
+                pe_col = "SYMBOL P/E" if "SYMBOL P/E" in df.columns else df.columns[1]
+                pe_vals = df[pe_col].dropna()
+                pe_vals = pe_vals[(pe_vals > 0) & (pe_vals < 200)]
+                if len(pe_vals) > 0:
+                    market_pe = round(float(pe_vals.median()), 2)
+                    _pe_cache["value"] = market_pe
+                    _pe_cache["fetched_at"] = datetime.utcnow()
+                    print(f"[PE] Nifty median PE: {market_pe} (date={ddmmyy})", flush=True)
+                    return market_pe
+        except Exception as e:
+            print(f"[PE] fetch failed for {ddmmyy}: {e}", flush=True)
+            continue
 
-        if resp.status_code != 200:
-            from datetime import timedelta as _td
-            prev   = today - _td(days=1)
-            ddmmyy = prev.strftime("%d%m%y")
-            url    = (
-                "https://nsearchives.nseindia.com"
-                f"/content/equities/peDetail/PE_{ddmmyy}.csv"
-            )
-            resp = dr.s.get(url, timeout=10)
-
-        if resp.status_code == 200:
-            df = pd.read_csv(StringIO(resp.text))
-            pe_col = (
-                "SYMBOL P/E"
-                if "SYMBOL P/E" in df.columns
-                else df.columns[1]
-            )
-            pe_vals = df[pe_col].dropna()
-            pe_vals = pe_vals[(pe_vals > 0) & (pe_vals < 200)]
-            market_pe = round(float(pe_vals.median()), 2)
-            _pe_cache["value"]      = market_pe
-            _pe_cache["fetched_at"] = datetime.utcnow()
-            print(f"[PE] Nifty median PE: {market_pe}", flush=True)
-            return market_pe
-
-    except Exception as e:
-        print(f"[PE] fetch failed: {e}", flush=True)
+    # All attempts failed — return last known value if any (stale but better than None)
+    if _pe_cache["value"] is not None:
+        print(f"[PE] Using stale cached PE: {_pe_cache['value']}", flush=True)
+        return _pe_cache["value"]
 
     return None
 
