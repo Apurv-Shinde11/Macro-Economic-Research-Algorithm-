@@ -85,8 +85,7 @@
       box-shadow: 0 1px 0 rgba(79,131,255,0.10), 0 8px 32px rgba(0,0,0,0.08);
     }
     html.light .nav-logo {
-      background: linear-gradient(135deg, #0d1120 30%, var(--blue) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      color: var(--text);
     }
     html.light .btn-outline { color: var(--text-2); border-color: rgba(79,131,255,0.28); }
     html.light .btn-outline:hover { color: var(--blue); border-color: var(--blue); background: rgba(37,99,235,0.06); }
@@ -110,7 +109,7 @@
     html.light .t-action-item { background: rgba(37,99,235,0.04); }
     html.light .t-action-item:hover { background: rgba(37,99,235,0.08); border-color: var(--border); }
     html.light .t-pill { background: rgba(37,99,235,0.06); }
-    html.light .feature-detail { background: rgba(244,246,252,0.8); }
+    html.light .feature-detail { background: rgba(37,99,235,0.06); border-color: rgba(37,99,235,0.14); }
     html.light .backtest-note { background: linear-gradient(135deg, rgba(255,255,255,0.90) 0%, rgba(37,99,235,0.03) 100%); }
     html.light .cta-badge { background: rgba(180,83,9,0.07); }
     html.light footer { background: rgba(234,240,251,0.92); }
@@ -208,12 +207,9 @@
       font-family: var(--font-mono);
       font-size: 15px; font-weight: 600;
       letter-spacing: 0.14em;
-      background: linear-gradient(135deg, #fff 30%, var(--blue-light) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text);
       text-decoration: none;
     }
-    .nav-logo .accent { -webkit-text-fill-color: var(--blue); }
     .nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
     .nav-links a {
       font-size: 13px; color: var(--text-2); text-decoration: none;
@@ -232,7 +228,7 @@
     .btn-primary {
       font-family: var(--font-sans); font-size: 13px; font-weight: 600;
       letter-spacing: 0.02em; color: #fff;
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      background: var(--blue);
       border: none; padding: 10px 22px; border-radius: 8px;
       cursor: pointer; text-decoration: none;
       transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
@@ -295,15 +291,7 @@
     }
     .hero-h1 em {
       font-style: italic;
-      background: linear-gradient(90deg, var(--blue) 0%, var(--violet) 40%, var(--cyan) 80%, var(--blue) 100%);
-      background-size: 300% auto;
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: shimmerGrad 5s linear infinite;
-    }
-    @keyframes shimmerGrad {
-      0% { background-position: 0% center; }
-      100% { background-position: 300% center; }
+      color: var(--blue-light);
     }
 
     .hero-sub {
@@ -318,8 +306,6 @@
     .proof-stat .num {
       font-family: var(--font-mono); font-size: 24px; font-weight: 600;
       color: var(--text);
-      background: linear-gradient(135deg, #fff 0%, var(--blue-light) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .proof-stat .label { font-size: 11px; color: var(--text-3); letter-spacing: 0.06em; margin-top: 4px; line-height: 1.4; }
     .proof-divider { width: 1px; background: var(--border); }
@@ -327,7 +313,7 @@
     /* ══ TERMINAL ══ */
     .terminal-wrap {
       position: relative;
-      animation: floatY 7s ease-in-out infinite;
+      animation: floatY 7s ease-in-out 3;
     }
     @keyframes floatY {
       0%,100% { transform: translateY(0); }
@@ -410,9 +396,11 @@
       border-radius: 2px; overflow: hidden;
     }
     .t-conf-bar {
-      height: 100%; border-radius: 2px;
-      background: linear-gradient(90deg, var(--blue), var(--indigo));
-      transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
+      height: 100%; width: 100%; border-radius: 2px;
+      background: var(--blue);
+      transform-origin: left;
+      transform: scaleX(0.72);
+      transition: transform 0.9s cubic-bezier(0.4,0,0.2,1);
       box-shadow: 0 0 8px rgba(79,131,255,0.5);
     }
     .t-conf-pct {
@@ -488,8 +476,7 @@
     }
     .section-h2 em {
       font-style: italic;
-      background: linear-gradient(135deg, var(--blue-light), var(--violet));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      color: var(--blue-light);
     }
     .section-sub {
       font-size: 17px; color: var(--text-2); line-height: 1.75;
@@ -521,11 +508,6 @@
     }
     .problem-card:hover { background: rgba(13,20,40,0.92); }
     .problem-card:hover::before { transform: scaleX(1); }
-    .problem-num {
-      font-family: var(--font-serif); font-size: 60px; font-weight: 600;
-      line-height: 1; color: var(--text-3); margin-bottom: 14px;
-    }
-    .problem-num span { color: var(--text); }
     .problem-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
     .problem-desc { font-size: 13px; color: var(--text-2); line-height: 1.7; }
 
@@ -540,12 +522,6 @@
       position: relative; transition: background 0.3s;
     }
     .how-card:hover { background: rgba(8,13,28,0.92); }
-    .how-card::after {
-      content: attr(data-step);
-      position: absolute; top: 28px; right: 28px;
-      font-family: var(--font-mono); font-size: 11px;
-      color: var(--text-3); letter-spacing: 0.1em;
-    }
     .how-icon {
       width: 44px; height: 44px; border-radius: 10px;
       background: rgba(79,131,255,0.1);
@@ -572,6 +548,20 @@
       background: transparent;
       border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
+    .features-primary {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 1px; background: var(--border);
+      border-radius: 14px 14px 0 0; overflow: hidden;
+      margin-bottom: 1px;
+    }
+    .features-secondary {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+      gap: 1px; background: var(--border);
+      border-radius: 0 0 14px 14px; overflow: hidden;
+    }
+    .features-secondary .feature-card { padding: 28px 28px; }
+    .features-secondary .feature-title { font-size: 18px; }
+    .features-secondary .feature-desc { font-size: 12px; }
     .features-grid {
       display: grid; grid-template-columns: repeat(2,1fr);
       gap: 1px; background: var(--border);
@@ -616,8 +606,9 @@
     .feature-detail {
       font-family: var(--font-mono); font-size: 11px; color: var(--text-3);
       padding: 12px 16px;
-      background: rgba(4,6,15,0.5);
-      border-left: 2px solid var(--blue); border-radius: 0 6px 6px 0;
+      background: rgba(79,131,255,0.07);
+      border: 1px solid rgba(79,131,255,0.15);
+      border-radius: 6px;
       line-height: 1.7;
     }
 
@@ -659,9 +650,14 @@
     }
     .regime-accuracy-row:last-of-type { border-bottom: 1px solid var(--border); }
     .ra-name { color: var(--text-2); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; }
-    .ra-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--green); }
-    .ra-bar-wrap { flex: 1; height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 16px; overflow: hidden; }
-    .ra-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .ra-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; min-width: 44px; text-align: right; }
+    .ra-n { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); min-width: 46px; text-align: right; letter-spacing: 0.04em; }
+    .ra-bar-wrap { flex: 1; height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; overflow: hidden; }
+    .ra-bar { height: 100%; border-radius: 2px; }
+    .ra-good { color: var(--green); }
+    .ra-mid  { color: var(--amber); }
+    .ra-low  { color: var(--red); }
+    .ra-none { color: var(--text-3); font-weight: 400; font-size: 11px; }
 
     /* ══ TICKER BAND ══ */
     .ticker-band {
@@ -711,8 +707,7 @@
     }
     .cta-h2 em {
       font-style: italic;
-      background: linear-gradient(135deg, var(--blue-light), var(--violet));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      color: var(--blue-light);
     }
     .cta-sub {
       font-size: 17px; color: var(--text-2); line-height: 1.75; margin-bottom: 44px;
@@ -723,7 +718,7 @@
     .cta-input {
       flex: 1; background: var(--bg-2); border: 1px solid var(--border-2);
       border-radius: 8px; padding: 13px 18px;
-      font-family: var(--font-mono); font-size: 13px; color: var(--text); outline: none;
+      font-family: var(--font-sans); font-size: 14px; color: var(--text); outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .cta-input::placeholder { color: var(--text-3); }
@@ -745,7 +740,7 @@
     }
     .footer-left { display: flex; align-items: center; gap: 24px; }
     .footer-logo { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.22em; color: var(--text-3); font-weight: 600; }
-    .footer-tagline { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); letter-spacing: 0.08em; opacity: 0.6; }
+    .footer-tagline { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); letter-spacing: 0.08em; }
     .footer-disclaimer { font-size: 11px; color: var(--text-3); max-width: 500px; line-height: 1.6; text-align: right; }
 
     /* ══ THEME TOGGLE ══ */
@@ -889,7 +884,9 @@
       #hero { flex-direction: column; padding: 100px 24px 60px; gap: 52px; }
       .hero-right { max-width: 100%; width: 100%; }
       .section { padding: 72px 24px; }
-      .problem-grid, .how-grid, .features-grid { grid-template-columns: 1fr; }
+      .problem-grid, .how-grid, .features-grid, .features-primary, .features-secondary { grid-template-columns: 1fr; }
+      .features-primary { border-radius: 14px 14px 0 0; }
+      .features-secondary { border-radius: 0 0 14px 14px; }
       .backtest-wrap { grid-template-columns: 1fr; }
       .backtest-stats { grid-template-columns: 1fr 1fr; }
       footer { flex-direction: column; gap: 18px; }
@@ -956,6 +953,7 @@
       <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel ↗</a></li>
       <li><a href="login.html" onclick="closeMobileMenu()">Sign In</a></li>
     </ul>
+    <a class="btn-primary" href="login.html" onclick="closeMobileMenu()" style="display:block;text-align:center;padding:16px;margin-top:24px;font-size:15px;">Access Sentinel →</a>
   </div>
 
   <!-- ════ TICKER ════ -->
@@ -1017,7 +1015,7 @@
             <div class="t-label">Current Regime</div>
             <div class="t-regime" id="t-regime">Stable Growth</div>
             <div class="t-conf-row">
-              <div class="t-conf-bar-wrap"><div class="t-conf-bar" id="t-bar" style="width:72%"></div></div>
+              <div class="t-conf-bar-wrap"><div class="t-conf-bar" id="t-bar" style="transform:scaleX(0.72)"></div></div>
               <div class="t-conf-pct" id="t-pct">72%</div>
             </div>
             <div class="t-grid">
@@ -1061,22 +1059,18 @@
 
   <!-- ════ WHAT WE DELIVER ════ -->
   <section id="problem" class="section">
-    <div class="section-label reveal">What You Get</div>
-    <h2 class="section-h2 reveal">Three things Sentinel tells you every morning.<br><em>Before your client calls.</em></h2>
+    <h2 class="section-h2 reveal">Three things Sentinel tells you every morning,<br><em>before your client calls.</em></h2>
     <p class="section-sub reveal">Sentinel watches the economy for you — so that when a client asks 'is it a good time to invest?', you have a clear, data-backed answer ready.</p>
     <div class="problem-grid reveal">
       <div class="problem-card">
-        <div class="problem-num"><span>01</span></div>
         <div class="problem-title">Is now a good time to invest?</div>
         <div class="problem-desc">Every day, Sentinel gives you a simple read on the Indian economy — Good time to invest more, Hold steady, or Play it safe. You see how confident the signal is and what changed since yesterday. No jargon. One clear answer.</div>
       </div>
       <div class="problem-card">
-        <div class="problem-num"><span>02</span></div>
         <div class="problem-title">Where should the money go?</div>
         <div class="problem-desc">Based on today's economic conditions, Sentinel tells you which sectors are favoured right now — Banking, Infrastructure, Consumer stocks — and which to avoid. It also tells you whether to lean toward equity, fixed deposits, gold, or a mix. Updated every time conditions change.</div>
       </div>
       <div class="problem-card">
-        <div class="problem-num"><span>03</span></div>
         <div class="problem-title">What is happening globally and in private markets?</div>
         <div class="problem-desc">A free snapshot of 50 countries showing whether each economy is growing or slowing — useful context before any investment conversation. For advisors working with clients in private equity or alternative investments, a separate section explains the current deal environment and expected returns by sector.</div>
       </div>
@@ -1085,13 +1079,12 @@
 
   <!-- ════ HOW IT WORKS ════ -->
   <section id="how" class="section">
-    <div class="section-label reveal">How It Works</div>
-    <h2 class="section-h2 reveal">Three steps. One clear answer.<br><em>Every single morning.</em></h2>
+    <h2 class="section-h2 reveal">Here is what Sentinel does each morning,<br><em>and what you get from it.</em></h2>
     <p class="section-sub reveal">You do not need to understand how Sentinel works. You just need to know what it says. But if you are curious — here is what happens behind the scenes.</p>
     <div class="how-grid reveal">
-      <div class="how-card" data-step="01">
-        <div class="how-icon">📡</div>
-        <div class="how-title">Step 1 — Sentinel reads the market</div>
+      <div class="how-card">
+        <div class="how-icon" aria-hidden="true">📡</div>
+        <div class="how-title">Step 1: Sentinel reads the market</div>
         <div class="how-desc">Every morning, Sentinel automatically checks stock market signals, foreign investor activity, oil prices, interest rate direction, and economic data from across India and the world. No manual work needed on your end.</div>
         <div class="how-tags">
           <span class="how-tag">NSE Live</span><span class="how-tag">RBI DBIE</span>
@@ -1100,9 +1093,9 @@
           <span class="how-tag">FRED Policy Rates</span>
         </div>
       </div>
-      <div class="how-card" data-step="02">
-        <div class="how-icon">🧠</div>
-        <div class="how-title">Step 2 — It classifies the environment</div>
+      <div class="how-card">
+        <div class="how-icon" aria-hidden="true">🧠</div>
+        <div class="how-title">Step 2: It classifies the environment</div>
         <div class="how-desc">Sentinel compares today's readings against historical patterns and places India's economy into one of eight named categories — from a strong growth phase to a cautious, risk-off environment. Think of it like a weather forecast, but for the economy.</div>
         <div class="how-tags">
           <span class="how-tag">8 Regimes</span><span class="how-tag">Live Signals</span>
@@ -1110,9 +1103,9 @@
           <span class="how-tag">Challenger</span>
         </div>
       </div>
-      <div class="how-card" data-step="03">
-        <div class="how-icon">🎯</div>
-        <div class="how-title">Step 3 — You get a clear answer</div>
+      <div class="how-card">
+        <div class="how-icon" aria-hidden="true">🎯</div>
+        <div class="how-title">Step 3: You get a clear answer</div>
         <div class="how-desc">The result: a plain-language daily briefing that tells you whether to add more investments, hold steady, or reduce risk. Includes which sectors to favour, what to do with equity, debt, gold, and currency, and what to watch next.</div>
         <div class="how-tags">
           <span class="how-tag">Playbook</span><span class="how-tag">Sector Heatmap</span>
@@ -1125,56 +1118,57 @@
 
   <!-- ════ FEATURES ════ -->
   <section id="features" class="section">
-    <div class="section-label reveal">What Sentinel Covers</div>
-    <h2 class="section-h2 reveal">Everything you need to give confident<br><em>investment advice every day</em></h2>
+    <h2 class="section-h2 reveal">Eight capabilities that cover<br><em>the full picture, every day.</em></h2>
     <p class="section-sub reveal">Sentinel covers the full picture — from daily market conditions to global context to private market signals — so you always have the right answer ready for your clients.</p>
-    <div class="features-grid reveal">
+    <div class="features-primary reveal">
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">📊</div><span class="feature-badge badge-tier1">Core Engine</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📊</div><span class="feature-badge badge-tier1">Core Engine</span></div>
         <div class="feature-title">Daily Market Environment Read</div>
         <div class="feature-desc">Every morning Sentinel classifies India's economic environment into one of eight clearly named categories. You see not just the category but how confident the signal is, whether it is building or weakening, and what the alternative scenario looks like. Think of it as a daily health check on the economy.</div>
         <div class="feature-detail">Today's Read · Confidence Level · Trend Direction · Alternative Scenario · What Changed Since Yesterday</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">⚡</div><span class="feature-badge badge-tier1">Intelligence</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">⚡</div><span class="feature-badge badge-tier1">Intelligence</span></div>
         <div class="feature-title">Early Warning Before Things Change</div>
         <div class="feature-desc">Sentinel does not just tell you what is happening now — it flags when conditions are shifting before the news headlines catch up. When multiple stress signals align, you get an early warning so you can adjust client portfolios before the move happens, not after.</div>
-        <div class="feature-detail">Early warning signals · Stress detection · Deployment windows · Forward-looking indicators — all before lagging data confirms</div>
+        <div class="feature-detail">Early warning signals · Stress detection · Deployment windows · Forward-looking indicators, confirmed before lagging data catches up</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">📈</div><span class="feature-badge badge-tier1">Market Data</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📈</div><span class="feature-badge badge-tier1">Market Data</span></div>
         <div class="feature-title">Foreign and Domestic Investor Flows</div>
         <div class="feature-desc">Sentinel tracks what large foreign investors and domestic institutions are doing with their money every day. When foreign investors are selling heavily, that is a warning signal. When domestic institutions are buying to absorb the selling, that is a stabilising signal. Both matter for your clients' portfolios.</div>
         <div class="feature-detail">Daily flow data · Multi-week trends · Buying vs selling signals · Direct impact on portfolio positioning</div>
       </div>
+    </div>
+    <div class="features-secondary reveal">
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">🌍</div><span class="feature-badge badge-tier2">Global Macro</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">🌍</div><span class="feature-badge badge-tier2">Global Macro</span></div>
         <div class="feature-title">Sector-by-Sector Positioning</div>
-        <div class="feature-desc">Not all sectors move together. Sentinel tells you which sectors to increase exposure to right now — Banking, Infrastructure, Consumer stocks — and which to reduce. Each recommendation comes with a plain-language reason, not just a label.</div>
-        <div class="feature-detail">Banking · Infrastructure · IT · Pharma · FMCG · Real Estate — all with reasons and current positioning signal</div>
+        <div class="feature-desc">Not all sectors move together. Sentinel tells you which sectors to increase exposure to right now and which to reduce. Each recommendation comes with a plain-language reason.</div>
+        <div class="feature-detail">Banking · Infrastructure · IT · Pharma · FMCG · Real Estate, each with positioning signal and reason</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">💼</div><span class="feature-badge badge-tier2">PE Intelligence</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">💼</div><span class="feature-badge badge-tier2">PE Intelligence</span></div>
         <div class="feature-title">Private Equity Intelligence Layer</div>
-        <div class="feature-desc">The macro regime translated into PE deal environment, sector cycle positioning, cost of capital, and IRR implications — all updating automatically as the regime shifts. Deal flow timestamps, regime-driven sector signals, and dynamic cost of capital from live repo rate.</div>
-        <div class="feature-detail">Deal environment · Sector cycles · Cost of capital · IRR context · Live regime strip · ⚡ Regime-driven badges</div>
+        <div class="feature-desc">The macro regime translated into PE deal environment, sector cycle positioning, cost of capital, and IRR implications, all updating automatically as the regime shifts.</div>
+        <div class="feature-detail">Deal environment · Sector cycles · Cost of capital · IRR context · Live regime strip · Regime-driven badges</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">📊</div><span class="feature-badge badge-tier2">India Activity</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📊</div><span class="feature-badge badge-tier2">India Activity</span></div>
         <div class="feature-title">India Activity Signals</div>
-        <div class="feature-desc">GST collections, auto sales, and bank credit growth as real economy confirmation signals alongside the market-based regime classification. Composite activity score — STRONG / MODERATE / WEAK — available on every dashboard load.</div>
-        <div class="feature-detail">GST · Auto Sales · Bank Credit · Composite score · April 2026 data · Monthly updated</div>
+        <div class="feature-desc">GST collections, auto sales, and bank credit growth as real economy confirmation alongside the market-based regime read. Composite score updated monthly.</div>
+        <div class="feature-detail">GST · Auto Sales · Bank Credit · Composite score — STRONG / MODERATE / WEAK</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">📄</div><span class="feature-badge badge-tier2">Distribution</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📄</div><span class="feature-badge badge-tier2">Distribution</span></div>
         <div class="feature-title">Intelligent Push Alerts</div>
-        <div class="feature-desc">WhatsApp and email alerts that fire only when something meaningful changes — regime shift at 60%+ confidence, challenger breach, VIX spike, sustained FII outflow. Duplicate prevention ensures you are never spammed.</div>
-        <div class="feature-detail">Regime shift · Confidence breach · VIX > 22 · FII outflow streak · WhatsApp + email · Supabase dedup</div>
+        <div class="feature-desc">WhatsApp and email alerts that fire only when something meaningful changes. Duplicate prevention ensures you are never spammed with repeat signals.</div>
+        <div class="feature-detail">Regime shift · Confidence breach · VIX > 22 · FII outflow streak · WhatsApp + email · Dedup built in</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon-row"><div class="feature-icon">🗂️</div><span class="feature-badge badge-tier2">Archive</span></div>
+        <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">🗂️</div><span class="feature-badge badge-tier2">Archive</span></div>
         <div class="feature-title">Historical Regime Archive</div>
-        <div class="feature-desc">Every run stored with regime, confidence, conviction, equity bias, implied action. Outcome tracking as 30-day windows close. Backtest performance by regime — hit rates, average returns, worst/best across Nifty, Bank Nifty, Midcap, IT, and Infra indices.</div>
+        <div class="feature-desc">Every run stored with regime, confidence, conviction, and equity bias. Backtest performance by regime across five indices, with outcome tracking as 30-day windows close.</div>
         <div class="feature-detail">Full run history · Outcome tracking · 5-index backtest · Per-regime performance · Confidence trend sparkline</div>
       </div>
     </div>
@@ -1182,13 +1176,13 @@
 
   <!-- ════ PRICING ════ -->
   <section id="pricing" class="section">
-    <div class="section-label reveal">Simple, Transparent Pricing</div>
-    <h2 class="section-h2 reveal">One subscription.<br><em>Daily clarity for your entire practice.</em></h2>
+    <h2 class="section-h2 reveal">One subscription covers your<br><em>entire advisory practice.</em></h2>
     <p class="section-sub reveal">No hidden fees. No per-client charges. One monthly subscription covers your entire advisory practice.</p>
     <div class="pricing-grid reveal">
       <div class="pricing-card">
         <div class="pricing-label">Individual</div>
-        <div class="pricing-price">₹2,999 – ₹7,999<span style="font-size:16px;font-family:var(--font-sans);font-weight:400;color:var(--text-2);"> / month</span></div>
+        <div class="pricing-price">₹2,999<span style="font-size:16px;font-family:var(--font-sans);font-weight:400;color:var(--text-2);"> / month</span></div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);letter-spacing:0.04em;margin-bottom:12px;">Billed annually · ₹7,999/mo month-to-month</div>
         <div class="pricing-tagline">For individual advisors who want a daily market read to back their investment conversations.</div>
         <div class="pricing-divider"></div>
         <ul class="pricing-features">
@@ -1235,8 +1229,7 @@
 
   <!-- ════ BACKTEST ════ -->
   <section id="backtest" class="section">
-    <div class="section-label reveal">Track Record</div>
-    <h2 class="section-h2 reveal">Tested across <em>15 years of Indian market cycles</em></h2>
+    <h2 class="section-h2 reveal">Backtested across <em>15 years of Indian market cycles</em></h2>
     <div class="backtest-wrap reveal">
       <div class="backtest-stats">
         <div class="bs-card"><div class="bs-num" style="color:var(--green)">0.68</div><div class="bs-label">Sharpe Ratio</div><div class="bs-sub">vs 0.50 Nifty 50</div></div>
@@ -1250,21 +1243,55 @@
         <h3>What the numbers mean for your clients</h3>
         <p>These numbers come from running Sentinel's engine backwards through 15 years of Indian market history — covering every major cycle from the 2008 financial crisis to COVID to the current environment. The results show how a portfolio managed using Sentinel's daily signals would have performed compared to simply holding the Nifty. Past performance does not guarantee future results.</p>
         <div style="margin-top:22px;">
-          <div class="t-label" style="margin-bottom:12px;">Regime Detection Accuracy</div>
+          <div class="t-label" style="margin-bottom:4px;">Regime Detection Accuracy</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);letter-spacing:0.04em;margin-bottom:14px;">Random baseline: 12.5% (1 of 8). Low-sample regimes accumulate data as months pass.</div>
           <div class="regime-accuracy-row">
-            <span class="ra-name">STABLE_GROWTH</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:88.2%"></div></div>
-            <span class="ra-pct">88.2%</span>
+            <span class="ra-name">Stable Growth</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:88.2%;background:var(--green)"></div></div>
+            <span class="ra-pct ra-good">88.2%</span>
+            <span class="ra-n">n=41</span>
           </div>
           <div class="regime-accuracy-row">
-            <span class="ra-name">GROWTH_SLOWDOWN_SUPPORT</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:40%"></div></div>
-            <span class="ra-pct">40.0%</span>
+            <span class="ra-name">Monetary Tightening</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:74%;background:var(--green)"></div></div>
+            <span class="ra-pct ra-good">74.0%</span>
+            <span class="ra-n">n=14</span>
           </div>
           <div class="regime-accuracy-row">
-            <span class="ra-name">LIQUIDITY_DRIVEN_EXPANSION</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:26.1%"></div></div>
-            <span class="ra-pct">26.1%</span>
+            <span class="ra-name">Inflation Stress</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:68%;background:var(--green)"></div></div>
+            <span class="ra-pct ra-good">68.0%</span>
+            <span class="ra-n">n=6</span>
+          </div>
+          <div class="regime-accuracy-row">
+            <span class="ra-name">Early Cycle Recovery</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:61%;background:var(--amber)"></div></div>
+            <span class="ra-pct ra-mid">61.0%</span>
+            <span class="ra-n">n=5</span>
+          </div>
+          <div class="regime-accuracy-row">
+            <span class="ra-name">Growth Slowdown Support</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:40%;background:var(--amber)"></div></div>
+            <span class="ra-pct ra-mid">40.0%</span>
+            <span class="ra-n">n=8</span>
+          </div>
+          <div class="regime-accuracy-row">
+            <span class="ra-name">Global Shock / Risk-Off</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:33%;background:var(--amber)"></div></div>
+            <span class="ra-pct ra-mid">33.0%</span>
+            <span class="ra-n">n=3</span>
+          </div>
+          <div class="regime-accuracy-row">
+            <span class="ra-name">Liquidity Driven Expansion</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:26.1%;background:var(--red)"></div></div>
+            <span class="ra-pct ra-low">26.1%</span>
+            <span class="ra-n">n=7</span>
+          </div>
+          <div class="regime-accuracy-row">
+            <span class="ra-name">Defensive / Capital Preservation</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:8%;background:var(--text-3)"></div></div>
+            <span class="ra-pct ra-none">accumulating</span>
+            <span class="ra-n">n=2</span>
           </div>
         </div>
         <p style="margin-top:18px;font-size:11px;color:var(--text-3);font-family:var(--font-mono);letter-spacing:0.04em;">
@@ -1278,17 +1305,17 @@
   <section id="cta">
     <div class="cta-inner reveal">
       <div class="cta-badge"><span class="cta-badge-dot"></span>USED BY INVESTMENT ADVISORS ACROSS INDIA</div>
-      <h2 class="cta-h2">Stop guessing. Start advising<br><em>with confidence.</em></h2>
-      <p class="cta-sub">Every morning, your clients are deciding whether to invest more, hold, or pull back. Sentinel gives you the answer before they call. Join the advisors who start every day with a clear, data-backed read on the Indian economy.</p>
+      <h2 class="cta-h2">Every morning, your clients face the same question.<br><em>Sentinel has your answer ready.</em></h2>
+      <p class="cta-sub">Advisors who use Sentinel start each day with one clear read on the Indian economy — which way conditions are moving, what to do with equity, debt, and gold, and what to watch before client calls. Data-backed, updated daily.</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;">
         <a class="btn-primary" href="login.html" style="font-size:15px;padding:14px 32px;">Access Sentinel →</a>
-        <a class="btn-outline" href="mailto:hello@econiq.in" style="font-size:15px;padding:14px 32px;">See How It Works</a>
+        <a class="btn-outline" href="#how" style="font-size:15px;padding:14px 32px;">See how it works ↓</a>
       </div>
       <div class="cta-disclaimer">No credit card required to get started. Cancel anytime. Used by portfolio managers, CAs, and wealth advisors across India.</div>
       <div class="cta-trust">
-        <div class="trust-item"><span class="trust-icon">🔒</span>SEBI-Compliant Framing</div>
-        <div class="trust-item"><span class="trust-icon">🌍</span>50 Economies · Global Coverage</div>
-        <div class="trust-item"><span class="trust-icon">⚡</span>Live Regime Engine · Daily Updates</div>
+        <div class="trust-item"><span class="trust-icon" aria-hidden="true">🔒</span>SEBI-Compliant Framing</div>
+        <div class="trust-item"><span class="trust-icon" aria-hidden="true">🌍</span>50 Economies, Global Coverage</div>
+        <div class="trust-item"><span class="trust-icon" aria-hidden="true">⚡</span>Live Regime Engine, Daily Updates</div>
       </div>
     </div>
   </section>
@@ -1413,7 +1440,7 @@
       $('t-regime').style.opacity = '0';
       setTimeout(() => {
         $('t-regime').textContent = r.name; $('t-regime').style.opacity = '1';
-        $('t-bar').style.width = r.conf+'%'; $('t-pct').textContent = r.conf+'%';
+        $('t-bar').style.transform = 'scaleX('+r.conf/100+')'; $('t-pct').textContent = r.conf+'%';
         $('t-equity').textContent = r.equity; $('t-equity').style.color = r.eq_c;
         $('t-conviction').textContent = r.conviction; $('t-conviction').style.color = r.cv_c;
         $('t-rbi').textContent = r.rbi; $('t-rbi').style.color = r.rbi_c;
@@ -1429,7 +1456,7 @@
       e.preventDefault();
       const btn = document.getElementById('cta-btn');
       const msg = document.getElementById('cta-msg');
-      btn.textContent = 'Submitted ✓'; btn.style.background = 'linear-gradient(135deg,var(--green),#059669)'; btn.disabled = true;
+      btn.textContent = 'Submitted ✓'; btn.style.background = 'var(--green)'; btn.disabled = true;
       msg.textContent = "You're on the list. We'll be in touch within 24 hours."; msg.style.color = 'var(--green)';
     }
     function toggleMobileMenu() {
