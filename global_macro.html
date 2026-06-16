@@ -1253,6 +1253,12 @@
       color: var(--text-2);
       font-style: italic;
     }
+    .capex-basket-ticker {
+      font-size: 9px;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      margin-left: 6px;
+    }
     .capex-methodology-note {
       margin-top: 14px;
       padding-top: 12px;
@@ -1985,21 +1991,29 @@
         );
         const data = await res.json();
 
-        const pulseColor = {
-          ACCELERATING: 'var(--green)',
-          STEADY:       'var(--blue)',
-          COOLING:      'var(--amber)',
-          CONTRACTING:  'var(--red)',
-          UNAVAILABLE:  'var(--text-2)',
-        }[data.pulse_label] || 'var(--text-2)';
+        const PULSE_PLAIN = {
+          ACCELERATING: 'AI infrastructure spending is heating up — markets expect faster build-out',
+          STEADY:       'AI infrastructure spending looks stable — no major shift in pace',
+          COOLING:      'AI infrastructure spending is slowing — markets expect a pause',
+          CONTRACTING:  'AI infrastructure spending is pulling back — markets expect cuts',
+          UNAVAILABLE:  'Unable to read current market signal',
+        }[data.pulse_label] || 'Market signal unclear';
+
+        const SIMPLE_LABELS = {
+          SMH: 'Chip Demand',
+          VST: 'Power Demand',
+          DLR: 'Data Center Demand',
+        };
 
         const basketRows = Object.values(data.basket)
           .map(b => {
+            const label = SIMPLE_LABELS[b.ticker] || b.label;
             if (!b.available) {
               return `
                 <div class="capex-basket-row">
                   <div class="capex-basket-label">
-                    ${b.label}
+                    ${label}
+                    <span class="capex-basket-ticker">${b.ticker}</span>
                   </div>
                   <div class="capex-basket-na">
                     Data unavailable
@@ -2019,7 +2033,8 @@
             return `
               <div class="capex-basket-row">
                 <div class="capex-basket-label">
-                  ${b.label}
+                  ${label}
+                  <span class="capex-basket-ticker">${b.ticker}</span>
                 </div>
                 <div class="capex-basket-returns">
                   <span style="color:${retColor}">
@@ -2037,20 +2052,19 @@
               AI Infrastructure Pulse
             </div>
             <div class="economy-size-standalone-sub">
-              Market-based proxy for the global AI
-              capex cycle · Composite 1M:
-              <span style="color:${pulseColor};font-weight:600;">
-                ${data.pulse_label}
-                ${data.composite_1m_avg_return != null
-                  ? ` (${data.composite_1m_avg_return >= 0 ? '+' : ''}${data.composite_1m_avg_return}%)`
-                  : ''}
-              </span>
+              ${PULSE_PLAIN}
             </div>
             <div class="capex-basket-list">
               ${basketRows}
             </div>
             <div class="capex-methodology-note">
-              ${data.methodology}
+              We track how investors are pricing
+              three companies tied to AI build-out —
+              chipmakers, power providers, and data
+              centers — as a stand-in for the real
+              spending cycle. Actual company spending
+              is only reported every few months, so
+              this gives a live read in between.
             </div>
           </div>
         `;
