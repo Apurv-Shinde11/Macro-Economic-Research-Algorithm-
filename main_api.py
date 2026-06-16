@@ -4040,9 +4040,18 @@ async def get_ai_capex_pulse():
     import yfinance as yf
 
     BASKET = {
-        "compute":    {"ticker": "SMH",  "label": "Semiconductors (SMH)"},
-        "power":      {"ticker": "VST",  "label": "Power / Grid (Vistra)"},
-        "datacenter": {"ticker": "DLR",  "label": "Data Centers (Digital Realty)"},
+        "compute": {
+            "label": "Chip Demand",
+            "tickers": ["SMH", "TSM"],
+        },
+        "power": {
+            "label": "Power Demand",
+            "tickers": ["VST", "CEG"],
+        },
+        "datacenter": {
+            "label": "Data Center Demand",
+            "tickers": ["DLR", "EQIX"],
+        },
     }
 
     def calc_return(prices, days):
@@ -4054,56 +4063,98 @@ async def get_ai_capex_pulse():
             return None
         return round((end_price - start_price) / start_price * 100, 2)
 
+    def normalize_series(prices):
+        # Convert to % change from first
+        # value, so series with different
+        # absolute prices can be averaged
+        if len(prices) < 1 or prices[0] == 0:
+            return []
+        base = prices[0]
+        return [round((p / base - 1) * 100, 3) for p in prices]
+
     results = {}
     valid_returns_1m = []
 
     for key, meta in BASKET.items():
-        try:
-            hist = yf.Ticker(meta["ticker"]).history(
-                period="1y", interval="1d"
-            )
-            if hist.empty:
-                results[key] = {
-                    "label": meta["label"],
-                    "ticker": meta["ticker"],
-                    "available": False,
-                }
-                continue
+        ticker_returns = {"1W": [], "1M": [], "3M": [], "1Y": []}
+        normalized_sparklines = []
+        ticker_details = []
+        any_available = False
 
-            prices = hist["Close"].dropna()
-            sparkline = [
-                round(float(p), 2)
-                for p in prices.tail(90).tolist()
-            ]
+        for tsym in meta["tickers"]:
+            try:
+                hist = yf.Ticker(tsym).history(
+                    period="1y", interval="1d"
+                )
+                if hist.empty:
+                    ticker_details.append({
+                        "ticker": tsym, "available": False
+                    })
+                    continue
 
-            ret_1m = calc_return(prices, 21)
-            if ret_1m is not None:
-                valid_returns_1m.append(ret_1m)
+                prices = hist["Close"].dropna()
+                any_available = True
 
-            results[key] = {
-                "label":          meta["label"],
-                "ticker":         meta["ticker"],
-                "current_price":  round(float(prices.iloc[-1]), 2),
-                "returns": {
-                    "1W": calc_return(prices, 5),
-                    "1M": ret_1m,
-                    "3M": calc_return(prices, 63),
-                    "1Y": calc_return(prices, 252),
-                },
-                "sparkline_90d":  sparkline,
-                "available":      True,
-            }
-        except Exception as e:
-            print(
-                f"[AI_CAPEX] fetch failed for "
-                f"{meta['ticker']}: {e}",
-                flush=True
-            )
-            results[key] = {
-                "label": meta["label"],
-                "ticker": meta["ticker"],
-                "available": False,
-            }
+                r1w = calc_return(prices, 5)
+                r1m = calc_return(prices, 21)
+                r3m = calc_return(prices, 63)
+                r1y = calc_return(prices, 252)
+
+                if r1w is not None: ticker_returns["1W"].append(r1w)
+                if r1m is not None: ticker_returns["1M"].append(r1m)
+                if r3m is not None: ticker_returns["3M"].append(r3m)
+                if r1y is not None: ticker_returns["1Y"].append(r1y)
+
+                spark_raw = prices.tail(90).tolist()
+                normalized_sparklines.append(
+                    normalize_series(spark_raw)
+                )
+
+                ticker_details.append({
+                    "ticker": tsym,
+                    "available": True,
+                    "current_price": round(float(prices.iloc[-1]), 2),
+                    "return_1m": r1m,
+                })
+            except Exception as e:
+                print(
+                    f"[AI_CAPEX] fetch failed for "
+                    f"{tsym}: {e}", flush=True
+                )
+                ticker_details.append({
+                    "ticker": tsym, "available": False
+                })
+
+        def avg_or_none(lst):
+            return round(sum(lst) / len(lst), 2) if lst else None
+
+        avg_returns = {
+            k: avg_or_none(v) for k, v in ticker_returns.items()
+        }
+
+        if avg_returns["1M"] is not None:
+            valid_returns_1m.append(avg_returns["1M"])
+
+        # Average normalized sparklines
+        # across available tickers,
+        # truncated to shortest length
+        composite_sparkline = []
+        if normalized_sparklines:
+            min_len = min(len(s) for s in normalized_sparklines)
+            for i in range(min_len):
+                vals = [s[i] for s in normalized_sparklines]
+                composite_sparkline.append(
+                    round(sum(vals) / len(vals), 3)
+                )
+
+        results[key] = {
+            "label": meta["label"],
+            "tickers": meta["tickers"],
+            "ticker_details": ticker_details,
+            "available": any_available,
+            "returns": avg_returns,
+            "sparkline_90d": composite_sparkline,
+        }
 
     # Composite pulse: average 1M return
     # across available basket members
