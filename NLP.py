@@ -45,11 +45,12 @@ GEMINI_MODELS = [
 ]
 
 OPENROUTER_MODELS = [
+    "openai/gpt-4o-mini",
+    "google/gemini-flash-1.5",
     "meta-llama/llama-3.3-70b-instruct:free",
     "openai/gpt-oss-20b:free",
     "mistralai/mistral-7b-instruct:free",
     "google/gemma-3-4b-it:free",
-    "qwen/qwen3-8b:free",
     "meta-llama/llama-3.2-3b-instruct:free",
 ]
 
