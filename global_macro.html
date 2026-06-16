@@ -1223,13 +1223,18 @@
       margin-top: 16px;
     }
     .capex-basket-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 60px auto;
       align-items: center;
-      justify-content: space-between;
+      gap: 10px;
       padding: 10px 14px;
       background: var(--bg-3);
       border: 1px solid var(--border);
       border-radius: 8px;
+    }
+    .capex-sparkline {
+      width: 60px;
+      height: 20px;
     }
     .capex-basket-label {
       font-size: 13px;
@@ -1266,6 +1271,21 @@
       font-size: 10px;
       color: var(--text-2);
       line-height: 1.6;
+    }
+    .capex-driver-note,
+    .capex-divergence-note,
+    .capex-earnings-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--bg-3);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+    .capex-divergence-note strong,
+    .capex-earnings-note strong {
+      color: var(--text);
     }
   </style>
 </head>
@@ -1999,6 +2019,14 @@
           UNAVAILABLE:  'Unable to read current market signal',
         }[data.pulse_label] || 'Market signal unclear';
 
+        const PULSE_DRIVER = {
+          ACCELERATING: 'Cloud providers have been announcing larger-than-expected spending plans on AI data centers this year, which is what shows up here.',
+          STEADY: 'Spending plans announced by major cloud providers appear to be tracking in line with earlier expectations — no major surprises either way.',
+          COOLING: 'Markets may be pricing in a pause or re-think in AI infrastructure spending plans by major cloud providers.',
+          CONTRACTING: 'Markets appear to be pricing in pullbacks or delays to previously announced AI infrastructure spending plans.',
+          UNAVAILABLE: '',
+        }[data.pulse_label] || '';
+
         const SIMPLE_LABELS = {
           SMH: 'Chip Demand',
           VST: 'Power Demand',
@@ -2015,6 +2043,7 @@
                     ${label}
                     <span class="capex-basket-ticker">${b.ticker}</span>
                   </div>
+                  <div class="capex-basket-spark"></div>
                   <div class="capex-basket-na">
                     Data unavailable
                   </div>
@@ -2030,12 +2059,40 @@
             const retSign = ret1m == null
               ? ''
               : ret1m >= 0 ? '+' : '';
+
+            // Build sparkline points from
+            // sparkline_90d array
+            const spark = b.sparkline_90d || [];
+            let sparkSvg = '';
+            if (spark.length > 1) {
+              const min = Math.min(...spark);
+              const max = Math.max(...spark);
+              const range = (max - min) || 1;
+              const w = 60, h = 20, pad = 2;
+              const points = spark.map((v, i) => {
+                const x = pad + (i / (spark.length - 1)) * (w - 2*pad);
+                const y = h - pad - ((v - min) / range) * (h - 2*pad);
+                return `${x},${y}`;
+              }).join(' ');
+              sparkSvg = `
+                <svg class="capex-sparkline"
+                     viewBox="0 0 ${w} ${h}"
+                     preserveAspectRatio="none">
+                  <polyline fill="none"
+                    stroke="${retColor}"
+                    stroke-width="1.5"
+                    points="${points}"/>
+                </svg>
+              `;
+            }
+
             return `
               <div class="capex-basket-row">
                 <div class="capex-basket-label">
                   ${label}
                   <span class="capex-basket-ticker">${b.ticker}</span>
                 </div>
+                <div class="capex-basket-spark">${sparkSvg}</div>
                 <div class="capex-basket-returns">
                   <span style="color:${retColor}">
                     ${retSign}${ret1m != null ? ret1m : '—'}%
@@ -2045,6 +2102,37 @@
               </div>
             `;
           }).join('');
+
+        const LABEL_PLAIN = {
+          compute: 'chip demand',
+          power: 'power demand',
+          datacenter: 'data center demand',
+        };
+
+        let divergenceHtml = '';
+        if (data.divergence) {
+          const leaderPlain = LABEL_PLAIN[data.divergence.leader] || data.divergence.leader;
+          const laggardPlain = LABEL_PLAIN[data.divergence.laggard] || data.divergence.laggard;
+          divergenceHtml = `
+            <div class="capex-divergence-note">
+              <strong>${leaderPlain}</strong> is moving
+              well ahead of <strong>${laggardPlain}</strong>
+              right now — the different parts of the
+              AI build-out aren't all accelerating at
+              the same pace.
+            </div>
+          `;
+        }
+
+        const earningsNote = `
+          <div class="capex-earnings-note">
+            Next checkpoint: major cloud providers
+            report actual spending plans in
+            <strong>${data.next_earnings_window}</strong>
+            — that's when we'll see if this market
+            pricing matches real numbers.
+          </div>
+        `;
 
         section.innerHTML = `
           <div class="economy-size-standalone-inner">
@@ -2057,6 +2145,9 @@
             <div class="capex-basket-list">
               ${basketRows}
             </div>
+            ${PULSE_DRIVER ? `<div class="capex-driver-note">${PULSE_DRIVER}</div>` : ''}
+            ${divergenceHtml}
+            ${earningsNote}
             <div class="capex-methodology-note">
               We track how investors are pricing
               three companies tied to AI build-out —

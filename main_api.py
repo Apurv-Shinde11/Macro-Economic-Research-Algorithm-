@@ -4123,10 +4123,54 @@ async def get_ai_capex_pulse():
         avg_1m = None
         pulse_label = "UNAVAILABLE"
 
+    # Divergence check — are the three
+    # components moving in sync or not?
+    divergence = None
+    if len(valid_returns_1m) >= 2:
+        spread = max(valid_returns_1m) - min(valid_returns_1m)
+        if spread >= 10:
+            # Find which leads and lags
+            sorted_items = sorted(
+                [(k, v["returns"]["1M"])
+                 for k, v in results.items()
+                 if v.get("available") and v["returns"]["1M"] is not None],
+                key=lambda x: x[1], reverse=True
+            )
+            if len(sorted_items) >= 2:
+                leader = sorted_items[0][0]
+                laggard = sorted_items[-1][0]
+                divergence = {
+                    "spread": round(spread, 2),
+                    "leader": leader,
+                    "laggard": laggard,
+                }
+
+    # Next major hyperscaler earnings
+    # window (quarterly: late Jan, Apr,
+    # Jul, Oct — when Microsoft, Google,
+    # Amazon, Meta report capex plans)
+    from datetime import date
+    today = date.today()
+    earnings_months = [1, 4, 7, 10]
+    next_month = next(
+        (m for m in earnings_months if m > today.month),
+        earnings_months[0]
+    )
+    next_year = today.year if next_month > today.month else today.year + 1
+    month_names = {
+        1: "January", 4: "April",
+        7: "July", 10: "October",
+    }
+    next_earnings_window = (
+        f"Late {month_names[next_month]} {next_year}"
+    )
+
     return {
         "basket":        results,
         "composite_1m_avg_return": avg_1m,
         "pulse_label":   pulse_label,
+        "divergence": divergence,
+        "next_earnings_window": next_earnings_window,
         "methodology": (
             "Market-based proxy using a basket of "
             "publicly traded companies exposed to "
