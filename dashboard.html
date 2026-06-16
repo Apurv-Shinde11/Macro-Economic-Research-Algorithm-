@@ -48,6 +48,10 @@
       --font-sans: 'DM Sans', sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       --surface: var(--bg-2);
+      --surface-2: var(--bg-3);
+      --surface-3: var(--bg-4);
+      --surface-4: var(--bg-4);
+      --font-display: var(--font-serif);
       --nav-h: 68px;
       --sidebar-w: 300px;
       --radius: 8px;
@@ -252,17 +256,14 @@
       font-weight: 700;
       letter-spacing: 0.14em;
       text-decoration: none;
-      background: linear-gradient(135deg, var(--text) 30%, var(--blue-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text);
     }
 
     .nav-firm {
       font-family: var(--font-mono);
       font-size: 11px;
       letter-spacing: 0.08em;
-      color: var(--text-3);
+      color: var(--text-2);
       padding: 3px 10px;
       background: var(--bg-3);
       border-radius: 5px;
@@ -447,7 +448,7 @@
     .run-btn {
       width: 100%;
       padding: 13px;
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      background: var(--blue);
       color: #fff;
       border: none;
       border-radius: var(--radius);
@@ -479,7 +480,7 @@
     }
 
     .run-btn.running {
-      background: linear-gradient(135deg, var(--amber) 0%, #d97706 100%);
+      background: var(--amber);
     }
 
     .run-status {
@@ -612,7 +613,7 @@
     }
 
     .segment-btn.active {
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      background: var(--blue);
       color: #fff;
       box-shadow: 0 2px 8px rgba(79, 131, 255, 0.25);
     }
@@ -669,7 +670,7 @@
     }
 
     .save-btn:hover {
-      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      background: var(--blue);
       color: #fff;
       border-color: var(--blue);
       box-shadow: 0 4px 14px rgba(79, 131, 255, 0.30);
@@ -1226,9 +1227,12 @@
     }
 
     .scenario-prob-bar-fill {
+      width: 100%;
       height: 100%;
       border-radius: 3px;
-      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .fill-baseline {
       background: linear-gradient(90deg, var(--blue), #7aa3ff);
@@ -1252,19 +1256,19 @@
     .scenario-dominant {
       padding: 12px 14px;
       border-radius: 8px;
-      border-left: 3px solid var(--blue);
+      border: 1px solid rgba(79,131,255,0.18);
     }
     .dominant-baseline {
-      background: rgba(79,131,255,0.08);
-      border-left-color: var(--blue);
+      background: rgba(79,131,255,0.06);
+      border-color: rgba(79,131,255,0.18);
     }
     .dominant-bullish {
-      background: rgba(16,212,138,0.08);
-      border-left-color: var(--green);
+      background: rgba(16,212,138,0.06);
+      border-color: rgba(16,212,138,0.18);
     }
     .dominant-bearish {
-      background: rgba(248,113,113,0.08);
-      border-left-color: var(--red);
+      background: rgba(248,113,113,0.06);
+      border-color: rgba(248,113,113,0.18);
     }
 
     .scenario-dominant-label {
@@ -2049,7 +2053,8 @@
     }
 
     .admin-user-row.no-runs {
-      border-left: 2px solid var(--amber);
+      background: rgba(251,191,36,0.04);
+      border-color: rgba(251,191,36,0.35);
     }
 
     .admin-regime-table {
@@ -2103,9 +2108,8 @@
 
     /* ══ DECISION PROMPT CARD (F7) ══ */
     .decision-prompt {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--blue);
+      background: rgba(79,131,255,0.05);
+      border: 1px solid rgba(79,131,255,0.18);
       border-radius: 12px;
       padding: 18px 20px;
       margin-bottom: 16px;
@@ -2516,8 +2520,8 @@
       line-height: 1.5;
       padding: 6px 10px;
       background: rgba(79,131,255,0.04);
-      border-left: 2px solid var(--border-2);
-      border-radius: 0 4px 4px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
     }
 
     .heatmap-legend-note {
@@ -2527,7 +2531,6 @@
       letter-spacing: 0.06em;
       text-align: center;
       margin: 8px 0 16px;
-      opacity: 0.7;
     }
 
     /* ══ HISTORICAL BACKTEST ══ */
@@ -2892,9 +2895,12 @@
       min-width: 80px;
     }
     .transition-bar {
+      width: 100%;
       height: 100%;
       border-radius: 2px;
-      transition: width 0.4s ease;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
     }
     .transition-bar.low      { background: var(--green); }
     .transition-bar.moderate { background: var(--blue);  }
@@ -2991,15 +2997,11 @@
     }
     /* ── Anticipatory Signal Card ── */
     .anticipatory-card {
-      border-left: 3px solid var(--blue);
       padding: 16px 18px;
       margin-bottom: 12px;
-      background: var(--bg-2);
+      background: rgba(79,131,255,0.05);
       border-radius: var(--radius);
-      border-top: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(79,131,255,0.18);
     }
     .anticipatory-header {
       font-family: var(--font-mono);
@@ -3113,9 +3115,12 @@
     }
 
     .signal-item-bar {
+      width: 100%;
       height: 100%;
       border-radius: 2px;
-      transition: width 0.6s ease;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.6s ease;
     }
 
     .signal-intel-footer {
@@ -3126,7 +3131,6 @@
       line-height: 1.6;
       padding-top: 10px;
       border-top: 1px solid var(--border);
-      opacity: 0.7;
     }
 
     /* ══ ONBOARDING MODAL OVERLAY ══ */
@@ -3199,7 +3203,7 @@
       height: 6px;
       border-radius: 50%;
       background: var(--border-2);
-      transition: background 0.2s, width 0.2s;
+      transition: background 0.2s, border-radius 0.2s;
     }
 
     .step-dot.active {
@@ -3211,7 +3215,7 @@
     .onboarding-btn-primary {
       width: 100%;
       padding: 14px 24px;
-      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      background: var(--blue);
       color: white;
       border: none;
       border-radius: 10px;
@@ -3439,7 +3443,7 @@
       background: var(--bg-3) !important;
     }
     .archive-row-open {
-      border-left: 2px solid var(--blue);
+      background: var(--bg-3) !important;
     }
     .archive-conf-wrap {
       display: flex;
@@ -3620,9 +3624,9 @@
       color: var(--text-2);
       line-height: 1.65;
       padding: 8px 10px;
-      background: var(--bg-3);
+      background: rgba(79,131,255,0.05);
       border-radius: 6px;
-      border-left: 2px solid var(--blue);
+      border: 1px solid rgba(79,131,255,0.15);
     }
 
     .signal-trend-row {
@@ -3800,7 +3804,7 @@
       margin-top: 12px;
       padding: 10px 12px;
       background: rgba(79,131,255,0.06);
-      border-left: 2px solid var(--blue);
+      border: 1px solid rgba(79,131,255,0.15);
       border-radius: 6px;
     }
     .client-profile-note-label {
@@ -3815,6 +3819,12 @@
       font-size: 11px;
       color: var(--text-2);
       line-height: 1.6;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-blob, .run-spinner, .freshness-dot.old, .regime-status-dot, .pulse-dot { animation: none; }
+      .scenario-prob-bar-fill, .transition-bar, .signal-item-bar { transition: none; }
+      .toast { animation: none; }
     }
   </style>
 </head>
@@ -4075,21 +4085,18 @@
         </div>
         <div>
           <div class="guide-section">
-            <div class="guide-section-num">01</div>
             <div class="guide-section-title">Morning Ritual</div>
             <div class="guide-section-body">Check Sentinel each morning before market open. Your regime and conviction
               level set the tone for the day — position sizing, sector tilts, and risk decisions should all be made in
               the context of the current macro signal. Don't trade against the regime.</div>
           </div>
           <div class="guide-section">
-            <div class="guide-section-num">02</div>
             <div class="guide-section-title">Understanding Confidence</div>
             <div class="guide-section-body">Confidence is not a prediction of returns — it measures how strongly today's
               macro data supports the dominant regime. Above 65% means signals are aligned and conviction is reliable.
               Below 45% means conditions are noisy; monitor but avoid aggressive new positions.</div>
           </div>
           <div class="guide-section">
-            <div class="guide-section-num">03</div>
             <div class="guide-section-title">Acting on Conviction</div>
             <div class="guide-section-body"><strong>HIGH conviction + ACT</strong> — deploy with full sizing into
               regime-appropriate assets. <strong>MEDIUM + WAIT</strong> — selective additions only; avoid high-beta
@@ -4097,14 +4104,12 @@
               risk. Never fight the conviction level.</div>
           </div>
           <div class="guide-section">
-            <div class="guide-section-num">04</div>
             <div class="guide-section-title">Reading the Archive</div>
             <div class="guide-section-body">The Historical Archive logs every regime call with its Implied Action and
               Outcome. Compare action columns across rows — three consecutive LOW-conviction HOLD signals means macro
               conditions are genuinely unclear. Use it to calibrate your confidence in the current read.</div>
           </div>
           <div class="guide-section">
-            <div class="guide-section-num">05</div>
             <div class="guide-section-title">When Conditions Change</div>
             <div class="guide-section-body">A Challenger Regime alert means an alternative macro state is gaining weight
               in the data. If it crosses 45% confidence, a regime shift may be imminent. Run Sentinel again within 24
@@ -4400,7 +4405,7 @@
               <span>Base Case</span>
             </div>
             <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase" style="width:0%"></div>
+              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase"></div>
             </div>
             <div class="scenario-prob-bar-pct" id="pctBase">—</div>
           </div>
@@ -4410,7 +4415,7 @@
               <span>Growth Upside</span>
             </div>
             <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull" style="width:0%"></div>
+              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull"></div>
             </div>
             <div class="scenario-prob-bar-pct" id="pctBull">—</div>
           </div>
@@ -4420,7 +4425,7 @@
               <span>External Shock</span>
             </div>
             <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear" style="width:0%"></div>
+              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear"></div>
             </div>
             <div class="scenario-prob-bar-pct" id="pctBear">—</div>
           </div>
@@ -4944,7 +4949,7 @@
         pct >= 40 ? 'var(--amber)' :
         pct >= 25 ? 'var(--blue)'  :
         'var(--green)';
-      bar.style.width     = `${Math.min(pct, 100)}%`;
+      bar.style.transform = `scaleX(${Math.min(pct, 100) / 100})`;
       bar.className       = `transition-bar ${riskLevel}`;
       pctEl.textContent   = `${pct}%`;
       pctEl.style.color   = pctColor;
@@ -5331,7 +5336,7 @@
         },
       };
       const _mkItem = (p, accent) => accent
-        ? `<div class="playbook-item" style="border-left:2px solid var(--blue);padding-left:10px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
+        ? `<div class="playbook-item" style="background:rgba(79,131,255,0.06);border:1px solid rgba(79,131,255,0.15);border-radius:6px;"><span class="playbook-arrow">▸</span><span class="playbook-text" style="color:var(--blue-light);">${p}</span></div>`
         : `<div class="playbook-item"><span class="playbook-arrow">▸</span><span class="playbook-text">${p}</span></div>`;
 
       // Single source of truth: _getMandatePlays for mandate-specific content.
@@ -5487,9 +5492,9 @@
         const pctBull  = document.getElementById('pctBull');
         const pctBear  = document.getElementById('pctBear');
 
-        if (fillBase) fillBase.style.width = basePct + '%';
-        if (fillBull) fillBull.style.width = bullPct + '%';
-        if (fillBear) fillBear.style.width = bearPct + '%';
+        if (fillBase) fillBase.style.transform = `scaleX(${basePct / 100})`;
+        if (fillBull) fillBull.style.transform = `scaleX(${bullPct / 100})`;
+        if (fillBear) fillBear.style.transform = `scaleX(${bearPct / 100})`;
 
         if (pctBase) pctBase.textContent = basePct + '%';
         if (pctBull) pctBull.textContent = bullPct + '%';
@@ -6706,7 +6711,7 @@
         bottom: 24px;
         left: 50%;
         transform: translateX(-50%);
-        background: linear-gradient(135deg, var(--blue), var(--indigo));
+        background: var(--blue);
         color: white;
         padding: 14px 28px;
         border-radius: 12px;
@@ -6926,7 +6931,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <div class="signal-item-bar-wrap">
-                <div class="signal-item-bar" style="width:${pct}%;background:${bColor}"></div>
+                <div class="signal-item-bar" style="transform:scaleX(${pct/100});background:${bColor}"></div>
               </div>
               <div style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:${color};min-width:28px;text-align:right;">${pct}%</div>
             </div>
