@@ -3282,6 +3282,117 @@ def _fetch_fred_rates() -> dict:
     return result
 
 
+def _fetch_country_news(wb_code: str) -> dict | None:
+    """
+    Fetch the most recent business/economy headline for a country
+    from NewsData.io.
+    Returns {"headline", "source", "published_at"} or None on failure.
+    """
+    news_api_key = os.environ.get("NEWSDATA_API_KEY", "")
+    if not news_api_key:
+        return None
+
+    try:
+        import requests as _req
+        url = "https://newsdata.io/api/1/news"
+        params = {
+            "apikey":   news_api_key,
+            "country":  wb_code.lower(),
+            "category": "business",
+            "language": "en",
+            "size":     1,
+        }
+        resp = _req.get(url, params=params, timeout=10)
+        if resp.status_code != 200:
+            print(
+                f"[NEWS] {wb_code} returned HTTP {resp.status_code}",
+                flush=True
+            )
+            return None
+
+        data    = resp.json()
+        results = data.get("results", [])
+        if not results:
+            return None
+
+        item = results[0]
+        return {
+            "headline":     item.get("title", "")[:160],
+            "source":       item.get("source_id", "unknown"),
+            "published_at": item.get("pubDate"),
+        }
+    except Exception as e:
+        print(f"[NEWS] fetch failed for {wb_code}: {e}", flush=True)
+        return None
+
+
+def _get_country_news_cached(wb_code: str) -> dict | None:
+    """
+    Returns cached news for a country if fresh (<24h), else fetches
+    new and upserts cache. Falls back to stale cache if fetch fails.
+    """
+    try:
+        cached = (
+            _supabase.table("country_news_cache")
+            .select("*")
+            .eq("code", wb_code)
+            .limit(1)
+            .execute()
+        )
+        if cached.data:
+            row        = cached.data[0]
+            fetched_at = datetime.fromisoformat(row["fetched_at"])
+            age_hours  = (
+                datetime.now(timezone.utc) - fetched_at
+            ).total_seconds() / 3600
+
+            if age_hours < 24:
+                return {
+                    "headline":     row.get("headline"),
+                    "source":       row.get("source"),
+                    "published_at": row.get("published_at"),
+                    "stale":        False,
+                }
+
+            # Stale — try fresh fetch
+            fresh = _fetch_country_news(wb_code)
+            if fresh:
+                _supabase.table("country_news_cache").upsert({
+                    "code":         wb_code,
+                    "headline":     fresh["headline"],
+                    "source":       fresh["source"],
+                    "published_at": fresh["published_at"],
+                    "fetched_at":   datetime.now(timezone.utc).isoformat(),
+                }, on_conflict="code").execute()
+                return {**fresh, "stale": False}
+
+            # Fetch failed — return stale cache
+            return {
+                "headline":     row.get("headline"),
+                "source":       row.get("source"),
+                "published_at": row.get("published_at"),
+                "stale":        True,
+            }
+
+        # No cache at all — fetch fresh
+        fresh = _fetch_country_news(wb_code)
+        if fresh:
+            _supabase.table("country_news_cache").upsert({
+                "code":         wb_code,
+                "headline":     fresh["headline"],
+                "source":       fresh["source"],
+                "published_at": fresh["published_at"],
+                "fetched_at":   datetime.now(timezone.utc).isoformat(),
+            }, on_conflict="code").execute()
+            return {**fresh, "stale": False}
+
+        return None
+
+    except Exception as e:
+        print(f"[NEWS] cache lookup failed for {wb_code}: {e}", flush=True)
+        return None
+
+
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
 # Last verified: May 2026 (source: S&P Global Manufacturing PMI releases)
 _PMI_VALUES = {
@@ -3631,6 +3742,14 @@ def _build_economy_record(
         "macro_signal":         _derive_macro_signal(gdp, inflation),
         "gdp_nominal_trillion": _NOMINAL_GDP_TRILLION.get(code),
         "last_updated":         datetime.now(timezone.utc).isoformat(),
+        "recent_development": (
+            _get_country_news_cached(eco.get("wb_code", code)) or {
+                "headline": None,
+                "source": None,
+                "published_at": None,
+                "stale": True,
+            }
+        ),
     }
 
 
@@ -3693,6 +3812,14 @@ async def get_global_macro():
                     "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
                     "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
                     "gdp_nominal_trillion": _NOMINAL_GDP_TRILLION.get(code),
+                    "recent_development": (
+                        _get_country_news_cached(meta.get("wb_code", code)) or {
+                            "headline": None,
+                            "source": None,
+                            "published_at": None,
+                            "stale": True,
+                        }
+                    ),
                 })
             result = {
                 "economies":       enriched,
