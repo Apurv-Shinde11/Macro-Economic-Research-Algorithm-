@@ -216,10 +216,7 @@
       font-weight: 700;
       letter-spacing: 0.14em;
       text-decoration: none;
-      background: linear-gradient(135deg, var(--text) 30%, var(--blue-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text);
     }
 
     .nav-right {
@@ -281,7 +278,7 @@
       font-weight: 600;
       padding: 8px 18px;
       border-radius: var(--radius);
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      background: var(--blue);
       color: #fff;
       text-decoration: none;
       border: none;
@@ -369,7 +366,7 @@
       justify-content: center;
       font-family: var(--font-mono);
       font-size: 12px;
-      color: var(--text-3);
+      color: var(--text-2);
       z-index: 2;
       border-radius: var(--radius-lg);
     }
@@ -429,7 +426,7 @@
       border-radius: var(--radius-lg);
       padding: 40px;
       text-align: center;
-      color: var(--text-3);
+      color: var(--text-2);
       font-size: 14px;
       display: flex;
       align-items: center;
@@ -504,7 +501,7 @@
 
     .detail-updated {
       font-size: 11px;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-top: 2px;
     }
 
@@ -547,7 +544,7 @@
       font-size: 11px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-bottom: 8px;
       display: flex;
       align-items: center;
@@ -568,7 +565,7 @@
 
     .card-sub {
       font-size: 11px;
-      color: var(--text-3);
+      color: var(--text-2);
     }
 
     .live-badge {
@@ -603,7 +600,7 @@
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-bottom: 8px;
     }
 
@@ -652,7 +649,7 @@
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-bottom: 10px;
     }
 
@@ -693,7 +690,7 @@
       font-weight: 600;
       padding: 12px 32px;
       border-radius: var(--radius);
-      background: linear-gradient(135deg, var(--blue) 0%, var(--indigo) 100%);
+      background: var(--blue);
       color: #fff;
       text-decoration: none;
       transition: opacity 0.2s, transform 0.2s;
@@ -722,12 +719,12 @@
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.12em;
-      color: var(--text-3);
+      color: var(--text-2);
     }
 
     .footer-sources {
       font-size: 11px;
-      color: var(--text-3);
+      color: var(--text-2);
     }
 
     /* ══ RESPONSIVE ══ */
@@ -817,7 +814,7 @@
 
     .economy-size-standalone-sub {
       font-size: 11px;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-bottom: 16px;
       font-family: var(--font-mono);
       letter-spacing: 0.05em;
@@ -839,7 +836,7 @@
       border-radius: 5px;
       cursor: pointer;
       transition: background 0.12s;
-      border-left: 2px solid transparent;
+      border: 1px solid transparent;
     }
 
     .eco-compare-row:hover {
@@ -847,7 +844,7 @@
     }
 
     .eco-compare-row.selected {
-      border-left-color: var(--row-sig-color, var(--blue));
+      border-color: var(--row-sig-color, var(--blue));
       background: var(--bg-3);
     }
 
@@ -899,7 +896,7 @@
     .eco-compare-gdp {
       font-family: var(--font-mono);
       font-size: 9px;
-      color: var(--text-3);
+      color: var(--text-2);
       width: 52px;
       text-align: right;
       flex-shrink: 0;
@@ -948,7 +945,7 @@
     .currency-chart-subtitle {
       font-family: var(--font-mono);
       font-size: 9px;
-      color: var(--text-3);
+      color: var(--text-2);
       letter-spacing: 0.08em;
     }
 
@@ -965,7 +962,7 @@
       border-radius: 4px;
       border: 1px solid var(--border);
       background: transparent;
-      color: var(--text-3);
+      color: var(--text-2);
       cursor: pointer;
       transition: all 0.15s;
     }
@@ -997,7 +994,7 @@
     .currency-return-period {
       font-family: var(--font-mono);
       font-size: 8px;
-      color: var(--text-3);
+      color: var(--text-2);
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
@@ -1017,7 +1014,7 @@
     }
 
     .currency-return-value.flat {
-      color: var(--text-3);
+      color: var(--text-2);
     }
 
     .currency-sparkline-container {
@@ -1028,7 +1025,7 @@
     .currency-chart-footer {
       font-family: var(--font-mono);
       font-size: 9px;
-      color: var(--text-3);
+      color: var(--text-2);
       margin-top: 6px;
       letter-spacing: 0.04em;
     }
@@ -1211,6 +1208,12 @@
         display: none;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-blob, .live-badge, .skeleton, .map-loading, .detail-inner {
+        animation: none;
+      }
+    }
   </style>
 </head>
 
@@ -1253,6 +1256,7 @@
       <li><a href="global_macro.html" onclick="closeMobileMenu()">Global Macro</a></li>
       <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel</a></li>
     </ul>
+    <a class="btn-sentinel" href="login.html" onclick="closeMobileMenu()" style="display:block;text-align:center;padding:14px;margin-top:24px;font-size:15px;">Access Sentinel →</a>
   </div>
 
   <main class="page-main">
@@ -1295,7 +1299,7 @@
     <section class="cta-section">
       <div class="cta-inner">
         <div class="cta-title">Run India Regime Analysis</div>
-        <p class="cta-sub">Access the full SENTINEL engine — real-time regime detection, allocation signals, and FII/DII
+        <p class="cta-sub">Access the full SENTINEL engine: real-time regime detection, allocation signals, and FII/DII
           flow analytics.</p>
         <a class="cta-btn" href="login.html">Access Sentinel →</a>
       </div>
@@ -1479,7 +1483,7 @@
       INFLATION_PRESSURE: 'var(--amber)',
       SLOWDOWN: 'var(--amber)',
       CONTRACTION: 'var(--red)',
-      MONITORING: 'var(--text-3)',
+      MONITORING: 'var(--text-2)',
     };
     const SIG_BG = {
       EXPANDING: 'var(--green-dim)',
@@ -1514,11 +1518,6 @@
       CONTRACTION: '#dc2626',
       MONITORING: '#9aaabb',
     };
-
-    function getSignalColor(signal) {
-      const isLight = document.documentElement.classList.contains('light');
-      return isLight ? (SIG_COLOR_RAW_LIGHT[signal] || '#9aaabb') : (SIG_COLOR_RAW[signal] || '#2e3d58');
-    }
 
     let economiesData = {};
 
@@ -1596,38 +1595,38 @@
       const pmi = eco.pmi != null ? eco.pmi.toFixed(1) : 'n/a';
 
       if (eco.code === 'RU') {
-        return `Russia's economy shows resilience despite sanctions — GDP at ${gdp} supported by energy revenues and import substitution. Central Bank of Russia holds at ${rate} (highest since 2003) to contain inflation at ${inf}. Capital controls remain active; RUB convertibility suspended for non-residents. Key risk: energy price dependency and long-term technology access.`;
+        return `Russia's economy shows resilience despite sanctions: GDP at ${gdp} supported by energy revenues and import substitution. Central Bank of Russia holds at ${rate} (highest since 2003) to contain inflation at ${inf}. Capital controls remain active; RUB convertibility suspended for non-residents. Key risk: energy price dependency and long-term technology access.`;
       }
       if (eco.code === 'AR') {
-        return `Argentina navigates a complex macro environment — GDP at ${gdp} with inflation at ${inf} among the highest globally. BCRA at ${rate} reflects emergency tightening. Dual exchange rate system and capital controls remain active. IMF programme provides an external anchor. Watch for peso stabilisation as the key leading indicator.`;
+        return `Argentina navigates a complex macro environment: GDP at ${gdp} with inflation at ${inf} among the highest globally. BCRA at ${rate} reflects emergency tightening. Dual exchange rate system and capital controls remain active. IMF programme provides an external anchor. Watch for peso stabilisation as the key leading indicator.`;
       }
       if (eco.code === 'NG') {
-        return `Nigeria's economy shows resilience driven by oil revenues — GDP at ${gdp} with inflation at ${inf} elevated. CBN at ${rate} in aggressive tightening mode. Naira unification post-2023 reform has improved FX transparency. Oil price sensitivity remains the dominant macro driver.`;
+        return `Nigeria's economy shows resilience driven by oil revenues: GDP at ${gdp} with inflation at ${inf} elevated. CBN at ${rate} in aggressive tightening mode. Naira unification post-2023 reform has improved FX transparency. Oil price sensitivity remains the dominant macro driver.`;
       }
       if (eco.code === 'AE') {
-        return `The UAE maintains robust growth — GDP at ${gdp} supported by diversification beyond oil and strong tourism and finance sectors. AED pegged to USD at 3.67 eliminates currency risk. Policy rate follows the Fed at ${rate}. Dubai's status as a global financial hub attracts sustained FDI.`;
+        return `The UAE maintains robust growth: GDP at ${gdp} supported by diversification beyond oil and strong tourism and finance sectors. AED pegged to USD at 3.67 eliminates currency risk. Policy rate follows the Fed at ${rate}. Dubai's status as a global financial hub attracts sustained FDI.`;
       }
       if (eco.code === 'SG') {
         const sigLabel = (eco.macro_signal || 'Stable').replace(/_/g, ' ').toLowerCase();
-        return `Singapore's trade-dependent economy shows ${sigLabel} — GDP at ${gdp} with MAS managing monetary policy via exchange rate rather than interest rates. Inflation at ${inf} within MAS tolerance. PMI at ${pmi} reflects regional manufacturing demand. Watch US-China trade dynamics as the primary external risk.`;
+        return `Singapore's trade-dependent economy shows ${sigLabel}: GDP at ${gdp} with MAS managing monetary policy via exchange rate rather than interest rates. Inflation at ${inf} within MAS tolerance. PMI at ${pmi} reflects regional manufacturing demand. Watch US-China trade dynamics as the primary external risk.`;
       }
 
       switch (eco.macro_signal) {
         case 'EXPANDING':
           if (eco.code === 'IN') {
-            return `India leads the G20 in growth momentum — GDP at ${gdp} with inflation contained at ${inf}. RBI's ${rate} rate signals measured accommodation supporting the credit cycle. PMI at ${pmi} — highest among major economies — confirms broad-based expansion. Key risk: crude oil above $95 threatens the imported inflation outlook.`;
+            return `India leads the G20 in growth momentum: GDP at ${gdp} with inflation contained at ${inf}. RBI's ${rate} rate signals measured accommodation supporting the credit cycle. PMI at ${pmi} (highest among major economies) confirms broad-based expansion. Key risk: crude oil above $95 threatens the imported inflation outlook.`;
           }
-          return `${nm} leads regional growth — GDP at ${gdp} outpacing peers with inflation at ${inf} still below the danger zone. ${cb} holds at ${rate}, providing a neutral backdrop for credit expansion. PMI at ${pmi} signals broad-based manufacturing activity. Watch for capacity constraints as the expansion matures.`;
+          return `${nm} leads regional growth: GDP at ${gdp} outpacing peers with inflation at ${inf} still below the danger zone. ${cb} holds at ${rate}, providing a neutral backdrop for credit expansion. PMI at ${pmi} signals broad-based manufacturing activity. Watch for capacity constraints as the expansion matures.`;
         case 'STABLE_GROWTH':
-          return `${nm} maintains solid macro footing — GDP at ${gdp} with inflation at ${inf} tracking toward target. ${cb} at ${rate} reflects a cautious hold posture. PMI at ${pmi} signals stable but unexciting manufacturing activity. No near-term macro catalyst in either direction — fundamentals-driven positioning appropriate.`;
+          return `${nm} maintains solid macro footing: GDP at ${gdp} with inflation at ${inf} tracking toward target. ${cb} at ${rate} reflects a cautious hold posture. PMI at ${pmi} signals stable but unexciting manufacturing activity. No near-term macro catalyst in either direction; fundamentals-driven positioning appropriate.`;
         case 'SLOWDOWN':
-          return `${nm} faces a cyclical growth challenge — GDP at ${gdp} with domestic demand soft. ${cb} at ${rate} provides measured support but monetary transmission is slow. PMI at ${pmi} signals manufacturing contraction. Watch for fiscal stimulus response and leading indicators (PMI new orders, credit growth) for stabilisation signals.`;
+          return `${nm} faces a cyclical growth challenge: GDP at ${gdp} with domestic demand soft. ${cb} at ${rate} provides measured support but monetary transmission is slow. PMI at ${pmi} signals manufacturing contraction. Watch for fiscal stimulus response and leading indicators (PMI new orders, credit growth) for stabilisation signals.`;
         case 'CONTRACTION':
-          return `${nm} is in contraction — GDP at ${gdp}, the weakest reading among major economies. ${cb} at ${rate} reflects an easing bias as policymakers respond to weakness. PMI at ${pmi} confirms the industrial sector is shrinking. Historical precedent suggests 6-12 months before stabilisation after this level of PMI contraction.`;
+          return `${nm} is in contraction: GDP at ${gdp}, the weakest reading among major economies. ${cb} at ${rate} reflects an easing bias as policymakers respond to weakness. PMI at ${pmi} confirms the industrial sector is shrinking. Historical precedent suggests 6-12 months before stabilisation after this level of PMI contraction.`;
         case 'INFLATION_PRESSURE':
-          return `${nm} faces an inflation challenge — CPI at ${inf}, well above target. ${cb} at ${rate} anchoring expectations but real rates remain challenging for leveraged positions. GDP at ${gdp} shows the economy is absorbing the tightening so far. Watch for consumer spending data as the leading indicator of demand destruction.`;
+          return `${nm} faces an inflation challenge: CPI at ${inf}, well above target. ${cb} at ${rate} anchoring expectations but real rates remain challenging for leveraged positions. GDP at ${gdp} shows the economy is absorbing the tightening so far. Watch for consumer spending data as the leading indicator of demand destruction.`;
         default:
-          return `Macro data for ${nm} is partially unavailable or under revision. Available indicators: Policy Rate ${rate}, PMI ${pmi}. Exercise caution — incomplete data picture.`;
+          return `Macro data for ${nm} is partially unavailable or under revision. Available indicators: Policy Rate ${rate}, PMI ${pmi}. Exercise caution; the data picture is incomplete.`;
       }
     }
 
@@ -1905,7 +1904,7 @@
       if (!rowsHtml) return;
       container.innerHTML = `
         <div class="economy-size-standalone-inner">
-          <div class="economy-size-standalone-title">Economy Size — Top 50 by Nominal GDP</div>
+          <div class="economy-size-standalone-title">Economy Size: Top 50 by Nominal GDP</div>
           <div class="economy-size-standalone-sub">IMF World Economic Outlook, April 2026 · Click any row to view macro details</div>
           <div class="economy-comparison">${rowsHtml}</div>
         </div>
@@ -1914,7 +1913,7 @@
 
     function renderDetail(eco) {
       const meta = ECONOMIES_META[eco.code];
-      const sigCol = SIG_COLOR[eco.macro_signal] || 'var(--text-3)';
+      const sigCol = SIG_COLOR[eco.macro_signal] || 'var(--text-2)';
       const sigBg = SIG_BG[eco.macro_signal] || 'rgba(0,0,0,0.1)';
       const sigLbl = SIG_LABEL[eco.macro_signal] || (eco.macro_signal || 'Unknown').replace(/_/g, ' ');
       const isHome = meta && meta.home;
@@ -2029,7 +2028,7 @@
         document.getElementById('detail-content').innerHTML = `
           <div class="detail-empty">
             <span style="font-size:18px;">⏳</span>
-            <span>Fetching data for 50 economies — this may take up to 15 seconds on first load</span>
+            <span>Fetching data for 50 economies, this may take up to 15 seconds on first load</span>
           </div>
         `;
       }
@@ -2041,7 +2040,7 @@
           <div style="
             font-family: var(--font-mono);
             font-size: 11px;
-            color: var(--text-3);
+            color: var(--text-2);
             padding: 20px;
             text-align: center;
             letter-spacing: 0.08em;
@@ -2075,7 +2074,7 @@
         document.getElementById('detail-content').innerHTML = `
           <div class="detail-empty">
             <span style="font-size:18px;">⚠</span>
-            <span>Failed to load macro data — please refresh</span>
+            <span>Failed to load macro data, please refresh</span>
           </div>
         `;
       }
@@ -2097,19 +2096,19 @@
       if (code === 'SA') {
         card.style.display = 'block';
         card.className = 'currency-chart-card info';
-        titleEl.textContent = 'SAR — Saudi Riyal';
+        titleEl.textContent = 'SAR: Saudi Riyal';
         subtitleEl.textContent = 'Fixed 3.75 SAR/USD since 1986 · Backed by $450B FX reserves';
         const tabsSA = document.getElementById('currencyPerfTabs');
         if (tabsSA) tabsSA.style.display = 'none';
         const isLightSA = document.documentElement.classList.contains('light');
-        const tm3 = isLightSA ? '#9aaabb' : '#2e3d58';
+        const tm3 = isLightSA ? '#4a5872' : '#7a8baa';
         const tv2 = isLightSA ? '#4a5872' : '#7a8baa';
         const tbl = isLightSA ? '#2563eb' : '#4f83ff';
         const tgn = isLightSA ? '#059669' : '#10d48a';
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
-            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
+            <div class="currency-regime-badge pegged">⚓ USD PEG: No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${tv2};line-height:1.65;margin-bottom:12px;">
               SAR is pegged to the US Dollar at a fixed rate of 3.75 SAR/USD since 1986.
               The peg is maintained by Saudi Arabia's substantial foreign exchange reserves (~$450B).
@@ -2132,19 +2131,19 @@
       if (code === 'RU') {
         card.style.display = 'block';
         card.className = 'currency-chart-card restricted';
-        titleEl.textContent = 'RUB — Russian Ruble';
+        titleEl.textContent = 'RUB: Russian Ruble';
         subtitleEl.textContent = 'No market rate on international feeds · CBR official rate only';
         const tabsRU = document.getElementById('currencyPerfTabs');
         if (tabsRU) tabsRU.style.display = 'none';
         const isLightRU = document.documentElement.classList.contains('light');
-        const rm3 = isLightRU ? '#9aaabb' : '#2e3d58';
+        const rm3 = isLightRU ? '#4a5872' : '#7a8baa';
         const rv2 = isLightRU ? '#4a5872' : '#7a8baa';
         const ram = isLightRU ? '#b45309' : '#fbbf24';
         const rrd = isLightRU ? '#dc2626' : '#f87171';
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
-            <div class="currency-regime-badge restricted">🔒 CAPITAL CONTROLS — Market rate suspended since Feb 2022</div>
+            <div class="currency-regime-badge restricted">🔒 CAPITAL CONTROLS: Market rate suspended since Feb 2022</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${rv2};line-height:1.65;margin-bottom:12px;">
               RUB/USD market rate is not publicly available on international data feeds.
               Russia imposed capital controls in February 2022 following sanctions.
@@ -2161,7 +2160,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerRU = document.getElementById('currencyChartFooter');
-        if (footerRU) footerRU.textContent = 'Restricted currencies require local market access — unavailable to most foreign investors.';
+        if (footerRU) footerRU.textContent = 'Restricted currencies require local market access, unavailable to most foreign investors.';
         return;
       }
 
@@ -2169,19 +2168,19 @@
       if (code === 'AE') {
         card.style.display = 'block';
         card.className = 'currency-chart-card info';
-        titleEl.textContent = 'AED — UAE Dirham';
+        titleEl.textContent = 'AED: UAE Dirham';
         subtitleEl.textContent = 'Fixed 3.67 AED/USD since 1997 · No currency risk for USD investors';
         const tabsAE = document.getElementById('currencyPerfTabs');
         if (tabsAE) tabsAE.style.display = 'none';
         const isLightAE = document.documentElement.classList.contains('light');
-        const at3 = isLightAE ? '#9aaabb' : '#2e3d58';
+        const at3 = isLightAE ? '#4a5872' : '#7a8baa';
         const av2 = isLightAE ? '#4a5872' : '#7a8baa';
         const abl = isLightAE ? '#2563eb' : '#4f83ff';
         const agn = isLightAE ? '#059669' : '#10d48a';
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
-            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
+            <div class="currency-regime-badge pegged">⚓ USD PEG: No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${av2};line-height:1.65;margin-bottom:12px;">
               AED is pegged to the US Dollar at a fixed rate of 3.67 AED/USD since 1997.
               The peg is maintained by the UAE Central Bank's substantial FX reserves.
@@ -2204,19 +2203,19 @@
       if (code === 'QA') {
         card.style.display = 'block';
         card.className = 'currency-chart-card info';
-        titleEl.textContent = 'QAR — Qatari Riyal';
+        titleEl.textContent = 'QAR: Qatari Riyal';
         subtitleEl.textContent = 'Fixed 3.64 QAR/USD · Backed by QIA sovereign wealth fund';
         const tabsQA = document.getElementById('currencyPerfTabs');
         if (tabsQA) tabsQA.style.display = 'none';
         const isLightQA = document.documentElement.classList.contains('light');
-        const qt3 = isLightQA ? '#9aaabb' : '#2e3d58';
+        const qt3 = isLightQA ? '#4a5872' : '#7a8baa';
         const qv2 = isLightQA ? '#4a5872' : '#7a8baa';
         const qbl = isLightQA ? '#2563eb' : '#4f83ff';
         const qgn = isLightQA ? '#059669' : '#10d48a';
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
-            <div class="currency-regime-badge pegged">⚓ USD PEG — No exchange rate risk for USD investors</div>
+            <div class="currency-regime-badge pegged">⚓ USD PEG: No exchange rate risk for USD investors</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${qv2};line-height:1.65;margin-bottom:12px;">
               QAR is pegged to the US Dollar at a fixed rate of 3.64 QAR/USD since 2001.
               Qatar's sovereign wealth fund (QIA, ~$450B AUM) provides a strong backstop.
@@ -2239,18 +2238,18 @@
       if (code === 'AR') {
         card.style.display = 'block';
         card.className = 'currency-chart-card restricted';
-        titleEl.textContent = 'ARS — Argentine Peso';
+        titleEl.textContent = 'ARS: Argentine Peso';
         subtitleEl.textContent = 'Official ~1,000 ARS/USD · Parallel rate diverges significantly';
         const tabsAR = document.getElementById('currencyPerfTabs');
         if (tabsAR) tabsAR.style.display = 'none';
         const isLightAR = document.documentElement.classList.contains('light');
-        const rrm3 = isLightAR ? '#9aaabb' : '#2e3d58';
+        const rrm3 = isLightAR ? '#4a5872' : '#7a8baa';
         const rrv2 = isLightAR ? '#4a5872' : '#7a8baa';
         const rram = isLightAR ? '#b45309' : '#fbbf24';
         if (stripEl) {
           stripEl.style.display = 'block';
           stripEl.innerHTML = `
-            <div class="currency-regime-badge restricted">⚠️ DUAL RATE SYSTEM — Official and parallel rates diverge significantly</div>
+            <div class="currency-regime-badge restricted">⚠️ DUAL RATE SYSTEM: Official and parallel rates diverge significantly</div>
             <p style="font-family:var(--font-mono);font-size:10px;color:${rrv2};line-height:1.65;margin-bottom:12px;">
               Argentina operates a dual exchange rate system. The official rate (~1,000 ARS/USD) differs significantly
               from the parallel 'blue dollar' rate. Capital controls active since 2019.
@@ -2266,7 +2265,7 @@
         }
         if (svgEl) svgEl.innerHTML = '';
         const footerAR = document.getElementById('currencyChartFooter');
-        if (footerAR) footerAR.textContent = 'Restricted currencies require local market access — unavailable to most foreign investors.';
+        if (footerAR) footerAR.textContent = 'Restricted currencies require local market access, unavailable to most foreign investors.';
         return;
       }
 
@@ -2339,7 +2338,7 @@
           `<polyline points="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>` +
           `<circle cx="${lastX}" cy="${lastY}" r="3" fill="${lineColor}"/>`;
       } else {
-        svgEl.innerHTML = `<text x="300" y="44" text-anchor="middle" font-family="monospace" font-size="11" fill="${isLight ? '#9aaabb' : '#2e3d58'}">Insufficient data</text>`;
+        svgEl.innerHTML = `<text x="300" y="44" text-anchor="middle" font-family="monospace" font-size="11" fill="${isLight ? '#4a5872' : '#7a8baa'}">Insufficient data</text>`;
       }
 
       subtitleEl.textContent = 'vs USD · 90-day performance';
