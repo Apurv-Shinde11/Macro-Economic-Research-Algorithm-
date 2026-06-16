@@ -1287,6 +1287,29 @@
     .capex-earnings-note strong {
       color: var(--text);
     }
+    .india-ai-loading {
+      font-size: 11px;
+      color: var(--text-2);
+      font-style: italic;
+    }
+    .india-ai-text {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-top: 6px;
+    }
+    .india-ai-cta {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .india-ai-cta:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -1393,6 +1416,17 @@
     const RAIL = 'https://macro-economic-research-algorithm.onrender.com';
     const GEO_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson';
     const GEO_URL_FB = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+
+    let _aiCapexDataPromise = null;
+
+    async function getAICapexDataCached() {
+      if (!_aiCapexDataPromise) {
+        _aiCapexDataPromise = fetch(
+          `${RAIL}/api/ai-capex-pulse`
+        ).then(r => r.json());
+      }
+      return _aiCapexDataPromise;
+    }
 
     const ECONOMIES_META = {
       US: { cb: 'Federal Reserve (Fed)' },
@@ -1912,6 +1946,9 @@
       const eco = economiesData[code];
       if (eco) {
         renderDetail(eco);
+        if (eco.code === 'IN') {
+          renderIndiaAIContext();
+        }
         if (scrollToDetail) {
           const panel = document.querySelector('.detail-panel');
           if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2006,10 +2043,7 @@
       `;
 
       try {
-        const res = await fetch(
-          `${RAIL}/api/ai-capex-pulse`
-        );
-        const data = await res.json();
+        const data = await getAICapexDataCached();
 
         const PULSE_PLAIN = {
           ACCELERATING: 'AI infrastructure spending is heating up — markets expect faster build-out',
@@ -2267,9 +2301,63 @@
             <div class="summary-label">Macro Context</div>
             <p class="summary-text">${buildSummary(eco)}</p>
           </div>
+          ${isHome ? `
+          <div class="detail-summary" id="india-ai-context">
+            <div class="card-label">
+              What This Means For India
+            </div>
+            <div class="india-ai-loading">
+              Loading global AI infrastructure context…
+            </div>
+          </div>
+          ` : ''}
         </div>
       `;
       loadCurrencyChart(eco.code);
+    }
+
+    async function renderIndiaAIContext() {
+      const el = document.getElementById(
+        'india-ai-context'
+      );
+      if (!el) return;
+
+      try {
+        const data = await getAICapexDataCached();
+
+        const IT_NOTE = {
+          ACCELERATING: 'Global AI infrastructure spending is picking up pace. India\'s IT & Technology sector — which Sentinel currently reads as NEUTRAL due to uncertain US client spending — could see this uncertainty start to clear if global cloud providers route more infrastructure work to Indian IT and data center firms.',
+          STEADY: 'Global AI infrastructure spending looks steady right now, with no major acceleration or pullback. This points to a similarly steady outlook for India\'s IT & Technology sector\'s exposure to global cloud and AI-related work.',
+          COOLING: 'Global AI infrastructure spending appears to be slowing. This could add near-term pressure on India\'s IT & Technology sector if global clients pull back on AI-related project spending.',
+          CONTRACTING: 'Global AI infrastructure spending appears to be pulling back. This is a watch point for India\'s IT & Technology sector, given its reliance on overseas client spending decisions.',
+          UNAVAILABLE: 'Global AI infrastructure data is currently unavailable — check back shortly for context on what this means for India\'s IT sector.',
+        }[data.pulse_label] || '';
+
+        el.innerHTML = `
+          <div class="card-label">
+            What This Means For India
+          </div>
+          <div class="india-ai-text">
+            ${IT_NOTE}
+          </div>
+          <a href="dashboard.html"
+             class="india-ai-cta">
+            See full sector view in Sentinel →
+          </a>
+        `;
+      } catch (e) {
+        console.error(
+          'India AI context failed:', e
+        );
+        el.innerHTML = `
+          <div class="card-label">
+            What This Means For India
+          </div>
+          <div class="india-ai-text">
+            Unable to load context right now.
+          </div>
+        `;
+      }
     }
 
     async function fetchWithTimeout(url, ms = 8000) {
