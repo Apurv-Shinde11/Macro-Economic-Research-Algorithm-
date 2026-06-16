@@ -4024,6 +4024,122 @@ async def get_currency_history(code: str = "IN"):
         return {"code": code_upper, "available": False, "reason": str(e)}
 
 
+@app.get("/api/ai-capex-pulse")
+async def get_ai_capex_pulse():
+    """
+    Public endpoint — no auth required.
+    Tracks a basket of AI-infrastructure-
+    exposed tickers as a live market
+    proxy for the global AI capex cycle.
+    Actual hyperscaler capex is only
+    disclosed quarterly; this basket's
+    momentum is the best available live
+    signal of market-priced AI infra
+    expectations.
+    """
+    import yfinance as yf
+
+    BASKET = {
+        "compute":    {"ticker": "SMH",  "label": "Semiconductors (SMH)"},
+        "power":      {"ticker": "VST",  "label": "Power / Grid (Vistra)"},
+        "datacenter": {"ticker": "DLR",  "label": "Data Centers (Digital Realty)"},
+    }
+
+    def calc_return(prices, days):
+        if len(prices) < 2:
+            return None
+        end_price   = float(prices.iloc[-1])
+        start_price = float(prices.iloc[max(0, len(prices) - days)])
+        if start_price == 0:
+            return None
+        return round((end_price - start_price) / start_price * 100, 2)
+
+    results = {}
+    valid_returns_1m = []
+
+    for key, meta in BASKET.items():
+        try:
+            hist = yf.Ticker(meta["ticker"]).history(
+                period="1y", interval="1d"
+            )
+            if hist.empty:
+                results[key] = {
+                    "label": meta["label"],
+                    "ticker": meta["ticker"],
+                    "available": False,
+                }
+                continue
+
+            prices = hist["Close"].dropna()
+            sparkline = [
+                round(float(p), 2)
+                for p in prices.tail(90).tolist()
+            ]
+
+            ret_1m = calc_return(prices, 21)
+            if ret_1m is not None:
+                valid_returns_1m.append(ret_1m)
+
+            results[key] = {
+                "label":          meta["label"],
+                "ticker":         meta["ticker"],
+                "current_price":  round(float(prices.iloc[-1]), 2),
+                "returns": {
+                    "1W": calc_return(prices, 5),
+                    "1M": ret_1m,
+                    "3M": calc_return(prices, 63),
+                    "1Y": calc_return(prices, 252),
+                },
+                "sparkline_90d":  sparkline,
+                "available":      True,
+            }
+        except Exception as e:
+            print(
+                f"[AI_CAPEX] fetch failed for "
+                f"{meta['ticker']}: {e}",
+                flush=True
+            )
+            results[key] = {
+                "label": meta["label"],
+                "ticker": meta["ticker"],
+                "available": False,
+            }
+
+    # Composite pulse: average 1M return
+    # across available basket members
+    if valid_returns_1m:
+        avg_1m = round(
+            sum(valid_returns_1m) / len(valid_returns_1m), 2
+        )
+        if avg_1m >= 5:
+            pulse_label = "ACCELERATING"
+        elif avg_1m >= 0:
+            pulse_label = "STEADY"
+        elif avg_1m >= -5:
+            pulse_label = "COOLING"
+        else:
+            pulse_label = "CONTRACTING"
+    else:
+        avg_1m = None
+        pulse_label = "UNAVAILABLE"
+
+    return {
+        "basket":        results,
+        "composite_1m_avg_return": avg_1m,
+        "pulse_label":   pulse_label,
+        "methodology": (
+            "Market-based proxy using a basket of "
+            "publicly traded companies exposed to "
+            "AI infrastructure build-out (semiconductors, "
+            "power/grid, data centers). Actual hyperscaler "
+            "capex is disclosed only quarterly; this tracks "
+            "live market pricing of that cycle, not capex "
+            "figures directly."
+        ),
+        "last_updated":  datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/api/calendar")
 async def get_calendar(days_ahead: int = 120, _=Depends(get_current_user)):
     events = get_events_by_window(days_ahead=days_ahead)

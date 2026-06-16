@@ -1214,6 +1214,53 @@
         animation: none;
       }
     }
+
+    /* ══ AI CAPEX PULSE ══ */
+    .capex-basket-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .capex-basket-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .capex-basket-label {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .capex-basket-returns {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .capex-basket-period {
+      font-size: 9px;
+      color: var(--text-2);
+      font-weight: 400;
+    }
+    .capex-basket-na {
+      font-size: 11px;
+      color: var(--text-2);
+      font-style: italic;
+    }
+    .capex-methodology-note {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -1293,6 +1340,10 @@
 
     <!-- ══ ECONOMY SIZE COMPARISON ══ -->
     <section id="economy-size-section" class="economy-size-standalone">
+    </section>
+
+    <!-- ══ AI INFRASTRUCTURE PULSE ══ -->
+    <section id="ai-capex-section" class="economy-size-standalone">
     </section>
 
     <!-- ══ CTA ══ -->
@@ -1911,6 +1962,113 @@
       `;
     }
 
+    async function renderAICapexPulse() {
+      const section = document.getElementById(
+        'ai-capex-section'
+      );
+      if (!section) return;
+
+      section.innerHTML = `
+        <div class="economy-size-standalone-inner">
+          <div class="economy-size-standalone-title">
+            AI Infrastructure Pulse
+          </div>
+          <div class="economy-size-standalone-sub">
+            Loading market data…
+          </div>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(
+          `${RAIL}/api/ai-capex-pulse`
+        );
+        const data = await res.json();
+
+        const pulseColor = {
+          ACCELERATING: 'var(--green)',
+          STEADY:       'var(--blue)',
+          COOLING:      'var(--amber)',
+          CONTRACTING:  'var(--red)',
+          UNAVAILABLE:  'var(--text-2)',
+        }[data.pulse_label] || 'var(--text-2)';
+
+        const basketRows = Object.values(data.basket)
+          .map(b => {
+            if (!b.available) {
+              return `
+                <div class="capex-basket-row">
+                  <div class="capex-basket-label">
+                    ${b.label}
+                  </div>
+                  <div class="capex-basket-na">
+                    Data unavailable
+                  </div>
+                </div>
+              `;
+            }
+            const ret1m = b.returns['1M'];
+            const retColor = ret1m == null
+              ? 'var(--text-2)'
+              : ret1m >= 0
+                ? 'var(--green)'
+                : 'var(--red)';
+            const retSign = ret1m == null
+              ? ''
+              : ret1m >= 0 ? '+' : '';
+            return `
+              <div class="capex-basket-row">
+                <div class="capex-basket-label">
+                  ${b.label}
+                </div>
+                <div class="capex-basket-returns">
+                  <span style="color:${retColor}">
+                    ${retSign}${ret1m != null ? ret1m : '—'}%
+                  </span>
+                  <span class="capex-basket-period">1M</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+        section.innerHTML = `
+          <div class="economy-size-standalone-inner">
+            <div class="economy-size-standalone-title">
+              AI Infrastructure Pulse
+            </div>
+            <div class="economy-size-standalone-sub">
+              Market-based proxy for the global AI
+              capex cycle · Composite 1M:
+              <span style="color:${pulseColor};font-weight:600;">
+                ${data.pulse_label}
+                ${data.composite_1m_avg_return != null
+                  ? ` (${data.composite_1m_avg_return >= 0 ? '+' : ''}${data.composite_1m_avg_return}%)`
+                  : ''}
+              </span>
+            </div>
+            <div class="capex-basket-list">
+              ${basketRows}
+            </div>
+            <div class="capex-methodology-note">
+              ${data.methodology}
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('AI Capex Pulse fetch failed:', e);
+        section.innerHTML = `
+          <div class="economy-size-standalone-inner">
+            <div class="economy-size-standalone-title">
+              AI Infrastructure Pulse
+            </div>
+            <div class="economy-size-standalone-sub">
+              Unable to load market data — try again shortly.
+            </div>
+          </div>
+        `;
+      }
+    }
+
     function renderDetail(eco) {
       const meta = ECONOMIES_META[eco.code];
       const sigCol = SIG_COLOR[eco.macro_signal] || 'var(--text-2)';
@@ -2058,6 +2216,7 @@
         document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
         highlightEconomyCountries(economies);
         renderEconomySizeSection();
+        renderAICapexPulse();
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
