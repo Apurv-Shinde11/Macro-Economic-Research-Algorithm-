@@ -5011,7 +5011,17 @@
 
       if (!delta || !delta.has_delta) { card.style.display = 'none'; return; }
 
-      const sentiment = delta.sentiment || 'NEUTRAL';
+      let sentiment = delta.sentiment || 'NEUTRAL';
+
+      // Only show IMPROVING/DETERIORATING when confidence moved meaningfully.
+      // The backend can set IMPROVING from market-condition correlation even
+      // when confidence delta is 0 — guard against that here.
+      const _currConf = (window._lastRunResult?.regime?.confidence || 0) * 100;
+      const _prevConf = (_lastHistory[0]?.confidence || 0) * 100;
+      const _confDelta = Math.round((_currConf - _prevConf) * 10) / 10;
+      if (sentiment === 'IMPROVING'     && _confDelta <= 0.5)  sentiment = 'STABLE';
+      if (sentiment === 'DETERIORATING' && _confDelta >= -0.5) sentiment = 'STABLE';
+
       card.className  = `delta-card ${sentiment}`;
       card.style.display = 'block';
 
