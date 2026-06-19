@@ -3612,8 +3612,140 @@ _YIELD_FALLBACKS = {
     "QA": 4.55,  "KZ": 13.50, "HU": 6.75,
 }
 
-# Nominal GDP in USD trillion — IMF WEO April 2026
-_NOMINAL_GDP_TRILLION = {
+# NOTE: requires nominal_gdp_cache table in Supabase (see README).
+# CREATE TABLE nominal_gdp_cache (
+#   code text PRIMARY KEY,
+#   gdp_usd_trillion numeric,
+#   fetched_at timestamptz default now()
+# );
+_nominal_gdp_mem_cache: dict = {}
+
+
+def _get_nominal_gdp_trillion(
+    wb_code: str,
+    code: str
+) -> float | None:
+    """
+    Returns nominal GDP in current USD trillions for a given country.
+    Fetches from World Bank NY.GDP.MKTP.CD, caches in Supabase for 30
+    days (data updates annually). Falls back to in-memory cache, then
+    Supabase stale cache, then None if all fail.
+    """
+    from datetime import datetime, timezone
+
+    # 1. In-memory cache hit
+    if code in _nominal_gdp_mem_cache:
+        return _nominal_gdp_mem_cache[code]
+
+    # 2. Supabase cache (30-day TTL)
+    try:
+        cached = (
+            _supabase.table("nominal_gdp_cache")
+            .select("*")
+            .eq("code", code)
+            .limit(1)
+            .execute()
+        )
+        if cached.data:
+            row = cached.data[0]
+            fetched_at = datetime.fromisoformat(
+                row["fetched_at"]
+            )
+            age_days = (
+                datetime.now(timezone.utc)
+                - fetched_at
+            ).total_seconds() / 86400
+
+            if age_days < 30:
+                val = row.get("gdp_usd_trillion")
+                if val is not None:
+                    _nominal_gdp_mem_cache[code] = float(val)
+                    return float(val)
+    except Exception as e:
+        print(
+            f"[NOMINAL_GDP] Supabase cache "
+            f"read failed for {code}: {e}",
+            flush=True
+        )
+
+    # 3. Live World Bank fetch
+    # NY.GDP.MKTP.CD = nominal GDP in current USD
+    raw = _wb_fetch(wb_code, "NY.GDP.MKTP.CD")
+    if raw is not None:
+        # Convert USD to trillions, round to 2 decimal places
+        val = round(raw / 1_000_000_000_000, 2)
+        _nominal_gdp_mem_cache[code] = val
+
+        # Upsert into Supabase cache
+        try:
+            _supabase.table(
+                "nominal_gdp_cache"
+            ).upsert({
+                "code": code,
+                "gdp_usd_trillion": val,
+                "fetched_at": datetime.now(
+                    timezone.utc
+                ).isoformat(),
+            }, on_conflict="code").execute()
+            print(
+                f"[NOMINAL_GDP] {code}: "
+                f"${val}T (live WB fetch)",
+                flush=True
+            )
+        except Exception as e:
+            print(
+                f"[NOMINAL_GDP] Supabase "
+                f"upsert failed for {code}: {e}",
+                flush=True
+            )
+        return val
+
+    # 4. Stale Supabase fallback
+    # (use whatever is cached even if >30 days old, better than None)
+    try:
+        stale = (
+            _supabase.table("nominal_gdp_cache")
+            .select("gdp_usd_trillion")
+            .eq("code", code)
+            .limit(1)
+            .execute()
+        )
+        if stale.data:
+            val = stale.data[0].get(
+                "gdp_usd_trillion"
+            )
+            if val is not None:
+                print(
+                    f"[NOMINAL_GDP] {code}: "
+                    f"using stale cache ${val}T",
+                    flush=True
+                )
+                return float(val)
+    except Exception:
+        pass
+
+    # 5. Hardcoded fallback as last resort
+    fallback = _NOMINAL_GDP_FALLBACK.get(code)
+    if fallback is not None:
+        print(
+            f"[NOMINAL_GDP] {code}: "
+            f"using hardcoded fallback "
+            f"${fallback}T",
+            flush=True
+        )
+        return fallback
+
+    print(
+        f"[NOMINAL_GDP] {code}: "
+        f"all sources failed, returning None",
+        flush=True
+    )
+    return None
+
+
+# Legacy fallback — used only if World Bank fetch and Supabase
+# cache both fail for a country. Update annually if needed.
+_NOMINAL_GDP_FALLBACK = {
     "US": 29.2, "CN": 18.6, "DE":  4.6, "IN":  4.3,
     "JP":  4.1, "GB":  3.6, "FR":  3.2, "IT":  2.3,
     "BR":  2.3, "CA":  2.2, "RU":  2.1, "KR":  1.9,
@@ -3740,7 +3872,7 @@ def _build_economy_record(
         "currency_vs_usd":      currency_vs_usd,
         "yield_10y":            yield_10y,
         "macro_signal":         _derive_macro_signal(gdp, inflation),
-        "gdp_nominal_trillion": _NOMINAL_GDP_TRILLION.get(code),
+        "gdp_nominal_trillion": _get_nominal_gdp_trillion(eco["wb_code"], code),
         "last_updated":         datetime.now(timezone.utc).isoformat(),
         "recent_development": (
             _get_country_news_cached(eco.get("wb_code", code)) or {
@@ -3811,7 +3943,7 @@ async def get_global_macro():
                     "currency_label":       meta.get("currency_label", ""),
                     "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
                     "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
-                    "gdp_nominal_trillion": _NOMINAL_GDP_TRILLION.get(code),
+                    "gdp_nominal_trillion": _get_nominal_gdp_trillion(meta.get("wb_code", code), code),
                     "recent_development": (
                         _get_country_news_cached(meta.get("wb_code", code)) or {
                             "headline": None,
