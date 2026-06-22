@@ -1293,6 +1293,7 @@
         html += `<div class="hist-block-sub">${target.instances} instances · avg ${target.avg_duration_months || '?'} months</div>`;
       }
       const ti = target.indices || {};
+      console.log('[SIM] target indices:', ti, 'instances:', target.instances);
       if (Object.keys(ti).length) {
         html += `<table class="hist-index-table">
           <thead><tr><th>Index</th><th>Avg</th><th>Worst</th><th>Best</th><th>Hit%</th></tr></thead><tbody>`;
@@ -1307,7 +1308,6 @@
             d.positive_instances ?? null;
           const totalInst =
             target.instances
-            || current.instances
             || null;
           const hit = (positiveInst != null
             && totalInst != null)
@@ -1352,8 +1352,7 @@
             const positiveInst =
               d.positive_instances ?? null;
             const totalInst =
-              target.instances
-              || current.instances
+              current.instances
               || null;
             const hit = (positiveInst != null
               && totalInst != null)
