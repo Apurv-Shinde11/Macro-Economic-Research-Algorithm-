@@ -21,6 +21,10 @@
         {
             "src": "pe.html",
             "use": "@vercel/static"
+        },
+        {
+            "src": "simulator.html",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -43,6 +47,10 @@
         {
             "src": "/pe",
             "dest": "/pe.html"
+        },
+        {
+            "src": "/simulator",
+            "dest": "/simulator.html"
         },
         {
             "src": "/(.*\\.html)",
