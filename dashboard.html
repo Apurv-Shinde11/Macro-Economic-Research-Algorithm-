@@ -3848,6 +3848,7 @@
         <a class="nav-link" href="global_macro.html">Global Macro</a>
         <a class="nav-link" href="pe.html">PE Intel</a>
         <a class="nav-link" href="simulator.html">Simulator</a>
+        <a class="nav-link" href="admin.html" id="adminNavLink" style="display:none;">Admin</a>
       </div>
     </div>
     <div class="nav-right">
@@ -4840,6 +4841,8 @@
         document.getElementById('userAvatar').textContent = initials;
         if (_profile.tier === 'admin') {
           document.getElementById('adminNavBtn').style.display = 'block';
+          const adminNavLink = document.getElementById('adminNavLink');
+          if (adminNavLink) adminNavLink.style.display = 'block';
         }
         populateSidebar(_profile);
       } catch (e) { console.error('Profile load failed:', e); }
