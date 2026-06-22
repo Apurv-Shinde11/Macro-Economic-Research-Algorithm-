@@ -3843,7 +3843,8 @@ def _fetch_live_economy_data():
 def _build_economy_record(
     eco, gdp, inflation, unemployment,
     currency_map, yield_map,
-    live_rates=None
+    live_rates=None,
+    nominal_trillion=None
 ):
     code = eco["code"]
     raw_fx = currency_map.get(code)
@@ -3872,7 +3873,13 @@ def _build_economy_record(
         "currency_vs_usd":      currency_vs_usd,
         "yield_10y":            yield_10y,
         "macro_signal":         _derive_macro_signal(gdp, inflation),
-        "gdp_nominal_trillion": _get_nominal_gdp_trillion(eco["wb_code"], code),
+        "gdp_nominal_trillion": (
+            nominal_trillion
+            if nominal_trillion is not None
+            else _get_nominal_gdp_trillion(
+                eco["wb_code"], code
+            )
+        ),
         "last_updated":         datetime.now(timezone.utc).isoformat(),
         "recent_development": (
             _get_country_news_cached(eco.get("wb_code", code)) or {
@@ -3943,7 +3950,10 @@ async def get_global_macro():
                     "currency_label":       meta.get("currency_label", ""),
                     "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
                     "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
-                    "gdp_nominal_trillion": _get_nominal_gdp_trillion(meta.get("wb_code", code), code),
+                    "gdp_nominal_trillion": (
+                        _nominal_gdp_mem_cache.get(code)
+                        or _NOMINAL_GDP_FALLBACK.get(code)
+                    ),
                     "recent_development": (
                         _get_country_news_cached(meta.get("wb_code", code)) or {
                             "headline": None,
@@ -3980,22 +3990,64 @@ async def get_global_macro():
 
     async def _fetch_one(eco):
         loop = asyncio.get_event_loop()
-        wb = eco["wb_code"]
-        gdp, inflation, unemployment = await asyncio.gather(
-            loop.run_in_executor(None, _wb_fetch, wb, "NY.GDP.MKTP.KD.ZG"),
-            loop.run_in_executor(None, _wb_fetch, wb, "FP.CPI.TOTL.ZG"),
-            loop.run_in_executor(None, _wb_fetch, wb, "SL.UEM.TOTL.ZS"),
+        wb   = eco["wb_code"]
+        code = eco["code"]
+
+        gdp, inflation, unemployment, nominal_usd = (
+            await asyncio.gather(
+                loop.run_in_executor(
+                    None, _wb_fetch, wb,
+                    "NY.GDP.MKTP.KD.ZG"),
+                loop.run_in_executor(
+                    None, _wb_fetch, wb,
+                    "FP.CPI.TOTL.ZG"),
+                loop.run_in_executor(
+                    None, _wb_fetch, wb,
+                    "SL.UEM.TOTL.ZS"),
+                loop.run_in_executor(
+                    None, _wb_fetch, wb,
+                    "NY.GDP.MKTP.CD"),
+            )
         )
-        return eco, gdp, inflation, unemployment
+
+        nominal_trillion = None
+        if nominal_usd is not None:
+            nominal_trillion = round(
+                nominal_usd / 1_000_000_000_000, 2
+            )
+            _nominal_gdp_mem_cache[code] = nominal_trillion
+            try:
+                _supabase.table(
+                    "nominal_gdp_cache"
+                ).upsert({
+                    "code": code,
+                    "gdp_usd_trillion": nominal_trillion,
+                    "fetched_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                }, on_conflict="code").execute()
+            except Exception as _e:
+                print(
+                    f"[NOMINAL_GDP] Supabase "
+                    f"upsert failed {code}: {_e}",
+                    flush=True
+                )
+        else:
+            nominal_trillion = _get_nominal_gdp_trillion(wb, code)
+
+        return (eco, gdp, inflation, unemployment, nominal_trillion)
 
     print("[GLOBAL_MACRO] Parallel World Bank fetch for all 50 economies...", flush=True)
     wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
 
     economies = []
-    for eco, gdp, inflation, unemployment in wb_results:
+    for (eco, gdp, inflation,
+         unemployment, nominal_trillion) in wb_results:
         record = _build_economy_record(
-            eco, gdp, inflation, unemployment, currency_map, yield_map,
-            live_rates=live_rates
+            eco, gdp, inflation, unemployment,
+            currency_map, yield_map,
+            live_rates=live_rates,
+            nominal_trillion=nominal_trillion
         )
         economies.append(record)
         try:
