@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EconIq — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══ DARK THEME (default) ══ */
+    :root {
+      --bg: #04060f;
+      --bg-2: #080d1c;
+      --bg-3: #0d1428;
+      --bg-4: #111d38;
+      --bg-glass: rgba(8, 13, 28, 0.70);
+      --border: rgba(99, 132, 255, 0.10);
+      --border-2: rgba(99, 132, 255, 0.20);
+      --text: #e8eeff;
+      --text-2: #7a8baa;
+      --text-3: #2e3d58;
+      --blue: #4f83ff;
+      --blue-light: #7aa3ff;
+      --blue-dim: rgba(79, 131, 255, 0.10);
+      --indigo: #6366f1;
+      --violet: #8b5cf6;
+      --cyan: #22d3ee;
+      --green: #10d48a;
+      --green-dim: rgba(16, 212, 138, 0.10);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.10);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.10);
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-sans: 'DM Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --surface: var(--bg-2);
+      --surface-2: var(--bg-3);
+      --nav-h: 68px;
+      --radius: 8px;
+      --radius-lg: 14px;
+      --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
+    }
+
+    /* ══ LIGHT THEME ══ */
+    html.light {
+      --bg: #f4f6fc;
+      --bg-2: #ffffff;
+      --bg-3: #eaf0fb;
+      --bg-4: #dde8f8;
+      --bg-glass: rgba(255, 255, 255, 0.80);
+      --border: rgba(79, 131, 255, 0.12);
+      --border-2: rgba(79, 131, 255, 0.22);
+      --text: #0d1120;
+      --text-2: #4a5872;
+      --text-3: #9aaabb;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --blue-dim: rgba(37, 99, 235, 0.08);
+      --indigo: #4f46e5;
+      --violet: #7c3aed;
+      --cyan: #0891b2;
+      --green: #059669;
+      --green-dim: rgba(5, 150, 105, 0.09);
+      --amber: #b45309;
+      --amber-dim: rgba(180, 83, 9, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(79, 131, 255, 0.08);
+    }
+
+    html { height: 100%; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100%;
+      overflow-x: hidden;
+      transition: background 0.32s ease, color 0.32s ease;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(79, 131, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 131, 255, 0.028) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none; z-index: 0;
+    }
+    html.light body::before {
+      background-image:
+        linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
+    }
+
+    /* ══ AURORA ══ */
+    .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .aurora-blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(110px); opacity: 0.10;
+      animation: auroraFloat 22s ease-in-out infinite;
+    }
+    .aurora-blob:nth-child(1) {
+      width: 800px; height: 600px;
+      background: radial-gradient(circle, #4f83ff 0%, #6366f1 50%, transparent 70%);
+      top: -250px; left: -200px; animation-duration: 24s;
+    }
+    .aurora-blob:nth-child(2) {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #8b5cf6 0%, #4f83ff 50%, transparent 70%);
+      top: 40%; right: -100px; animation-duration: 19s; animation-delay: -8s;
+    }
+    .aurora-blob:nth-child(3) {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #10d48a 0%, #22d3ee 50%, transparent 70%);
+      bottom: -100px; left: 35%; animation-duration: 28s; animation-delay: -16s;
+    }
+    html.light .aurora-blob { opacity: 0.06; }
+    @keyframes auroraFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(60px, -40px) scale(1.06); }
+      66%       { transform: translate(-40px, 55px) scale(0.96); }
+    }
+
+    /* ══ NAV ══ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(4, 6, 15, 0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.35s, box-shadow 0.35s;
+    }
+    .nav.scrolled {
+      background: rgba(4, 6, 15, 0.88);
+      box-shadow: 0 1px 0 rgba(79, 131, 255, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    html.light .nav { background: rgba(244, 246, 252, 0.75); border-bottom: 1px solid var(--border); }
+    html.light .nav.scrolled {
+      background: rgba(244, 246, 252, 0.93);
+      box-shadow: 0 1px 0 rgba(79, 131, 255, 0.10), 0 8px 28px rgba(0, 0, 0, 0.08);
+    }
+    .nav-left { display: flex; align-items: center; gap: 14px; }
+    .nav-logo { font-family: var(--font-mono); font-size: 15px; font-weight: 700; letter-spacing: 0.14em; text-decoration: none; color: var(--text); }
+    .nav-firm { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text-2); padding: 3px 10px; background: var(--bg-3); border-radius: 5px; border: 1px solid var(--border); }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--text-2); text-decoration: none;
+      padding: 6px 10px; border-radius: 6px;
+      border: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
+    .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .theme-toggle {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border-2);
+      background: rgba(79, 131, 255, 0.07);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background 0.2s, border-color 0.2s, transform 0.25s;
+      flex-shrink: 0; position: relative; overflow: hidden;
+    }
+    .theme-toggle:hover { border-color: var(--blue); transform: rotate(15deg); }
+    .theme-toggle .icon-sun, .theme-toggle .icon-moon { position: absolute; transition: opacity 0.3s ease, transform 0.4s ease; }
+    .theme-toggle .icon-sun  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+    .theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+    .nav-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border-2); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-2); font-size: 15px;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .nav-btn:hover { background: var(--bg-3); color: var(--text); border-color: var(--border-2); }
+    .nav-user {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border: 1px solid var(--border-2); border-radius: 8px;
+      cursor: pointer; transition: background 0.2s, border-color 0.2s; background: transparent;
+    }
+    .nav-user:hover { background: var(--bg-3); }
+    .nav-avatar {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--blue-dim);
+      border: 1px solid rgba(79, 131, 255, 0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--blue);
+    }
+    .nav-user-name { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); }
+
+    /* ══ HAMBURGER / MOBILE NAV ══ */
+    .nav-hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 8px; z-index: 110;
+    }
+    .nav-hamburger span { display: block; width: 22px; height: 2px; background: var(--text-2); border-radius: 2px; transition: transform 0.25s ease, opacity 0.25s ease; }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-mobile-menu {
+      position: fixed; top: var(--nav-h); left: 0; right: 0; bottom: 0;
+      background: var(--bg-2); padding: 0 24px;
+      border-top: 1px solid var(--border); overflow-y: auto; z-index: 99;
+    }
+    .nav-mobile-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0; }
+    .nav-mobile-links li { border-bottom: 1px solid var(--border); }
+    .nav-mobile-links a { display: block; padding: 18px 0; font-size: 16px; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color 0.2s; }
+    .nav-mobile-links a:hover { color: var(--text); }
+    @media (max-width: 768px) {
+      .nav-hamburger { display: flex; }
+      .nav-links { display: none; }
+      nav .theme-toggle { display: none; }
+    }
+
+    /* ══ PAGE LAYOUT ══ */
+    .admin-layout {
+      position: relative; z-index: 1;
+      padding: calc(var(--nav-h) + 40px) 40px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ══ PAGE HEADER ══ */
+    .page-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.20em;
+      color: var(--blue);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .page-heading {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 36px;
+    }
+
+    /* ══ SECTION ══ */
+    .admin-section {
+      margin-bottom: 48px;
+    }
+    .admin-section-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-count-badge {
+      font-size: 9px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      font-weight: 600;
+    }
+    .admin-count-badge.approved {
+      background: var(--green-dim);
+      color: var(--green);
+      border-color: rgba(16, 212, 138, 0.2);
+    }
+
+    /* ══ TABLE ══ */
+    .admin-table-wrap {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .admin-table th {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .admin-table td {
+      font-size: 12px;
+      color: var(--text-2);
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: var(--bg-3); }
+    .admin-table td:first-child { color: var(--text); font-weight: 500; }
+
+    /* Role + AUM badges */
+    .role-badge {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid var(--border-2);
+      white-space: nowrap;
+    }
+    .aum-badge {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.2);
+      white-space: nowrap;
+    }
+
+    /* Actions */
+    .action-btn {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 5px 12px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .action-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .action-btn:active { transform: translateY(0); }
+    .action-btn.approve {
+      background: var(--green);
+      color: #04060f;
+    }
+    .action-btn.reject {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      margin-left: 6px;
+    }
+    .action-btn.done {
+      background: var(--bg-3);
+      color: var(--text-3);
+      border: 1px solid var(--border);
+      cursor: default;
+    }
+    .action-btn.done:hover { opacity: 1; transform: none; }
+
+    /* Empty state */
+    .admin-empty {
+      padding: 40px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+    }
+
+    /* Loading state */
+    .admin-loading {
+      padding: 32px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+    }
+
+    /* Timestamp */
+    .timestamp {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+    }
+
+    /* Tier badge */
+    .tier-pill {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tier-pill.trial { background: var(--green-dim); color: var(--green); }
+    .tier-pill.pending { background: var(--amber-dim); color: var(--amber); }
+    .tier-pill.rejected { background: var(--red-dim); color: var(--red); }
+    .tier-pill.admin { background: var(--blue-dim); color: var(--blue); }
+
+    /* Refresh button */
+    .refresh-btn {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border-2);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      margin-left: auto;
+    }
+    .refresh-btn:hover { background: var(--bg-3); color: var(--text); }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: var(--bg-2); border: 1px solid var(--border-2);
+      color: var(--text); font-family: var(--font-sans); font-size: 13px;
+      padding: 12px 18px; border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      max-width: 300px; line-height: 1.5;
+      animation: toastIn 0.3s ease;
+    }
+    .toast.success { border-color: rgba(16,212,138,0.35); }
+    .toast.error   { border-color: rgba(248,113,113,0.35); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 900px) {
+      .admin-layout { padding: calc(var(--nav-h) + 24px) 20px 40px; }
+      .admin-table th:nth-child(5),
+      .admin-table td:nth-child(5),
+      .admin-table th:nth-child(6),
+      .admin-table td:nth-child(6) { display: none; }
+    }
+    @media (max-width: 600px) {
+      .admin-table th:nth-child(3),
+      .admin-table td:nth-child(3),
+      .admin-table th:nth-child(4),
+      .admin-table td:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="aurora" aria-hidden="true">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" id="mainNav">
+    <div class="nav-left">
+      <a class="nav-logo" href="landing_page.html">EconIq</a>
+      <span class="nav-firm" id="navFirm" style="display:none;"></span>
+      <div class="nav-links">
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <a class="nav-link" href="global_macro.html">Global Macro</a>
+        <a class="nav-link" href="pe.html">PE Intel</a>
+        <a class="nav-link" href="simulator.html">Simulator</a>
+        <a class="nav-link active" href="admin.html">Admin</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+      </button>
+      <div class="nav-user" id="userBtn">
+        <div class="nav-avatar" id="userAvatar">—</div>
+        <span class="nav-user-name" id="userName">Loading</span>
+      </div>
+      <button class="nav-btn" id="signOutBtn" title="Sign out" style="font-size:13px;font-family:var(--font-mono);">↪</button>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile-menu" id="navMobileMenu" style="display:none;">
+    <ul class="nav-mobile-links">
+      <li><a href="landing_page.html" onclick="closeMobileMenu()">Home</a></li>
+      <li><a href="dashboard.html" onclick="closeMobileMenu()">Dashboard</a></li>
+      <li><a href="global_macro.html" onclick="closeMobileMenu()">Global Macro</a></li>
+      <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel</a></li>
+      <li><a href="simulator.html" onclick="closeMobileMenu()">Simulator</a></li>
+      <li><a href="admin.html" onclick="closeMobileMenu()">Admin</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="admin-layout" id="adminLayout" style="display:none;">
+
+    <div class="page-eyebrow">Early Access Requests</div>
+    <div class="page-heading">Pending Signups</div>
+    <div class="page-sub">Review and action new access requests. Approving sets a 30-day trial and notifies the user.</div>
+
+    <!-- SECTION 1: PENDING -->
+    <div class="admin-section">
+      <div class="admin-section-title">
+        Pending Requests
+        <span class="admin-count-badge" id="pendingCount">—</span>
+        <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="pendingContainer">
+          <div class="admin-loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: RECENTLY APPROVED -->
+    <div class="admin-section">
+      <div class="admin-section-title">
+        Recently Approved
+        <span class="admin-count-badge approved" id="approvedCount">—</span>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="approvedContainer">
+          <div class="admin-loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    /* ══ THEME ══ */
+    const rootEl = document.documentElement;
+    const toggleBtn = document.getElementById('theme-toggle');
+    if (localStorage.getItem('econiq-theme') === 'light') rootEl.classList.add('light');
+    toggleBtn.addEventListener('click', () => {
+      rootEl.classList.toggle('light');
+      localStorage.setItem('econiq-theme', rootEl.classList.contains('light') ? 'light' : 'dark');
+    });
+
+    /* ══ CONFIG ══ */
+    const RAILWAY_URL  = 'https://macro-economic-research-algorithm.onrender.com';
+    const SUPABASE_URL = 'https://nurqjuywtypqvciyjlrw.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ';
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let _session = null;
+    let _token   = null;
+
+    /* ══ AUTH ══ */
+    async function init() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      _session = session;
+      _token   = session.access_token;
+
+      // Fetch profile and verify admin tier
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('tier, full_name, firm_name, email')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile || profile.tier !== 'admin') {
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      const name     = profile.full_name || profile.email || '';
+      const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '—';
+      document.getElementById('userAvatar').textContent = initials;
+      document.getElementById('userName').textContent   = name.split(' ')[0] || name;
+      const firm = profile.firm_name || '';
+      if (firm) {
+        document.getElementById('navFirm').textContent     = firm;
+        document.getElementById('navFirm').style.display   = '';
+      }
+
+      document.getElementById('adminLayout').style.display = 'block';
+      initNav();
+      await loadData();
+    }
+
+    function initNav() {
+      const navEl = document.getElementById('mainNav');
+      window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+      document.getElementById('signOutBtn').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        window.location.href = 'login.html';
+      });
+      document.getElementById('navHamburger').addEventListener('click', toggleMobileMenu);
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      const isOpen = menu.style.display === 'block';
+      menu.style.display = isOpen ? 'none' : 'block';
+      btn.classList.toggle('open', !isOpen);
+      document.body.style.overflow = isOpen ? '' : 'hidden';
+    }
+
+    function closeMobileMenu() {
+      const menu = document.getElementById('navMobileMenu');
+      const btn  = document.getElementById('navHamburger');
+      if (menu) menu.style.display = 'none';
+      if (btn)  btn.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* ══ DATA ══ */
+    const ROLE_LABELS = {
+      ca:             'CA',
+      ifa:            'IFA',
+      wealth_manager: 'Wealth Mgr',
+      other:          'Other',
+    };
+    const AUM_LABELS = {
+      individual: '<₹50 Cr',
+      small:      '₹50–200 Cr',
+      mid:        '₹200–500 Cr',
+      large:      '>₹500 Cr',
+    };
+
+    async function loadData() {
+      await Promise.all([loadPending(), loadApproved()]);
+    }
+
+    async function loadPending() {
+      const container = document.getElementById('pendingContainer');
+      container.innerHTML = '<div class="admin-loading">Loading...</div>';
+
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id, full_name, email, firm_name, role, aum_size, heard_from, created_at')
+        .eq('tier', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        container.innerHTML = `<div class="admin-empty">Error loading data: ${error.message}</div>`;
+        return;
+      }
+
+      const rows = data || [];
+      document.getElementById('pendingCount').textContent = rows.length;
+
+      if (!rows.length) {
+        container.innerHTML = '<div class="admin-empty">No pending requests.</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Firm</th>
+              <th>Role</th>
+              <th>AUM</th>
+              <th>Heard via</th>
+              <th>Requested</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(u => `
+              <tr id="row-${u.id}">
+                <td>${esc(u.full_name || '—')}</td>
+                <td>${esc(u.email || '—')}</td>
+                <td>${esc(u.firm_name || '—')}</td>
+                <td><span class="role-badge">${ROLE_LABELS[u.role] || esc(u.role) || '—'}</span></td>
+                <td><span class="aum-badge">${AUM_LABELS[u.aum_size] || esc(u.aum_size) || '—'}</span></td>
+                <td>${esc(u.heard_from || '—')}</td>
+                <td class="timestamp">${fmtDate(u.created_at)}</td>
+                <td>
+                  <button class="action-btn approve" onclick="doAction('approve', '${u.id}', this)">Approve</button>
+                  <button class="action-btn reject"  onclick="doAction('reject',  '${u.id}', this)">Reject</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function loadApproved() {
+      const container = document.getElementById('approvedContainer');
+      container.innerHTML = '<div class="admin-loading">Loading...</div>';
+
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id, full_name, email, firm_name, role, aum_size, tier, approved_at, trial_ends_at')
+        .eq('tier', 'trial')
+        .order('approved_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        container.innerHTML = `<div class="admin-empty">Error loading data: ${error.message}</div>`;
+        return;
+      }
+
+      const rows = data || [];
+      document.getElementById('approvedCount').textContent = rows.length;
+
+      if (!rows.length) {
+        container.innerHTML = '<div class="admin-empty">No approved users yet.</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Firm</th>
+              <th>Role</th>
+              <th>AUM</th>
+              <th>Approved</th>
+              <th>Trial Ends</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(u => {
+              const isExpired = u.trial_ends_at && new Date(u.trial_ends_at) < new Date();
+              return `
+              <tr>
+                <td>${esc(u.full_name || '—')}</td>
+                <td>${esc(u.email || '—')}</td>
+                <td>${esc(u.firm_name || '—')}</td>
+                <td><span class="role-badge">${ROLE_LABELS[u.role] || esc(u.role) || '—'}</span></td>
+                <td><span class="aum-badge">${AUM_LABELS[u.aum_size] || esc(u.aum_size) || '—'}</span></td>
+                <td class="timestamp">${fmtDate(u.approved_at)}</td>
+                <td class="timestamp" style="color:${isExpired ? 'var(--red)' : 'var(--green)'}">
+                  ${fmtDate(u.trial_ends_at)}${isExpired ? ' (expired)' : ''}
+                </td>
+                <td><span class="tier-pill trial">TRIAL</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    /* ══ ACTIONS ══ */
+    async function doAction(action, userId, btn) {
+      btn.disabled = true;
+      btn.textContent = action === 'approve' ? 'Approving...' : 'Rejecting...';
+
+      try {
+        const res = await fetch(`${RAILWAY_URL}/api/admin/${action}/${userId}`);
+        if (!res.ok) throw new Error('Request failed');
+
+        // Mark the row as done
+        const row = document.getElementById(`row-${userId}`);
+        if (row) {
+          const actionsCell = row.querySelector('td:last-child');
+          actionsCell.innerHTML = `<span class="action-btn done">${action === 'approve' ? '✓ Approved' : '✗ Rejected'}</span>`;
+        }
+
+        showToast(action === 'approve' ? 'User approved — 30-day trial started.' : 'User rejected.', action === 'approve' ? 'success' : '');
+
+        // Refresh both tables after a short delay
+        setTimeout(loadData, 1500);
+
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = action === 'approve' ? 'Approve' : 'Reject';
+        showToast('Action failed: ' + e.message, 'error');
+      }
+    }
+
+    /* ══ HELPERS ══ */
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    /* ══ TOAST ══ */
+    function showToast(msg, type = '') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast' + (type ? ' ' + type : '');
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    init();
+  </script>
+</body>
+</html>

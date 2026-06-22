@@ -25,6 +25,10 @@
         {
             "src": "simulator.html",
             "use": "@vercel/static"
+        },
+        {
+            "src": "admin.html",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -51,6 +55,10 @@
         {
             "src": "/simulator",
             "dest": "/simulator.html"
+        },
+        {
+            "src": "/admin",
+            "dest": "/admin.html"
         },
         {
             "src": "/(.*\\.html)",

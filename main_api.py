@@ -13,13 +13,16 @@ import time
 import asyncio
 import traceback
 import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Any
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, HTMLResponse
 from pydantic import BaseModel
 
 from supabase import create_client, Client
@@ -67,6 +70,10 @@ except ImportError:
     )
 
 JOB_TTL_SECONDS = 3600
+
+FOUNDER_EMAIL      = "econiq.teams@gmail.com"
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+RENDER_BASE        = "https://macro-economic-research-algorithm.onrender.com"
 
 _engines:  dict        = {}
 _supabase: Client | None = None
@@ -2869,6 +2876,223 @@ async def run_simulator(
             for k, v in SCENARIOS.items()
         },
     }
+
+
+@app.post("/api/notify-signup")
+async def notify_signup(body: dict):
+    """
+    Sends actionable email to founder when a new user requests access.
+    No auth required — called during signup flow before user has a token.
+    """
+    name     = body.get("name", "Unknown")
+    email    = body.get("email", "")
+    firm     = body.get("firm", "—")
+    role     = body.get("role", "—")
+    aum      = body.get("aum", "—")
+    heard    = body.get("heard", "—")
+    user_id  = body.get("user_id", "")
+
+    approve_url = f"{RENDER_BASE}/api/admin/approve/{user_id}"
+    reject_url  = f"{RENDER_BASE}/api/admin/reject/{user_id}"
+
+    role_labels = {
+        "ca":             "Chartered Accountant",
+        "ifa":            "Independent Financial Advisor",
+        "wealth_manager": "Wealth Manager",
+        "other":          "Other",
+    }
+    aum_labels = {
+        "individual": "Below ₹50 Cr",
+        "small":      "₹50 – 200 Cr",
+        "mid":        "₹200 – 500 Cr",
+        "large":      "Above ₹500 Cr",
+    }
+
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;padding:24px;
+      background:#04060f;color:#e8eeff;border-radius:12px;">
+      <div style="font-size:11px;letter-spacing:2px;color:#4f83ff;margin-bottom:8px;">
+        ECONIQ · NEW ACCESS REQUEST
+      </div>
+      <h2 style="margin:0 0 16px;font-size:20px;color:#e8eeff;">
+        {name} wants access to Sentinel
+      </h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;width:120px;">Name</td>
+          <td style="padding:6px 0;font-size:12px;">{name}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;">Email</td>
+          <td style="padding:6px 0;font-size:12px;">{email}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;">Firm</td>
+          <td style="padding:6px 0;font-size:12px;">{firm or "—"}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;">Role</td>
+          <td style="padding:6px 0;font-size:12px;">{role_labels.get(role, role)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;">AUM</td>
+          <td style="padding:6px 0;font-size:12px;">{aum_labels.get(aum, aum)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#7a8baa;font-size:12px;">Heard via</td>
+          <td style="padding:6px 0;font-size:12px;">{heard}</td>
+        </tr>
+      </table>
+      <div style="display:flex;gap:12px;">
+        <a href="{approve_url}"
+           style="background:#10d48a;color:#04060f;padding:12px 24px;
+             border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+          ✓ Approve Access
+        </a>
+        <a href="{reject_url}"
+           style="background:#f87171;color:#fff;padding:12px 24px;
+             border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+          ✗ Reject
+        </a>
+      </div>
+      <div style="margin-top:20px;font-size:10px;color:#7a8baa;">
+        EconIQ · Sentinel Early Access
+      </div>
+    </div>
+    """
+
+    gmail_pwd = os.environ.get("GMAIL_APP_PASSWORD", "")
+    if not gmail_pwd:
+        print(f"[SIGNUP] No Gmail app password — skipping email for {email}", flush=True)
+        return {"status": "email_skipped"}
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"[EconIQ] New access request from {name}"
+        msg["From"]    = FOUNDER_EMAIL
+        msg["To"]      = FOUNDER_EMAIL
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(FOUNDER_EMAIL, gmail_pwd)
+            server.sendmail(FOUNDER_EMAIL, FOUNDER_EMAIL, msg.as_string())
+
+        print(f"[SIGNUP] Notification sent for {email}", flush=True)
+        return {"status": "notified"}
+
+    except Exception as e:
+        print(f"[SIGNUP] Email failed: {e}", flush=True)
+        return {"status": "email_failed"}
+
+
+@app.get("/api/admin/approve/{user_id}")
+async def approve_user(user_id: str):
+    """
+    Approves a pending user — sets tier to 'trial' with 30-day window.
+    Called from actionable email link. No auth required; secured by UUID obscurity + HTTPS.
+    """
+    try:
+        trial_end = (
+            datetime.now(timezone.utc) + timedelta(days=30)
+        ).isoformat()
+
+        result = _supabase.table("profiles").update({
+            "tier":          "trial",
+            "trial_ends_at": trial_end,
+            "approved_at":   datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+
+        if not result.data:
+            return HTMLResponse("<h2>User not found</h2>", status_code=404)
+
+        user_data  = result.data[0]
+        user_email = user_data.get("email", "")
+        user_name  = user_data.get("full_name", "there")
+
+        gmail_pwd = os.environ.get("GMAIL_APP_PASSWORD", "")
+        if gmail_pwd and user_email:
+            try:
+                approval_html = f"""
+                <div style="font-family:Arial;max-width:480px;padding:24px;
+                  background:#04060f;color:#e8eeff;border-radius:12px;">
+                  <div style="font-size:11px;letter-spacing:2px;color:#4f83ff;margin-bottom:8px;">
+                    ECONIQ · SENTINEL
+                  </div>
+                  <h2 style="color:#10d48a;margin:0 0 12px;">
+                    You're in, {user_name}.
+                  </h2>
+                  <p style="color:#7a8baa;font-size:13px;line-height:1.6;">
+                    Your early access to Sentinel has been approved.
+                    You have 30 days of trial access starting today.
+                  </p>
+                  <a href="https://macro-economic-research-algorithm.vercel.app/login.html"
+                     style="display:inline-block;margin-top:16px;background:#4f83ff;
+                       color:#fff;padding:12px 24px;border-radius:8px;
+                       text-decoration:none;font-weight:700;font-size:13px;">
+                    Access Sentinel →
+                  </a>
+                  <p style="margin-top:20px;font-size:10px;color:#7a8baa;">
+                    EconIQ · econiq.teams@gmail.com
+                  </p>
+                </div>
+                """
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = "You're approved — Sentinel Early Access"
+                msg["From"]    = FOUNDER_EMAIL
+                msg["To"]      = user_email
+                msg.attach(MIMEText(approval_html, "html"))
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                    server.login(FOUNDER_EMAIL, gmail_pwd)
+                    server.sendmail(FOUNDER_EMAIL, user_email, msg.as_string())
+            except Exception as _e:
+                print(f"[APPROVE] User email failed: {_e}", flush=True)
+
+        print(f"[APPROVE] Approved {user_email}", flush=True)
+        return HTMLResponse(f"""
+        <html><body style="font-family:Arial;background:#04060f;color:#e8eeff;
+          display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+          <div style="text-align:center;">
+            <div style="color:#10d48a;font-size:48px;">✓</div>
+            <h2 style="color:#e8eeff;">{user_name} approved.</h2>
+            <p style="color:#7a8baa;">They've been sent a 30-day trial access email.</p>
+          </div>
+        </body></html>
+        """)
+
+    except Exception as e:
+        print(f"[APPROVE] Failed: {e}", flush=True)
+        return HTMLResponse(f"<h2>Error: {e}</h2>", status_code=500)
+
+
+@app.get("/api/admin/reject/{user_id}")
+async def reject_user(user_id: str):
+    """
+    Rejects a pending user — sets tier to 'rejected'.
+    Called from actionable email link. No auth required; secured by UUID obscurity + HTTPS.
+    """
+    try:
+        result = _supabase.table("profiles").update({
+            "tier":        "rejected",
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+
+        user_data = (result.data or [{}])[0]
+        user_name = user_data.get("full_name", "User")
+
+        print(f"[REJECT] Rejected {user_id}", flush=True)
+        return HTMLResponse(f"""
+        <html><body style="font-family:Arial;background:#04060f;color:#e8eeff;
+          display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+          <div style="text-align:center;">
+            <div style="color:#f87171;font-size:48px;">✗</div>
+            <h2 style="color:#e8eeff;">{user_name} rejected.</h2>
+            <p style="color:#7a8baa;">Their account remains pending.</p>
+          </div>
+        </body></html>
+        """)
+
+    except Exception as e:
+        return HTMLResponse(f"<h2>Error: {e}</h2>", status_code=500)
 
 
 @app.get("/api/fii-history")

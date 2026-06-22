@@ -523,6 +523,35 @@ html.light .form-input:focus {
              placeholder="Apex Capital">
     </div>
     <div class="form-group">
+      <label class="form-label">Your Role</label>
+      <select class="form-input" id="signupRole" required>
+        <option value="">Select your role</option>
+        <option value="ca">Chartered Accountant (CA)</option>
+        <option value="ifa">Independent Financial Advisor (IFA)</option>
+        <option value="wealth_manager">Wealth Manager</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Client AUM (approximate)</label>
+      <select class="form-input" id="signupAUM" required>
+        <option value="">Select AUM range</option>
+        <option value="individual">Below ₹50 Cr</option>
+        <option value="small">₹50 – 200 Cr</option>
+        <option value="mid">₹200 – 500 Cr</option>
+        <option value="large">Above ₹500 Cr</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">How did you hear about EconIQ?</label>
+      <select class="form-input" id="signupHeard">
+        <option value="linkedin">LinkedIn</option>
+        <option value="referral">Referral / Word of mouth</option>
+        <option value="instagram">Instagram</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Password</label>
       <input class="form-input" type="password" id="signupPassword"
              placeholder="Min 8 characters" autocomplete="new-password"
@@ -630,6 +659,13 @@ async function handleSignIn(e) {
       return;
     }
 
+    if (profile?.tier === 'rejected') {
+      await sb.auth.signOut();
+      showMessage('Your access request was not approved. Contact us at econiq.teams@gmail.com for more information.', 'error');
+      setLoading(btn, false);
+      return;
+    }
+
     if (profile?.tier === 'trial' && profile.trial_ends_at && new Date(profile.trial_ends_at) < new Date()) {
       await sb.auth.signOut();
       showMessage('Your trial has expired. Please contact us to upgrade your account.', 'error');
@@ -659,6 +695,9 @@ async function handleSignUp(e) {
   const name     = document.getElementById('signupName').value.trim();
   const email    = document.getElementById('signupEmail').value.trim();
   const firm     = document.getElementById('signupFirm').value.trim();
+  const role     = document.getElementById('signupRole').value;
+  const aum      = document.getElementById('signupAUM').value;
+  const heard    = document.getElementById('signupHeard').value || 'other';
   const password = document.getElementById('signupPassword').value;
   const btn      = document.getElementById('signupBtn');
 
@@ -681,7 +720,29 @@ async function handleSignUp(e) {
       await sb.from('profiles').upsert({
         id: data.user.id, email, full_name: name,
         firm_name: firm || null, tier: 'pending',
+        role: role || 'other',
+        aum_size: aum || 'individual',
+        heard_from: heard || 'other',
       });
+
+      // Notify founder via backend
+      try {
+        await fetch(
+          'https://macro-economic-research-algorithm.onrender.com/api/notify-signup',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name, email,
+              firm: firm || null,
+              role, aum, heard,
+              user_id: data.user.id,
+            })
+          }
+        );
+      } catch(_) {
+        // Notification failure should not block the signup success state
+      }
     }
 
     document.getElementById('signupForm').style.display   = 'none';
