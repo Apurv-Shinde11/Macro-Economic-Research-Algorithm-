@@ -68,7 +68,7 @@ except ImportError:
 
 JOB_TTL_SECONDS = 3600
 
-FOUNDER_EMAIL   = "econiq.teams@gmail.com"
+FOUNDER_EMAIL   = os.environ.get("FOUNDER_EMAIL", "apurv350@gmail.com")
 RESEND_API_KEY  = os.environ.get("RESEND_API_KEY", "")
 RENDER_BASE     = "https://macro-economic-research-algorithm.onrender.com"
 
@@ -2996,7 +2996,7 @@ async def notify_signup(body: dict):
     """
 
     sent = _send_email(
-        to=FOUNDER_EMAIL,
+        to="apurv350@gmail.com",
         subject=f"[EconIQ] New access request from {name}",
         html=html_body,
     )
