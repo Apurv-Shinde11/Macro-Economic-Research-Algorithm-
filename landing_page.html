@@ -754,6 +754,127 @@
     html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg)  scale(1);   }
     html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
 
+    /* ══ SIMULATOR TEASER ══ */
+    .sim-teaser-card {
+      position: relative;
+      max-width: 640px;
+      margin: 40px auto 0;
+      border-radius: var(--radius-lg, 14px);
+      border: 1px solid var(--border, rgba(99,132,255,0.15));
+      overflow: hidden;
+      background: var(--bg-2);
+    }
+    .sim-teaser-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(4,6,15,0.72);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      border-radius: inherit;
+    }
+    .sim-teaser-lock {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .sim-teaser-lock-icon {
+      font-size: 28px;
+      color: var(--blue, #4f83ff);
+      opacity: 0.8;
+    }
+    .sim-teaser-lock-text {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--text-2, #7a8baa);
+      text-transform: uppercase;
+    }
+    .sim-teaser-lock-btn {
+      background: var(--blue, #4f83ff);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 10px 22px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: var(--font-sans, 'DM Sans', sans-serif);
+    }
+    .sim-teaser-inner {
+      padding: 28px 24px;
+    }
+    .sim-preview-scenario {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text, #e8eeff);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sim-preview-badge {
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      background: rgba(79,131,255,0.12);
+      color: var(--blue, #4f83ff);
+      border: 1px solid rgba(79,131,255,0.25);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .sim-preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .sim-preview-sleeve {
+      border-radius: 8px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sim-preview-sleeve.bearish {
+      background: rgba(248,113,113,0.10);
+      border: 1px solid rgba(248,113,113,0.20);
+    }
+    .sim-preview-sleeve.bullish {
+      background: rgba(16,212,138,0.10);
+      border: 1px solid rgba(16,212,138,0.20);
+    }
+    .sim-preview-sleeve.neutral {
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.15);
+    }
+    .sim-preview-sleeve-name {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--text-2, #7a8baa);
+    }
+    .sim-preview-sleeve-val {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text, #e8eeff);
+    }
+    .sim-preview-sleeve-note {
+      font-size: 9px;
+      color: var(--text-2, #7a8baa);
+      line-height: 1.4;
+    }
+    .sim-preview-note {
+      font-size: 11px;
+      color: var(--text-2, #7a8baa);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
     /* ══ EARLY ACCESS ══ */
     #early-access {
       background: transparent;
@@ -1208,6 +1329,63 @@
         <div class="feature-desc">Every run stored with regime, confidence, conviction, and equity bias. Backtest performance by regime across five indices, with outcome tracking as 30-day windows close.</div>
         <div class="feature-detail">Full run history · Outcome tracking · 5-index backtest · Per-regime performance · Confidence trend sparkline</div>
       </div>
+    </div>
+  </section>
+
+  <!-- ════ SIMULATOR TEASER ════ -->
+  <section id="simulator-teaser" class="section">
+    <div class="container">
+
+      <div class="section-eyebrow reveal">MACRO SHOCK SIMULATOR</div>
+      <div class="section-heading reveal">What happens to your client's portfolio under this scenario?</div>
+      <div class="section-sub reveal">
+        Select a scenario. Adjust the allocation. See the impact — in plain language, in seconds.
+      </div>
+
+      <div class="sim-teaser-card reveal">
+        <div class="sim-teaser-overlay">
+          <div class="sim-teaser-lock">
+            <div class="sim-teaser-lock-icon">⬡</div>
+            <div class="sim-teaser-lock-text">Available in Sentinel Early Access</div>
+            <a class="sim-teaser-lock-btn"
+               href="mailto:econiq.teams@gmail.com?subject=Early Access Request — Sentinel">
+              Request Access →
+            </a>
+          </div>
+        </div>
+        <div class="sim-teaser-inner" style="filter:blur(3px);pointer-events:none;user-select:none;">
+          <div class="sim-preview-scenario">
+            <span class="sim-preview-badge">INDIA MACRO</span>
+            Crude Oil Spike ($95/bbl)
+          </div>
+          <div class="sim-preview-grid">
+            <div class="sim-preview-sleeve bearish">
+              <div class="sim-preview-sleeve-name">EQUITY</div>
+              <div class="sim-preview-sleeve-val">−10%</div>
+              <div class="sim-preview-sleeve-note">Margin compression</div>
+            </div>
+            <div class="sim-preview-sleeve neutral">
+              <div class="sim-preview-sleeve-name">DEBT</div>
+              <div class="sim-preview-sleeve-val">−3%</div>
+              <div class="sim-preview-sleeve-note">Avoid long duration</div>
+            </div>
+            <div class="sim-preview-sleeve bullish">
+              <div class="sim-preview-sleeve-name">GOLD</div>
+              <div class="sim-preview-sleeve-val">+8%</div>
+              <div class="sim-preview-sleeve-note">Safe haven demand</div>
+            </div>
+            <div class="sim-preview-sleeve neutral">
+              <div class="sim-preview-sleeve-name">CASH</div>
+              <div class="sim-preview-sleeve-val">+1%</div>
+              <div class="sim-preview-sleeve-note">Hold for re-entry</div>
+            </div>
+          </div>
+          <div class="sim-preview-note">
+            Add gold to 10–12%. Reduce equity to underweight. Avoid FMCG, chemicals, auto ancillaries.
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 

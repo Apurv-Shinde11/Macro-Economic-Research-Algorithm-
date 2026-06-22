@@ -2560,6 +2560,317 @@ async def get_backtest(regime: str = "LIQUIDITY_DRIVEN_EXPANSION", profile: dict
     return {"regime": regime, "available": True, "data": data}
 
 
+@app.post("/api/simulator")
+async def run_simulator(
+    body: dict,
+    profile: dict = Depends(require_access)
+):
+    """
+    Macro Shock Simulator.
+    Takes portfolio allocation + scenario,
+    returns regime impact + per-sleeve
+    directional impact + historical P&L
+    context from REGIME_BACKTEST.
+    """
+
+    SCENARIOS = {
+        "rbi_rate_hike": {
+            "label": "RBI Rate Hike (+50bps)",
+            "tier": "India",
+            "description": "RBI surprises with a 50bps hike to combat inflation.",
+            "signal_shifts": {
+                "vix": +1.5,
+                "fii": -3000,
+                "crude": 0,
+                "yield_curve_score": -0.15,
+                "credit_impulse_score": -0.20,
+            },
+            "target_regime": "MONETARY_TIGHTENING",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -8,  "note": "Rate-sensitive sectors compress. Banks face NIM pressure."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -4,  "note": "Bond prices fall as yields rise. Reduce duration immediately."},
+                "gold":   {"direction": "NEUTRAL",  "magnitude": +2,  "note": "Mixed — rate hikes pressure gold but INR weakness supports."},
+                "cash":   {"direction": "BULLISH",  "magnitude": +3,  "note": "Higher rates improve returns on liquid funds and FDs."},
+            },
+            "advisor_note": "Rotate out of rate-sensitives. Reduce debt duration to under 2 years. Add liquid funds.",
+        },
+        "rbi_rate_cut": {
+            "label": "RBI Rate Cut (-25bps)",
+            "tier": "India",
+            "description": "RBI cuts rates to support growth amid softening inflation.",
+            "signal_shifts": {
+                "vix": -1.0,
+                "fii": +2000,
+                "crude": 0,
+                "yield_curve_score": +0.10,
+                "credit_impulse_score": +0.15,
+            },
+            "target_regime": "LIQUIDITY_DRIVEN_EXPANSION",
+            "regime_probability": 0.65,
+            "sleeve_impact": {
+                "equity": {"direction": "BULLISH",  "magnitude": +6,  "note": "Financials, real estate, and rate-sensitives lead."},
+                "debt":   {"direction": "BULLISH",  "magnitude": +5,  "note": "Bond prices rise. Extend duration — G-Sec and AAA corporates."},
+                "gold":   {"direction": "NEUTRAL",  "magnitude": +1,  "note": "Marginal positive from INR strengthening."},
+                "cash":   {"direction": "BEARISH",  "magnitude": -2,  "note": "Liquid fund yields compress with policy rate cut."},
+            },
+            "advisor_note": "Extend debt duration. Add to equity — especially financials and infra. Reduce cash drag.",
+        },
+        "crude_spike": {
+            "label": "Crude Oil Spike ($95/bbl)",
+            "tier": "India",
+            "description": "Oil spikes to $95 due to supply disruption — India's import bill surges.",
+            "signal_shifts": {
+                "vix": +2.0,
+                "fii": -4000,
+                "crude": 95,
+                "yield_curve_score": -0.10,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "STAGFLATION_RISK",
+            "regime_probability": 0.50,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -10, "note": "Margins compress across auto, chemicals, FMCG. Avoid consumption names."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -3,  "note": "Inflation risk rises — avoid long duration."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +8,  "note": "Classic safe-haven play in oil shock. INR weakness amplifies returns."},
+                "cash":   {"direction": "NEUTRAL",  "magnitude": +1,  "note": "Hold cash for re-entry opportunity post-shock."},
+            },
+            "advisor_note": "Add gold to 10-12%. Reduce equity to underweight. Avoid FMCG, chemicals, auto ancillaries.",
+        },
+        "inr_depreciation": {
+            "label": "INR Depreciation (₹100/USD)",
+            "tier": "India",
+            "description": "Rupee weakens sharply to 100 driven by FII outflows and CAD widening.",
+            "signal_shifts": {
+                "vix": +3.0,
+                "fii": -6000,
+                "crude": +5,
+                "yield_curve_score": -0.20,
+                "credit_impulse_score": -0.15,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.60,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -12, "note": "FII selling accelerates. Domestic importers hit hardest."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -5,  "note": "Foreign selling of G-Secs drives yields higher."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +12, "note": "INR-denominated gold returns amplified by currency weakness."},
+                "cash":   {"direction": "NEUTRAL",  "magnitude": 0,   "note": "Consider USD-denominated assets for HNI clients."},
+            },
+            "advisor_note": "Raise gold to 15%. Reduce equity materially. For HNI clients consider international fund allocation.",
+        },
+        "fii_outflows": {
+            "label": "FII Sustained Outflows (12d+)",
+            "tier": "India",
+            "description": "Sustained FII selling streak of 12+ days — ₹40,000cr+ outflows.",
+            "signal_shifts": {
+                "vix": +4.0,
+                "fii": -5000,
+                "crude": 0,
+                "yield_curve_score": -0.15,
+                "credit_impulse_score": -0.05,
+            },
+            "target_regime": "GROWTH_SLOWDOWN_SUPPORT",
+            "regime_probability": 0.50,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -8,  "note": "Large-caps bear the brunt of FII exits. Mid/small may hold better."},
+                "debt":   {"direction": "NEUTRAL",  "magnitude": +1,  "note": "Flight to safety supports G-Sec prices temporarily."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +5,  "note": "Risk-off environment supports gold."},
+                "cash":   {"direction": "BULLISH",  "magnitude": +2,  "note": "Raise cash — deploy on DII absorption signal."},
+            },
+            "advisor_note": "Hold SIPs — do not stop. Pause new lump-sum. Watch for DII absorption as re-entry signal.",
+        },
+        "cpi_surprise": {
+            "label": "CPI Surprise (Above 6%)",
+            "tier": "India",
+            "description": "CPI prints above 6% — RBI's upper tolerance band breached.",
+            "signal_shifts": {
+                "vix": +2.5,
+                "fii": -2000,
+                "crude": 0,
+                "yield_curve_score": -0.10,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "STAGFLATION_RISK",
+            "regime_probability": 0.45,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -6,  "note": "Rate hike expectations compress multiples. Defensives outperform."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -4,  "note": "Yield spike on hike expectations — reduce duration urgently."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +6,  "note": "Inflation hedge demand supports gold."},
+                "cash":   {"direction": "NEUTRAL",  "magnitude": +1,  "note": "Liquid funds benefit if RBI acts."},
+            },
+            "advisor_note": "Reduce equity duration (avoid long-horizon lump-sum). Add gold. Shift debt to ultra-short/liquid.",
+        },
+        "gdp_disappointment": {
+            "label": "GDP Disappointment (Below 6%)",
+            "tier": "India",
+            "description": "GDP prints below 6% — growth narrative challenged.",
+            "signal_shifts": {
+                "vix": +1.5,
+                "fii": -1500,
+                "crude": -3,
+                "yield_curve_score": +0.05,
+                "credit_impulse_score": -0.15,
+            },
+            "target_regime": "GROWTH_SLOWDOWN_SUPPORT",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -5,  "note": "Cyclicals and capex names underperform. Defensives relatively stable."},
+                "debt":   {"direction": "BULLISH",  "magnitude": +3,  "note": "Rate cut expectations build — G-Sec and long duration benefit."},
+                "gold":   {"direction": "NEUTRAL",  "magnitude": +2,  "note": "Mild safe-haven demand."},
+                "cash":   {"direction": "NEUTRAL",  "magnitude": 0,   "note": "Hold and wait for regime clarity."},
+            },
+            "advisor_note": "Rotate from cyclicals to defensives. Extend debt duration cautiously. Hold SIPs unchanged.",
+        },
+        "us_fed_hike": {
+            "label": "US Fed Rate Hike (+50bps)",
+            "tier": "Global",
+            "description": "Federal Reserve hikes 50bps — global risk-off, EM capital outflows.",
+            "signal_shifts": {
+                "vix": +3.5,
+                "fii": -5000,
+                "crude": -2,
+                "yield_curve_score": -0.15,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -9,  "note": "EM outflows pressure Nifty. Dollar-denominated debt costs rise."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -4,  "note": "US yields rise pulls India yields up — avoid long G-Sec."},
+                "gold":   {"direction": "NEUTRAL",  "magnitude": +3,  "note": "USD strength caps gold in USD, but INR weakness helps INR gold."},
+                "cash":   {"direction": "BULLISH",  "magnitude": +2,  "note": "FD rates improve as Indian banks follow global rates up."},
+            },
+            "advisor_note": "Reduce equity to underweight temporarily. Add short-duration debt. Watch USD/INR closely.",
+        },
+        "global_risk_off": {
+            "label": "Global Risk-Off (VIX > 25)",
+            "tier": "Global",
+            "description": "Global VIX spikes above 25 — broad EM selloff, flight to safety.",
+            "signal_shifts": {
+                "vix": +8.0,
+                "fii": -8000,
+                "crude": -5,
+                "yield_curve_score": -0.20,
+                "credit_impulse_score": -0.20,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.70,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -15, "note": "Indiscriminate selling. Hold quality, avoid high-beta."},
+                "debt":   {"direction": "BULLISH",  "magnitude": +4,  "note": "Flight to safety — G-Secs outperform corporate bonds."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +10, "note": "Classic risk-off safe haven. Highest conviction add."},
+                "cash":   {"direction": "BULLISH",  "magnitude": +3,  "note": "Maximum liquidity — best time to hold dry powder."},
+            },
+            "advisor_note": "Defensive posture. Do not sell equity in panic — hold quality. Add gold. Raise cash for re-entry.",
+        },
+        "china_slowdown": {
+            "label": "China Slowdown (PMI < 45)",
+            "tier": "Global",
+            "description": "China PMI collapses below 45 — global supply chain and commodity demand hit.",
+            "signal_shifts": {
+                "vix": +2.0,
+                "fii": -2000,
+                "crude": -8,
+                "yield_curve_score": -0.05,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "GROWTH_SLOWDOWN_SUPPORT",
+            "regime_probability": 0.45,
+            "sleeve_impact": {
+                "equity": {"direction": "NEUTRAL",  "magnitude": -3,  "note": "Mixed — India gains market share from China in some sectors (IT, chemicals)."},
+                "debt":   {"direction": "BULLISH",  "magnitude": +2,  "note": "Lower commodity prices ease inflation — mild rate cut probability."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +4,  "note": "Risk-off and weaker CNY support gold."},
+                "cash":   {"direction": "NEUTRAL",  "magnitude": 0,   "note": "Neutral — watch for India-specific FII reaction."},
+            },
+            "advisor_note": "Watch for India-specific impact carefully. IT and specialty chemicals may actually benefit.",
+        },
+        "oil_supply_shock": {
+            "label": "Oil Supply Shock ($110/bbl)",
+            "tier": "Global",
+            "description": "Geopolitical event drives oil to $110 — India import bill surges severely.",
+            "signal_shifts": {
+                "vix": +5.0,
+                "fii": -6000,
+                "crude": 110,
+                "yield_curve_score": -0.20,
+                "credit_impulse_score": -0.20,
+            },
+            "target_regime": "STAGFLATIONARY_RISK",
+            "regime_probability": 0.65,
+            "sleeve_impact": {
+                "equity": {"direction": "BEARISH",  "magnitude": -14, "note": "Severe margin pressure across economy. Only upstream energy benefits."},
+                "debt":   {"direction": "BEARISH",  "magnitude": -6,  "note": "Inflation surge forces RBI hand — avoid all duration."},
+                "gold":   {"direction": "BULLISH",  "magnitude": +12, "note": "Maximum conviction safe haven in oil supply shock."},
+                "cash":   {"direction": "BULLISH",  "magnitude": +2,  "note": "Preserve capital — wait for shock to pass."},
+            },
+            "advisor_note": "Emergency defensive posture. Raise gold to 15%+. Cut equity to minimum. Absolute shortest duration debt only.",
+        },
+    }
+
+    scenario_key = body.get("scenario", "")
+    allocation = body.get("allocation", {
+        "equity": 60,
+        "debt": 25,
+        "gold": 10,
+        "cash": 5,
+    })
+    current_regime = body.get("current_regime", "LIQUIDITY_DRIVEN_EXPANSION")
+
+    if scenario_key not in SCENARIOS:
+        raise HTTPException(status_code=400, detail=f"Unknown scenario: {scenario_key}")
+
+    scenario = SCENARIOS[scenario_key]
+    target_regime = scenario["target_regime"]
+
+    backtest = REGIME_BACKTEST.get(target_regime, {})
+    current_backtest = REGIME_BACKTEST.get(current_regime, {})
+
+    sleeves = scenario["sleeve_impact"]
+    portfolio_impact = round(
+        sum(
+            (sleeves[s]["magnitude"] * allocation.get(s, 0) / 100)
+            for s in sleeves
+            if s in allocation
+        ), 1
+    )
+
+    return {
+        "scenario": {
+            "key":         scenario_key,
+            "label":       scenario["label"],
+            "tier":        scenario["tier"],
+            "description": scenario["description"],
+        },
+        "regime_shift": {
+            "from":        current_regime,
+            "to":          target_regime,
+            "probability": scenario["regime_probability"],
+            "summary":     backtest.get("summary", ""),
+        },
+        "sleeve_impact":    sleeves,
+        "portfolio_impact": portfolio_impact,
+        "advisor_note":     scenario["advisor_note"],
+        "historical_context": {
+            "target_regime": {
+                "instances":           backtest.get("instances"),
+                "avg_duration_months": backtest.get("avg_duration_months"),
+                "indices":             backtest.get("indices", {}),
+                "key_insight":         backtest.get("key_insight", ""),
+            },
+            "current_regime": {
+                "instances":   current_backtest.get("instances"),
+                "indices":     current_backtest.get("indices", {}),
+                "key_insight": current_backtest.get("key_insight", ""),
+            },
+        },
+        "allocation": allocation,
+        "all_scenarios": {
+            k: {"label": v["label"], "tier": v["tier"]}
+            for k, v in SCENARIOS.items()
+        },
+    }
+
+
 @app.get("/api/fii-history")
 async def get_fii_history(profile: dict = Depends(require_access)):
     """
