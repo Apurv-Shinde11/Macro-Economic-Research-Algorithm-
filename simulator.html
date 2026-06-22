@@ -1297,16 +1297,31 @@
         html += `<table class="hist-index-table">
           <thead><tr><th>Index</th><th>Avg</th><th>Worst</th><th>Best</th><th>Hit%</th></tr></thead><tbody>`;
         Object.entries(ti).forEach(([name, d]) => {
-          const avg = d.avg_return ?? d.avg ?? '—';
-          const worst = d.worst ?? '—';
-          const best = d.best ?? '—';
-          const hit = d.hit_rate != null ? d.hit_rate + '%' : '—';
+          const avg = d.avg_return_pct
+            ?? d.avg_return ?? d.avg ?? null;
+          const worst = d.worst_return_pct
+            ?? d.worst ?? null;
+          const best = d.best_return_pct
+            ?? d.best ?? null;
+          const positiveInst =
+            d.positive_instances ?? null;
+          const totalInst =
+            target.instances
+            || current.instances
+            || null;
+          const hit = (positiveInst != null
+            && totalInst != null)
+            ? Math.round(
+                positiveInst / totalInst * 100
+              ) + '%'
+            : (d.hit_rate != null
+                ? d.hit_rate + '%' : '—');
           const avgClass = typeof avg === 'number' ? (avg >= 0 ? 'val-pos' : 'val-neg') : '';
           html += `<tr>
             <td>${name}</td>
-            <td class="${avgClass}">${typeof avg === 'number' ? (avg >= 0 ? '+' : '') + avg + '%' : avg}</td>
-            <td class="val-neg">${typeof worst === 'number' ? worst + '%' : worst}</td>
-            <td class="val-pos">${typeof best === 'number' ? '+' + best + '%' : best}</td>
+            <td class="${avgClass}">${avg != null ? (avg >= 0 ? '+' : '') + avg + '%' : '—'}</td>
+            <td class="val-neg">${worst != null ? worst + '%' : '—'}</td>
+            <td class="val-pos">${best != null ? '+' + best + '%' : '—'}</td>
             <td>${hit}</td>
           </tr>`;
         });
@@ -1328,16 +1343,31 @@
           html += `<table class="hist-index-table">
             <thead><tr><th>Index</th><th>Avg</th><th>Worst</th><th>Best</th><th>Hit%</th></tr></thead><tbody>`;
           Object.entries(ci).forEach(([name, d]) => {
-            const avg = d.avg_return ?? d.avg ?? '—';
-            const worst = d.worst ?? '—';
-            const best = d.best ?? '—';
-            const hit = d.hit_rate != null ? d.hit_rate + '%' : '—';
+            const avg = d.avg_return_pct
+              ?? d.avg_return ?? d.avg ?? null;
+            const worst = d.worst_return_pct
+              ?? d.worst ?? null;
+            const best = d.best_return_pct
+              ?? d.best ?? null;
+            const positiveInst =
+              d.positive_instances ?? null;
+            const totalInst =
+              target.instances
+              || current.instances
+              || null;
+            const hit = (positiveInst != null
+              && totalInst != null)
+              ? Math.round(
+                  positiveInst / totalInst * 100
+                ) + '%'
+              : (d.hit_rate != null
+                  ? d.hit_rate + '%' : '—');
             const avgClass = typeof avg === 'number' ? (avg >= 0 ? 'val-pos' : 'val-neg') : '';
             html += `<tr>
               <td>${name}</td>
-              <td class="${avgClass}">${typeof avg === 'number' ? (avg >= 0 ? '+' : '') + avg + '%' : avg}</td>
-              <td class="val-neg">${typeof worst === 'number' ? worst + '%' : worst}</td>
-              <td class="val-pos">${typeof best === 'number' ? '+' + best + '%' : best}</td>
+              <td class="${avgClass}">${avg != null ? (avg >= 0 ? '+' : '') + avg + '%' : '—'}</td>
+              <td class="val-neg">${worst != null ? worst + '%' : '—'}</td>
+              <td class="val-pos">${best != null ? '+' + best + '%' : '—'}</td>
               <td>${hit}</td>
             </tr>`;
           });
