@@ -13,9 +13,6 @@ import time
 import asyncio
 import traceback
 import requests
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Any
 from contextlib import asynccontextmanager
@@ -71,9 +68,46 @@ except ImportError:
 
 JOB_TTL_SECONDS = 3600
 
-FOUNDER_EMAIL      = "econiq.teams@gmail.com"
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
-RENDER_BASE        = "https://macro-economic-research-algorithm.onrender.com"
+FOUNDER_EMAIL   = "econiq.teams@gmail.com"
+RESEND_API_KEY  = os.environ.get("RESEND_API_KEY", "")
+RENDER_BASE     = "https://macro-economic-research-algorithm.onrender.com"
+
+
+def _send_email(to: str, subject: str, html: str) -> bool:
+    """
+    Send email via Resend API (HTTPS).
+    Returns True on success, False on failure. Never raises.
+    """
+    if not RESEND_API_KEY:
+        print(f"[EMAIL] No RESEND_API_KEY — skipping email to {to}", flush=True)
+        return False
+    try:
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": "EconIQ <onboarding@resend.dev>",
+                "to": [to],
+                "subject": subject,
+                "html": html,
+            },
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            print(f"[EMAIL] Sent to {to}", flush=True)
+            return True
+        else:
+            print(
+                f"[EMAIL] Failed {to}: {resp.status_code} {resp.text}",
+                flush=True,
+            )
+            return False
+    except Exception as e:
+        print(f"[EMAIL] Error sending to {to}: {e}", flush=True)
+        return False
 
 _engines:  dict        = {}
 _supabase: Client | None = None
@@ -2961,28 +2995,12 @@ async def notify_signup(body: dict):
     </div>
     """
 
-    gmail_pwd = os.environ.get("GMAIL_APP_PASSWORD", "")
-    if not gmail_pwd:
-        print(f"[SIGNUP] No Gmail app password — skipping email for {email}", flush=True)
-        return {"status": "email_skipped"}
-
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[EconIQ] New access request from {name}"
-        msg["From"]    = FOUNDER_EMAIL
-        msg["To"]      = FOUNDER_EMAIL
-        msg.attach(MIMEText(html_body, "html"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(FOUNDER_EMAIL, gmail_pwd)
-            server.sendmail(FOUNDER_EMAIL, FOUNDER_EMAIL, msg.as_string())
-
-        print(f"[SIGNUP] Notification sent for {email}", flush=True)
-        return {"status": "notified"}
-
-    except Exception as e:
-        print(f"[SIGNUP] Email failed: {e}", flush=True)
-        return {"status": "email_failed"}
+    sent = _send_email(
+        to=FOUNDER_EMAIL,
+        subject=f"[EconIQ] New access request from {name}",
+        html=html_body,
+    )
+    return {"status": "notified" if sent else "email_failed"}
 
 
 @app.get("/api/admin/approve/{user_id}")
@@ -3009,43 +3027,36 @@ async def approve_user(user_id: str):
         user_email = user_data.get("email", "")
         user_name  = user_data.get("full_name", "there")
 
-        gmail_pwd = os.environ.get("GMAIL_APP_PASSWORD", "")
-        if gmail_pwd and user_email:
-            try:
-                approval_html = f"""
-                <div style="font-family:Arial;max-width:480px;padding:24px;
-                  background:#04060f;color:#e8eeff;border-radius:12px;">
-                  <div style="font-size:11px;letter-spacing:2px;color:#4f83ff;margin-bottom:8px;">
-                    ECONIQ · SENTINEL
-                  </div>
-                  <h2 style="color:#10d48a;margin:0 0 12px;">
-                    You're in, {user_name}.
-                  </h2>
-                  <p style="color:#7a8baa;font-size:13px;line-height:1.6;">
-                    Your early access to Sentinel has been approved.
-                    You have 30 days of trial access starting today.
-                  </p>
-                  <a href="https://macro-economic-research-algorithm.vercel.app/login.html"
-                     style="display:inline-block;margin-top:16px;background:#4f83ff;
-                       color:#fff;padding:12px 24px;border-radius:8px;
-                       text-decoration:none;font-weight:700;font-size:13px;">
-                    Access Sentinel →
-                  </a>
-                  <p style="margin-top:20px;font-size:10px;color:#7a8baa;">
-                    EconIQ · econiq.teams@gmail.com
-                  </p>
-                </div>
-                """
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = "You're approved — Sentinel Early Access"
-                msg["From"]    = FOUNDER_EMAIL
-                msg["To"]      = user_email
-                msg.attach(MIMEText(approval_html, "html"))
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                    server.login(FOUNDER_EMAIL, gmail_pwd)
-                    server.sendmail(FOUNDER_EMAIL, user_email, msg.as_string())
-            except Exception as _e:
-                print(f"[APPROVE] User email failed: {_e}", flush=True)
+        if user_email:
+            approval_html = f"""
+            <div style="font-family:Arial;max-width:480px;padding:24px;
+              background:#04060f;color:#e8eeff;border-radius:12px;">
+              <div style="font-size:11px;letter-spacing:2px;color:#4f83ff;margin-bottom:8px;">
+                ECONIQ · SENTINEL
+              </div>
+              <h2 style="color:#10d48a;margin:0 0 12px;">
+                You're in, {user_name}.
+              </h2>
+              <p style="color:#7a8baa;font-size:13px;line-height:1.6;">
+                Your early access to Sentinel has been approved.
+                You have 30 days of trial access starting today.
+              </p>
+              <a href="https://macro-economic-research-algorithm.vercel.app/login.html"
+                 style="display:inline-block;margin-top:16px;background:#4f83ff;
+                   color:#fff;padding:12px 24px;border-radius:8px;
+                   text-decoration:none;font-weight:700;font-size:13px;">
+                Access Sentinel →
+              </a>
+              <p style="margin-top:20px;font-size:10px;color:#7a8baa;">
+                EconIQ · econiq.teams@gmail.com
+              </p>
+            </div>
+            """
+            _send_email(
+                to=user_email,
+                subject="You're approved — Sentinel Early Access",
+                html=approval_html,
+            )
 
         print(f"[APPROVE] Approved {user_email}", flush=True)
         return HTMLResponse(f"""
