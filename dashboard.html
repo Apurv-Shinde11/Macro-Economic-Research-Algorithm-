@@ -2052,6 +2052,38 @@
       border-color: var(--text-3);
     }
 
+    /* ── Admin bell dropdown ── */
+    .bell-user-row {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .bell-user-row:last-child { border-bottom: none; }
+    .bell-user-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .bell-user-meta { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); letter-spacing: 0.06em; }
+    .bell-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .bell-approve-btn {
+      flex: 1; padding: 5px 8px;
+      background: rgba(16,212,138,0.12);
+      border: 1px solid rgba(16,212,138,0.3);
+      color: var(--green); border-radius: 4px;
+      font-size: 10px; font-weight: 600; cursor: pointer;
+      font-family: var(--font-mono);
+    }
+    .bell-reject-btn {
+      flex: 1; padding: 5px 8px;
+      background: rgba(248,113,113,0.10);
+      border: 1px solid rgba(248,113,113,0.25);
+      color: var(--red); border-radius: 4px;
+      font-size: 10px; font-weight: 600; cursor: pointer;
+      font-family: var(--font-mono);
+    }
+    .bell-approve-btn:hover { background: rgba(16,212,138,0.22); }
+    .bell-reject-btn:hover { background: rgba(248,113,113,0.20); }
+    .bell-done { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); padding: 4px 0; }
+
     .admin-user-row.no-runs {
       background: rgba(251,191,36,0.04);
       border-color: rgba(251,191,36,0.35);
@@ -3852,6 +3884,23 @@
       </div>
     </div>
     <div class="nav-right">
+      <!-- Admin notification bell — admin only -->
+      <div id="adminBell" style="display:none;position:relative;">
+        <button id="bellBtn" class="nav-btn" onclick="toggleBellDropdown()" title="Pending signups" style="position:relative;padding:6px 8px;">
+          🔔
+          <span id="bellBadge" style="display:none;position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-family:var(--font-mono);font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;">0</span>
+        </button>
+        <!-- Dropdown -->
+        <div id="bellDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999;overflow:hidden;">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;color:var(--blue);">PENDING ACCESS REQUESTS</div>
+          <div id="bellList" style="max-height:320px;overflow-y:auto;">
+            <div style="padding:14px;color:var(--text-3);font-size:12px;text-align:center;">Loading...</div>
+          </div>
+          <div style="padding:8px 14px;border-top:1px solid var(--border);text-align:right;">
+            <a href="admin.html" style="font-family:var(--font-mono);font-size:9px;color:var(--blue);text-decoration:none;letter-spacing:0.08em;">VIEW ALL →</a>
+          </div>
+        </div>
+      </div>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
         <span class="icon-moon">🌙</span>
         <span class="icon-sun">☀️</span>
@@ -4843,6 +4892,12 @@
           document.getElementById('adminNavBtn').style.display = 'block';
           const adminNavLink = document.getElementById('adminNavLink');
           if (adminNavLink) adminNavLink.style.display = 'block';
+          const bell = document.getElementById('adminBell');
+          if (bell) {
+            bell.style.display = 'flex';
+            checkAdminBell();
+            _bellInterval = setInterval(checkAdminBell, 60000);
+          }
         }
         populateSidebar(_profile);
       } catch (e) { console.error('Profile load failed:', e); }
@@ -6533,6 +6588,105 @@
       }
 
       return actions.slice(0, 4);
+    }
+
+    // ── Admin bell ─────────────────────────────────────────────────
+    let _bellOpen = false;
+    let _bellInterval = null;
+
+    function toggleBellDropdown() {
+      _bellOpen = !_bellOpen;
+      const dd = document.getElementById('bellDropdown');
+      dd.style.display = _bellOpen ? 'block' : 'none';
+      if (_bellOpen) loadBellPending();
+    }
+
+    document.addEventListener('click', function(e) {
+      const bell = document.getElementById('adminBell');
+      if (bell && !bell.contains(e.target) && _bellOpen) {
+        _bellOpen = false;
+        document.getElementById('bellDropdown').style.display = 'none';
+      }
+    });
+
+    async function loadBellPending() {
+      const list = document.getElementById('bellList');
+      try {
+        const { data, error } = await sb
+          .from('profiles')
+          .select('id,full_name,email,firm_name,role,aum_size,created_at')
+          .eq('tier', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        updateBellBadge((data || []).length);
+
+        if (!data || data.length === 0) {
+          list.innerHTML = '<div style="padding:20px 14px;color:var(--text-3);font-size:12px;text-align:center;">No pending requests</div>';
+          return;
+        }
+
+        const roleMap = { ca: 'CA', ifa: 'IFA', wealth_manager: 'Wealth Mgr', other: 'Other' };
+        const aumMap = { individual: '<₹50 Cr', small: '₹50–200 Cr', mid: '₹200–500 Cr', large: '>₹500 Cr' };
+
+        list.innerHTML = data.map(u => `
+          <div class="bell-user-row" id="bell-row-${u.id}">
+            <div class="bell-user-name">${u.full_name || '—'}</div>
+            <div class="bell-user-meta">${u.email}</div>
+            <div class="bell-user-meta">${roleMap[u.role] || u.role || '—'} · ${aumMap[u.aum_size] || u.aum_size || '—'}</div>
+            <div class="bell-actions">
+              <button class="bell-approve-btn" onclick="bellAction('approve','${u.id}','${u.email}','${(u.full_name||'').replace(/'/g,"\\'")}')">✓ Approve</button>
+              <button class="bell-reject-btn" onclick="bellAction('reject','${u.id}','${u.email}','${(u.full_name||'').replace(/'/g,"\\'")}')">✗ Reject</button>
+            </div>
+          </div>`).join('');
+
+      } catch(e) {
+        list.innerHTML = '<div style="padding:14px;color:var(--red);font-size:11px;">Failed to load requests.</div>';
+      }
+    }
+
+    function updateBellBadge(count) {
+      const badge = document.getElementById('bellBadge');
+      if (!badge) return;
+      if (count > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = count > 9 ? '9+' : count;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    async function bellAction(action, userId, email, name) {
+      const row = document.getElementById(`bell-row-${userId}`);
+      if (row) {
+        row.querySelector('.bell-actions').innerHTML = '<div class="bell-done">Processing...</div>';
+      }
+      try {
+        const endpoint = action === 'approve'
+          ? `/api/admin/approve/${userId}`
+          : `/api/admin/reject/${userId}`;
+        await fetch('https://macro-economic-research-algorithm.onrender.com' + endpoint);
+        if (row) {
+          row.querySelector('.bell-actions').innerHTML = `<div class="bell-done">${action === 'approve' ? '✓ Approved — email sent' : '✗ Rejected'}</div>`;
+        }
+        setTimeout(async () => { await checkAdminBell(); }, 1000);
+      } catch(e) {
+        if (row) {
+          row.querySelector('.bell-actions').innerHTML = '<div class="bell-done" style="color:var(--red);">Failed — try admin page</div>';
+        }
+      }
+    }
+
+    async function checkAdminBell() {
+      try {
+        const { data } = await sb
+          .from('profiles')
+          .select('id', { count: 'exact' })
+          .eq('tier', 'pending');
+        updateBellBadge((data || []).length);
+        if (_bellOpen) loadBellPending();
+      } catch(_) {}
     }
 
     /* ── BUILD 5: Admin Panel ── */
