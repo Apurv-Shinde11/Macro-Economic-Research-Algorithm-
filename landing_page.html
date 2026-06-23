@@ -451,6 +451,10 @@
     .delay-4  { animation: fadeUp 1s ease 0.66s both; }
     .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.8s ease, transform 0.8s ease; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
 
     @media (prefers-reduced-motion: reduce) {
       .fade-in, .delay-1, .delay-2, .delay-3, .delay-4, .reveal,
@@ -1053,6 +1057,7 @@
       nav .theme-toggle { display: none; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -1152,8 +1157,9 @@
       </div>
     </div>
 
-    <div class="hero-right delay-2">
-      <div class="terminal-wrap">
+    <div class="hero-right delay-2" style="position:relative;">
+      <canvas id="signalNet" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.7;"></canvas>
+      <div class="terminal-wrap" style="position:relative;z-index:1;">
         <div class="terminal-glow"></div>
         <div class="terminal">
           <div class="terminal-header">
@@ -1273,19 +1279,19 @@
     <h2 class="section-h2 reveal">Eight capabilities that cover<br><em>the full picture, every day.</em></h2>
     <p class="section-sub reveal">Sentinel covers the full picture, from daily market conditions to global context to private market signals, so you always have the right answer ready for your clients.</p>
     <div class="features-primary reveal">
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📊</div><span class="feature-badge badge-tier1">Core Engine</span></div>
         <div class="feature-title">Daily Market Environment Read</div>
         <div class="feature-desc">Every morning Sentinel classifies India's economic environment into one of eight clearly named categories. You see not just the category but how confident the signal is, whether it is building or weakening, and what the alternative scenario looks like. Think of it as a daily health check on the economy.</div>
         <div class="feature-detail">Today's Read · Confidence Level · Trend Direction · Alternative Scenario · What Changed Since Yesterday</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">⚡</div><span class="feature-badge badge-tier1">Intelligence</span></div>
         <div class="feature-title">Early Warning Before Things Change</div>
         <div class="feature-desc">Sentinel does not just tell you what is happening now; it flags when conditions are shifting before the news headlines catch up. When multiple stress signals align, you get an early warning so you can adjust client portfolios before the move happens, not after.</div>
         <div class="feature-detail">Early warning signals · Stress detection · Deployment windows · Forward-looking indicators, confirmed before lagging data catches up</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-3">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📈</div><span class="feature-badge badge-tier1">Market Data</span></div>
         <div class="feature-title">Foreign and Domestic Investor Flows</div>
         <div class="feature-desc">Sentinel tracks what large foreign investors and domestic institutions are doing with their money every day. When foreign investors are selling heavily, that is a warning signal. When domestic institutions are buying to absorb the selling, that is a stabilising signal. Both matter for your clients' portfolios.</div>
@@ -1293,37 +1299,37 @@
       </div>
     </div>
     <div class="features-secondary reveal">
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">🌍</div><span class="feature-badge badge-tier2">Global Macro</span></div>
         <div class="feature-title">Sector-by-Sector Positioning</div>
         <div class="feature-desc">Not all sectors move together. Sentinel tells you which sectors to increase exposure to right now and which to reduce. Each recommendation comes with a plain-language reason.</div>
         <div class="feature-detail">Banking · Infrastructure · IT · Pharma · FMCG · Real Estate, each with positioning signal and reason</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">💼</div><span class="feature-badge badge-tier2">PE Intelligence</span></div>
         <div class="feature-title">Private Equity Intelligence Layer</div>
         <div class="feature-desc">The macro regime translated into PE deal environment, sector cycle positioning, cost of capital, and IRR implications, all updating automatically as the regime shifts.</div>
         <div class="feature-detail">Deal environment · Sector cycles · Cost of capital · IRR context · Live regime strip · Regime-driven badges</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-3">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">🌍</div><span class="feature-badge badge-tier2">Global Macro</span></div>
         <div class="feature-title">Global Macro Intelligence</div>
         <div class="feature-desc">Track 50 of the world's economies side by side — GDP, inflation, policy rates, and currency moves, all on one map. Includes a live read on the global AI infrastructure spending cycle, and what it could mean for India's IT sector.</div>
         <div class="feature-detail">50 economies · AI infrastructure pulse · currency &amp; yield tracking · free to explore</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📊</div><span class="feature-badge badge-tier2">India Activity</span></div>
         <div class="feature-title">India Activity Signals</div>
         <div class="feature-desc">GST collections, auto sales, and bank credit growth as real economy confirmation alongside the market-based regime read. Composite score updated monthly.</div>
         <div class="feature-detail">GST · Auto Sales · Bank Credit · Composite score: STRONG / MODERATE / WEAK</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">📄</div><span class="feature-badge badge-tier2">Distribution</span></div>
         <div class="feature-title">Intelligent Push Alerts</div>
         <div class="feature-desc">WhatsApp and email alerts that fire only when something meaningful changes. Duplicate prevention ensures you are never spammed with repeat signals.</div>
         <div class="feature-detail">Regime shift · Confidence breach · VIX > 22 · FII outflow streak · WhatsApp + email · Dedup built in</div>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal reveal-delay-3">
         <div class="feature-icon-row"><div class="feature-icon" aria-hidden="true">🗂️</div><span class="feature-badge badge-tier2">Archive</span></div>
         <div class="feature-title">Historical Regime Archive</div>
         <div class="feature-desc">Every run stored with regime, confidence, conviction, and equity bias. Backtest performance by regime across five indices, with outcome tracking as 30-day windows close.</div>
@@ -1403,7 +1409,7 @@
       <div class="access-grid reveal">
 
         <!-- Free tier -->
-        <div class="access-card access-free">
+        <div class="access-card access-free reveal reveal-delay-1">
           <div class="access-badge">FREE · NO LOGIN</div>
           <div class="access-title">Global Macro</div>
           <div class="access-desc">
@@ -1417,7 +1423,7 @@
         </div>
 
         <!-- Sentinel -->
-        <div class="access-card access-paid">
+        <div class="access-card access-paid reveal reveal-delay-2">
           <div class="access-badge access-badge-paid">EARLY ACCESS</div>
           <div class="access-title">Sentinel</div>
           <div class="access-desc">
@@ -1440,7 +1446,7 @@
         </div>
 
         <!-- PE Intel -->
-        <div class="access-card access-paid">
+        <div class="access-card access-paid reveal reveal-delay-3">
           <div class="access-badge access-badge-paid">EARLY ACCESS</div>
           <div class="access-title">PE Intel</div>
           <div class="access-desc">
@@ -1893,5 +1899,177 @@
   draw();
 })();
   </script>
+
+  <!-- ── Three.js signal network in hero-right ── -->
+  <script>
+  (function() {
+    if (typeof THREE === 'undefined') return;
+
+    const canvas = document.getElementById('signalNet');
+    if (!canvas) return;
+
+    const W = canvas.offsetWidth || 560;
+    const H = canvas.offsetHeight || 500;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, H);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
+    camera.position.z = 220;
+
+    const BLUE  = 0x4f83ff;
+    const GREEN = 0x10d48a;
+    const RED   = 0xf87171;
+
+    const SIGNALS = [
+      { label: 'VIX',    color: GREEN },
+      { label: 'FII',    color: BLUE  },
+      { label: 'CRUDE',  color: BLUE  },
+      { label: 'YIELD',  color: RED   },
+      { label: 'PMI',    color: GREEN },
+      { label: 'PE',     color: BLUE  },
+      { label: 'GARCH',  color: RED   },
+      { label: 'CREDIT', color: GREEN },
+      { label: 'TREND',  color: BLUE  },
+    ];
+
+    const nodes = [];
+    const lines = [];
+
+    // Center node
+    const centerGeo = new THREE.SphereGeometry(7, 16, 16);
+    const centerMat = new THREE.MeshBasicMaterial({ color: BLUE });
+    const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+    scene.add(centerMesh);
+
+    // Signal nodes arranged in ellipse
+    SIGNALS.forEach((sig, i) => {
+      const angle = (i / SIGNALS.length) * Math.PI * 2;
+      const rx = 120, ry = 80;
+      const x = Math.cos(angle) * rx;
+      const y = Math.sin(angle) * ry;
+      const z = Math.sin(angle * 2) * 30;
+
+      const geo = new THREE.SphereGeometry(4, 16, 16);
+      const mat = new THREE.MeshBasicMaterial({ color: sig.color });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.userData.baseY = y;
+      mesh.userData.baseZ = z;
+      mesh.userData.phase = i * 0.7;
+      scene.add(mesh);
+      nodes.push(mesh);
+
+      // Line from node to center
+      const points = [
+        new THREE.Vector3(x, y, z),
+        new THREE.Vector3(0, 0, 0),
+      ];
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMat = new THREE.LineBasicMaterial({ color: sig.color, transparent: true, opacity: 0.25 });
+      const line = new THREE.Line(lineGeo, lineMat);
+      scene.add(line);
+      lines.push(line);
+    });
+
+    let t = 0;
+    let animId;
+    function animate() {
+      animId = requestAnimationFrame(animate);
+      t += 0.008;
+
+      // Float nodes
+      nodes.forEach((node) => {
+        node.position.y = node.userData.baseY + Math.sin(t + node.userData.phase) * 4;
+      });
+
+      // Update lines
+      lines.forEach((line, i) => {
+        const pos = line.geometry.attributes.position;
+        pos.setXYZ(0, nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
+        pos.needsUpdate = true;
+      });
+
+      // Pulse center node
+      const pulse = 1 + Math.sin(t * 0.5) * 0.08;
+      centerMesh.scale.setScalar(pulse);
+
+      // Slow Y rotation of entire scene
+      scene.rotation.y += 0.0003;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize
+    window.addEventListener('resize', () => {
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    });
+
+    // Reduced motion — stop animation, render one static frame
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) {
+      cancelAnimationFrame(animId);
+      renderer.render(scene, camera);
+    }
+  })();
+  </script>
+
+  <!-- ── Parallax on hero-left ── -->
+  <script>
+  (function() {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) return;
+    if (window.innerWidth < 768) return;
+
+    const heroSection = document.getElementById('hero');
+    const eyebrow = document.querySelector('.hero-eyebrow');
+    const h1      = document.querySelector('.hero-h1');
+    const sub     = document.querySelector('.hero-sub');
+    const ctas    = document.querySelector('.hero-ctas');
+
+    function onScroll() {
+      const scrollY = window.scrollY;
+      const heroH = heroSection ? heroSection.offsetHeight : 800;
+      if (scrollY > heroH) return;
+      const pct = scrollY / heroH;
+      if (eyebrow) eyebrow.style.transform = `translateY(${pct * -30}px)`;
+      if (h1)      h1.style.transform      = `translateY(${pct * -20}px)`;
+      if (sub)     sub.style.transform     = `translateY(${pct * -12}px)`;
+      if (ctas)    ctas.style.transform    = `translateY(${pct * -8}px)`;
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+  </script>
+
+  <!-- ── IntersectionObserver reveal ── -->
+  <script>
+  (function() {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) return;
+
+    const els = document.querySelectorAll('.reveal');
+    if (!els.length) return;
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    els.forEach(el => obs.observe(el));
+  })();
+  </script>
+
 </body>
 </html>
