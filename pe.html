@@ -1542,6 +1542,22 @@
     document.addEventListener('DOMContentLoaded', () => {
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
+      (async () => {
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          if (session) {
+            const { data: prof } = await sb
+              .from('profiles')
+              .select('tier')
+              .eq('id', session.user.id)
+              .single();
+            if (prof?.tier === 'admin') {
+              const al = document.getElementById('adminNavLink');
+              if (al) al.style.display = 'block';
+            }
+          }
+        } catch (_) {}
+      })();
     });
 
     init();

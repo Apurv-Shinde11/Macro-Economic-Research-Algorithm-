@@ -2801,6 +2801,27 @@
     document.addEventListener('DOMContentLoaded', () => {
       const hamBtn = document.getElementById('navHamburger');
       if (hamBtn) hamBtn.addEventListener('click', toggleMobileMenu);
+      (async () => {
+        try {
+          const { createClient } = supabase;
+          const sb_check = createClient(
+            'https://nurqjuywtypqvciyjlrw.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ'
+          );
+          const { data: { session } } = await sb_check.auth.getSession();
+          if (session) {
+            const { data: prof } = await sb_check
+              .from('profiles')
+              .select('tier')
+              .eq('id', session.user.id)
+              .single();
+            if (prof?.tier === 'admin') {
+              const al = document.getElementById('adminNavLink');
+              if (al) al.style.display = 'block';
+            }
+          }
+        } catch (_) {}
+      })();
     });
   </script>
 
