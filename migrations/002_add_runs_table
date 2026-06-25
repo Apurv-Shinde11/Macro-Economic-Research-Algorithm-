@@ -1,0 +1,17 @@
+-- Runs table for regime history
+-- Created: May 2026
+CREATE TABLE IF NOT EXISTS runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id),
+  run_at timestamptz DEFAULT now(),
+  regime text,
+  confidence numeric,
+  conviction text,
+  implied_action text,
+  outcome text,
+  allocation jsonb,
+  fii_net_crore numeric,
+  dii_net_crore numeric,
+  summary text,
+  sector_heatmap jsonb
+);

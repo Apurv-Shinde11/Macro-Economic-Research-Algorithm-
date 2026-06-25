@@ -1,0 +1,7 @@
+-- Nominal GDP cache from World Bank
+-- Created: June 2026
+CREATE TABLE IF NOT EXISTS nominal_gdp_cache (
+  code text PRIMARY KEY,
+  gdp_usd_trillion numeric,
+  fetched_at timestamptz DEFAULT now()
+);

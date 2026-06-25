@@ -1,0 +1,4 @@
+-- Initial profiles table
+-- Created: May 2026
+-- Note: Base table created by Supabase auth
+-- Additional columns added in later migrations

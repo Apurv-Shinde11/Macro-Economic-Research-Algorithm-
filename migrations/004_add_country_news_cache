@@ -1,0 +1,9 @@
+-- Country news cache for NewsData.io
+-- Created: June 2026
+CREATE TABLE IF NOT EXISTS country_news_cache (
+  code text PRIMARY KEY,
+  headline text,
+  source text,
+  published_at timestamptz,
+  fetched_at timestamptz DEFAULT now()
+);
