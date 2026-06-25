@@ -2303,6 +2303,54 @@
             <div class="summary-label">Macro Context</div>
             <p class="summary-text">${buildSummary(eco)}</p>
           </div>
+          ${eco.recent_development?.headline ? `
+          <div class="detail-card-wide"
+               style="margin-top:10px;">
+            <div class="card-label">
+              RECENT DEVELOPMENT
+            </div>
+            <div style="font-size:13px;
+              color:var(--text);
+              line-height:1.6;
+              margin-top:6px;">
+              ${eco.recent_development.headline}
+            </div>
+            <div style="display:flex;
+              align-items:center;
+              gap:10px;
+              margin-top:8px;">
+              <span style="font-family:
+                var(--font-mono);
+                font-size:9px;
+                color:var(--text-3);
+                letter-spacing:0.08em;">
+                ${eco.recent_development.source
+                  ? eco.recent_development.source
+                      .toUpperCase()
+                  : 'NEWSDATA'}
+              </span>
+              ${eco.recent_development.published_at
+                ? `<span style="font-family:
+                    var(--font-mono);
+                    font-size:9px;
+                    color:var(--text-3);">
+                    ${relTime(
+                      eco.recent_development
+                        .published_at
+                    )}
+                  </span>`
+                : ''}
+              ${eco.recent_development.stale
+                ? `<span style="font-family:
+                    var(--font-mono);
+                    font-size:9px;
+                    color:var(--amber);">
+                    CACHED
+                  </span>`
+                : ''}
+            </div>
+          </div>
+          ` : ''}
           ${isHome ? `
           <div class="detail-summary" id="india-ai-context">
             <div class="card-label">
