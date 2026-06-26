@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EconIq — Macro Intelligence Dashboard</title>
+  <title>EconIq: Macro Intelligence Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -57,6 +57,19 @@
       --radius: 8px;
       --radius-lg: 14px;
       --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
+      /* ── Z-index scale ── */
+      --z-base: 0;
+      --z-content: 1;
+      --z-sticky: 90;
+      --z-banner: 98;
+      --z-mobile-menu: 99;
+      --z-nav: 100;
+      --z-hamburger: 110;
+      --z-dropdown: 300;
+      --z-tooltip: 800;
+      --z-modal-backdrop: 900;
+      --z-toast: 999;
+      --z-modal: 1000;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -216,7 +229,7 @@
       top: 0;
       left: 0;
       right: 0;
-      z-index: 100;
+      z-index: var(--z-nav);
       height: var(--nav-h);
       display: flex;
       align-items: center;
@@ -415,7 +428,7 @@
       min-height: 100vh;
       padding-top: var(--nav-h);
       position: relative;
-      z-index: 1;
+      z-index: var(--z-content);
     }
 
     /* ══ SIDEBAR ══ */
@@ -635,7 +648,12 @@
       color: var(--text-2);
     }
 
-    .threshold-val {
+    .threshold-edit {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .threshold-display {
       font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 600;
@@ -646,11 +664,50 @@
       background: var(--blue-dim);
       border: 1px solid rgba(79, 131, 255, 0.22);
       transition: background 0.15s;
+      user-select: none;
     }
-
-    .threshold-val:hover {
+    .threshold-display:hover {
       background: rgba(79, 131, 255, 0.20);
     }
+    .threshold-input {
+      display: none;
+      width: 58px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--blue);
+      background: var(--bg-2);
+      border: 1px solid rgba(79, 131, 255, 0.50);
+      border-radius: 4px;
+      padding: 2px 6px;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79, 131, 255, 0.10);
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .threshold-input::-webkit-outer-spin-button,
+    .threshold-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .threshold-confirm {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: var(--blue);
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .threshold-confirm:hover { opacity: 0.85; }
+    .threshold-edit.editing .threshold-display { display: none; }
+    .threshold-edit.editing .threshold-input { display: inline-block; }
+    .threshold-edit.editing .threshold-confirm { display: inline-flex; }
 
     .save-btn {
       width: 100%;
@@ -839,6 +896,18 @@
       color: var(--text);
       margin-bottom: 6px;
       letter-spacing: -0.01em;
+    }
+
+    .regime-verdict {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--text-2);
+      line-height: 1.45;
+      margin-top: 6px;
+      margin-bottom: 2px;
+      max-width: 520px;
     }
 
     .regime-narrative {
@@ -1103,22 +1172,9 @@
       box-shadow: var(--card-shadow);
     }
 
-    .scenario-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-    }
-
     .scenario-card.bullish {
       background: var(--green-dim);
       border-color: rgba(16, 212, 138, 0.20);
-    }
-
-    .scenario-card.bullish::before {
-      background: linear-gradient(90deg, var(--green), var(--cyan));
     }
 
     .scenario-card.base {
@@ -1126,17 +1182,9 @@
       border-color: rgba(79, 131, 255, 0.20);
     }
 
-    .scenario-card.base::before {
-      background: linear-gradient(90deg, var(--blue), var(--indigo));
-    }
-
     .scenario-card.bearish {
       background: var(--red-dim);
       border-color: rgba(248, 113, 113, 0.20);
-    }
-
-    .scenario-card.bearish::before {
-      background: var(--red);
     }
 
     .scenario-name {
@@ -1303,10 +1351,8 @@
       border-radius: 8px;
       transition: background 0.2s, border-color 0.2s;
       position: relative;
-      overflow: visible;
       box-shadow: none;
     }
-    .scenario-card::before { display: none; }
 
     .scenario-card.base,
     .scenario-card.baseline {
@@ -1748,7 +1794,7 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      z-index: 999;
+      z-index: var(--z-toast);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -1846,7 +1892,7 @@
     .admin-overlay {
       position: fixed;
       inset: 0;
-      z-index: 900;
+      z-index: var(--z-modal-backdrop);
       display: none;
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(4px);
@@ -2383,7 +2429,7 @@
       font-size: 12px;
       color: var(--text-2);
       box-shadow: var(--card-shadow);
-      z-index: 800;
+      z-index: var(--z-tooltip);
       display: none;
       line-height: 1.55;
       pointer-events: none;
@@ -3168,7 +3214,7 @@
       inset: 0;
       background: rgba(4,6,15,0.85);
       backdrop-filter: blur(8px);
-      z-index: 1000;
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -3348,7 +3394,7 @@
       border: none;
       cursor: pointer;
       padding: 6px;
-      z-index: 110;
+      z-index: var(--z-hamburger);
       flex-shrink: 0;
     }
     .nav-hamburger span {
@@ -3366,7 +3412,7 @@
       position: fixed;
       top: var(--nav-h); left: 0; right: 0; bottom: 0;
       background: var(--bg-2);
-      z-index: 99;
+      z-index: var(--z-mobile-menu);
       padding: 32px 24px;
       border-top: 1px solid var(--border);
       overflow-y: auto;
@@ -3765,30 +3811,32 @@
       }
     }
 
-    /* ── Section Footnotes ── */
-    .section-footnote {
-      margin-top: 10px;
-      padding-top: 8px;
+    /* ── Page-level legal block ── */
+    .page-legal {
+      margin-top: 48px;
+      padding: 16px 0 8px;
       border-top: 1px solid var(--border);
       font-size: 9px;
       color: var(--text-3);
-      line-height: 1.6;
+      line-height: 1.7;
       font-family: var(--font-mono);
+      max-width: 860px;
     }
-
-    .fii-data-note {
-      font-size: 9px;
+    .page-legal-label {
+      display: inline-block;
+      font-size: 8px;
+      letter-spacing: 0.18em;
       color: var(--text-3);
-      font-family: var(--font-mono);
-      margin-top: 6px;
-      line-height: 1.5;
+      margin-right: 10px;
+      vertical-align: top;
+      padding-top: 1px;
     }
 
     /* ── Auto-refresh ── */
     .live-update-badge {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: 76px;
+      right: 24px;
       background: var(--green);
       color: #0a1018;
       font-family: var(--font-mono);
@@ -3799,7 +3847,7 @@
       opacity: 0;
       transform: translateY(10px);
       transition: all 0.3s ease;
-      z-index: 1000;
+      z-index: var(--z-modal);
       pointer-events: none;
     }
     .live-update-badge.show {
@@ -3850,10 +3898,81 @@
       line-height: 1.6;
     }
 
+    /* ══ STICKY REFRESH BAR ══ */
+    .sticky-refresh-bar {
+      position: fixed;
+      bottom: 0;
+      left: var(--sidebar-w);
+      right: 0;
+      z-index: var(--z-sticky);
+      padding: 11px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(8, 13, 28, 0.93);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid var(--border-2);
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .sticky-refresh-bar.visible {
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .sticky-refresh-bar.stale { border-top-color: rgba(251, 191, 36, 0.35); }
+    .sticky-refresh-bar.old   { border-top-color: rgba(248, 113, 113, 0.45); }
+
+    html.light .sticky-refresh-bar {
+      background: rgba(255, 255, 255, 0.93);
+      border-top-color: var(--border-2);
+    }
+    html.light .sticky-refresh-bar.stale { border-top-color: rgba(180, 83, 9, 0.35); }
+    html.light .sticky-refresh-bar.old   { border-top-color: rgba(220, 38, 38, 0.40); }
+
+    .sticky-refresh-bar-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sticky-refresh-bar-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+    .sticky-refresh-btn {
+      padding: 8px 20px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      transition: opacity 0.2s, transform 0.18s, box-shadow 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sticky-refresh-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(79, 131, 255, 0.35);
+    }
+    @media (max-width: 900px) {
+      .sticky-refresh-bar { left: 0; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .aurora-blob, .run-spinner, .freshness-dot.old, .regime-status-dot, .pulse-dot { animation: none; }
       .scenario-prob-bar-fill, .transition-bar, .signal-item-bar { transition: none; }
       .toast { animation: none; }
+      .sticky-refresh-bar, .sticky-refresh-btn { transition: none; }
     }
   </style>
 </head>
@@ -3889,7 +4008,7 @@
           <span id="bellBadge" style="display:none;position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-family:var(--font-mono);font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;">0</span>
         </button>
         <!-- Dropdown -->
-        <div id="bellDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:300;overflow:hidden;">
+        <div id="bellDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:var(--z-dropdown);overflow:hidden;">
           <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;color:var(--blue);">PENDING ACCESS REQUESTS</div>
           <div id="bellList" style="max-height:320px;overflow-y:auto;">
             <div style="padding:14px;color:var(--text-3);font-size:12px;text-align:center;">Loading...</div>
@@ -3982,7 +4101,7 @@
         <div class="form-row">
           <label class="form-label">Risk Tolerance</label>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Cons.</button>
+            <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Conservative</button>
             <button class="segment-btn active" data-field="risk_tolerance" data-val="moderate">Mod.</button>
             <button class="segment-btn" data-field="risk_tolerance" data-val="aggressive">Aggr.</button>
           </div>
@@ -4012,16 +4131,12 @@
 
       <div class="sidebar-section">
         <div class="sidebar-section-title">Alert Thresholds</div>
-        <div class="threshold-row"><span class="threshold-name">India VIX</span><span class="threshold-val"
-            id="threshVIX" data-key="vix_threshold">22.0</span></div>
-        <div class="threshold-row"><span class="threshold-name">USD/INR</span><span class="threshold-val" id="threshINR"
-            data-key="inr_threshold">85.0</span></div>
-        <div class="threshold-row"><span class="threshold-name">FII Outflow Days</span><span class="threshold-val"
-            id="threshFII" data-key="fii_consecutive_days">3</span></div>
-        <div class="threshold-row"><span class="threshold-name">Challenger Conf.</span><span class="threshold-val"
-            id="threshChallenger" data-key="confidence_breach_threshold">45%</span></div>
+        <div class="threshold-row"><span class="threshold-name">India VIX</span><span class="threshold-edit" id="threshVIX" data-key="vix_threshold" data-value="22.0"><span class="threshold-display">22.0</span><input class="threshold-input" type="number" min="5" max="80" step="0.5" aria-label="India VIX alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+        <div class="threshold-row"><span class="threshold-name">USD/INR</span><span class="threshold-edit" id="threshINR" data-key="inr_threshold" data-value="85.0"><span class="threshold-display">85.0</span><input class="threshold-input" type="number" min="60" max="120" step="0.5" aria-label="USD/INR alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+        <div class="threshold-row"><span class="threshold-name">FII Outflow Days</span><span class="threshold-edit" id="threshFII" data-key="fii_consecutive_days" data-value="3"><span class="threshold-display">3</span><input class="threshold-input" type="number" min="1" max="30" step="1" aria-label="FII consecutive outflow days threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+        <div class="threshold-row"><span class="threshold-name">Challenger Conf.</span><span class="threshold-edit" id="threshChallenger" data-key="confidence_breach_threshold" data-value="45"><span class="threshold-display">45%</span><input class="threshold-input" type="number" min="0" max="100" step="1" aria-label="Challenger confidence threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
         <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">Tap
-          any value to edit. Alerts fire via email when thresholds are crossed.</div>
+          any value to edit inline. Alerts fire via email when thresholds are crossed.</div>
         <div class="form-row" style="margin-top:12px;">
           <label class="form-label" style="display:flex;align-items:center;gap:0;">
             WhatsApp Briefing
@@ -4264,6 +4379,7 @@
             <div class="regime-name" id="regimeName">
               <div class="skeleton" style="width:280px;height:44px;border-radius:6px;"></div>
             </div>
+            <div class="regime-verdict" id="regimeVerdict" style="display:none;"></div>
             <div class="regime-narrative" id="regimeNarrative">
               <div class="skeleton" style="width:100%;height:14px;margin-bottom:6px;"></div>
               <div class="skeleton" style="width:80%;height:14px;"></div>
@@ -4408,9 +4524,6 @@
         <div class="signal-intel-footer">
           Leading score weights VIX, crude, FII flows, yield curve, PMI, PE ratio, volatility forecast, credit impulse, and FII trend momentum.
         </div>
-        <div class="section-footnote">
-          Scores are model outputs based on live market data and historical patterns. Not a guarantee of future market conditions. For informational purposes only.
-        </div>
       </div>
 
       <div class="divider"></div>
@@ -4500,9 +4613,6 @@
       <div class="scenario-ca-note">
         For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
       </div>
-      <div class="section-footnote">
-        Scenario probabilities are model estimates based on current signal alignment. Actual outcomes may differ materially from projected scenarios.
-      </div>
 
       <div class="divider"></div>
 
@@ -4521,9 +4631,6 @@
         <div class="heatmap-legend-note">
           ↑ Portfolio overweight / underweight signals; not buy/sell recommendations
         </div>
-        <div class="section-footnote">
-          Sector positioning reflects regime-based portfolio allocation signals, not individual security recommendations. EconIq is not a SEBI-registered Research Analyst. Consult Screener.in links for company-level research.
-        </div>
       </div>
 
       <div class="divider"></div>
@@ -4536,9 +4643,6 @@
         <div class="backtest-summary" id="backtestSummary"></div>
         <div class="backtest-grid" id="backtestGrid"></div>
         <div class="backtest-insight" id="backtestInsight"></div>
-        <div class="section-footnote">
-          Returns shown reflect Nifty/sector index performance during historical periods matching the current regime classification. Past performance does not guarantee future results.
-        </div>
       </div>
 
       <div class="divider"></div>
@@ -4568,14 +4672,6 @@
         </div>
         <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
         <div class="flow-context" id="flowContext"></div>
-        <div class="section-footnote">
-          Data sourced from NSE. FII/DII figures represent equity segment cash market flows only and may be cached during non-trading days.
-        </div>
-        <div class="fii-data-note">
-          Daily FII/DII figures reflect the most recently reported NSE session. The
-          7-day trend and selling streak shown elsewhere on this dashboard update
-          independently and reflect current positioning momentum.
-        </div>
       </div>
 
       <div class="divider"></div>
@@ -4708,6 +4804,11 @@
         </table>
       </div>
 
+      <div class="page-legal">
+        <span class="page-legal-label">DISCLOSURES</span>
+        Scores and signals are model outputs based on live market data and historical patterns; not a guarantee of future conditions. Scenario probabilities are model estimates; actual outcomes may differ materially. Sector positioning reflects portfolio allocation signals, not individual security recommendations. Returns reflect Nifty/sector index performance during historical periods matching the current regime; past performance does not guarantee future results. FII/DII data sourced from NSE; equity segment cash market flows only; may be cached on non-trading days. EconIq is not a SEBI-registered Research Analyst.
+      </div>
+
     </main>
   </div>
 
@@ -4836,7 +4937,7 @@
         color: var(--blue);
         letter-spacing: 0.08em;
         text-align: center;
-        z-index: 98;
+        z-index: var(--z-banner);
       `;
       banner.textContent = 'Connecting to Sentinel engine...';
       document.body.appendChild(banner);
@@ -4848,7 +4949,7 @@
           b.style.background = 'rgba(251,191,36,0.12)';
           b.style.borderBottomColor = 'rgba(251,191,36,0.25)';
           b.style.color = 'var(--amber)';
-          b.textContent = 'Engine warming up. Refresh in 15 seconds.';
+          b.textContent = 'Analysis is taking longer than usual. Please wait.';
         }
       }, 20000);
     }
@@ -4871,7 +4972,8 @@
       initOnboarding();
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
       loadActivitySignals();
-      setInterval(loadTicker, 300000);
+      const _tickerInterval = setInterval(() => { if (!document.hidden) loadTicker(); }, 300000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) loadTicker(); });
       initNav(); initSidebar();
     }
 
@@ -4944,12 +5046,14 @@
       const statusTx = document.getElementById('runStatusText');
       btn.disabled = true; btn.classList.add('running');
       btn.innerHTML = '<div class="run-spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:#fff;"></div> Running...';
-      status.classList.add('visible'); statusTx.textContent = 'Starting pipeline...';
+      const _sBar = document.getElementById('stickyRefreshBar');
+      if (_sBar) _sBar.className = 'sticky-refresh-bar';
+      status.classList.add('visible'); statusTx.textContent = 'Starting analysis...';
       try {
         const { job_id } = await api('/api/run', { method: 'POST', body: JSON.stringify({ repo: 5.25, deficit: 4.3, capex: 12.2 }) });
-        statusTx.textContent = 'Pipeline running. This takes ~30 seconds...';
+        statusTx.textContent = 'Analysis running. This usually takes about 30 seconds.';
         pollJob(job_id);
-      } catch (e) { showToast('Pipeline failed to start.', 'error'); resetRunBtn(); }
+      } catch (e) { showToast('Analysis could not start. Check your connection and try again.', 'error'); resetRunBtn(); }
     }
 
     function pollJob(jobId) {
@@ -4977,7 +5081,7 @@
             renderConfidenceSparkline(freshArr);
             renderConfArrow(freshArr);
           } else if (res.status === 'failed') {
-            clearInterval(_pollTimer); showToast('Pipeline error: ' + (res.error || 'unknown'), 'error');
+            clearInterval(_pollTimer); showToast('Analysis error: ' + (res.error || 'Try running again.'), 'error');
             resetRunBtn(); document.getElementById('runStatus').classList.remove('visible');
           }
         } catch (e) { clearInterval(_pollTimer); resetRunBtn(); }
@@ -5111,7 +5215,14 @@
       const confidence = fromHistory ? data.confidence : regime?.confidence || 0;
       const conviction = strategy?.conviction || '—';
       const runAt = data.run_at || new Date().toISOString();
-      document.getElementById('regimeName').textContent = regimeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const displayName = regimeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('regimeName').textContent = displayName;
+      const verdictEl = document.getElementById('regimeVerdict');
+      if (verdictEl && conviction && conviction !== '—') {
+        const impliedAction = _deriveImpliedAction(regimeName.toUpperCase().replace(/ /g, '_'), conviction);
+        verdictEl.textContent = `${displayName} regime, ${conviction.toLowerCase()} conviction. ${impliedAction}.`;
+        verdictEl.style.display = '';
+      }
       const pct = Math.round(confidence * 100); const circ = 2 * Math.PI * 36;
       document.getElementById('confRing').setAttribute('stroke-dasharray', (circ * pct / 100).toFixed(1) + ' ' + circ.toFixed(1));
       document.getElementById('confPct').textContent = pct + '%';
@@ -5156,8 +5267,23 @@
       const runDate = new Date(runAt); const hoursAgo = Math.round((Date.now() - runDate.getTime()) / 3600000);
       document.getElementById('lastRunMeta').textContent = runDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' · ' + runDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const dot = document.getElementById('freshnessDot'); const txt = document.getElementById('freshnessText');
-      dot.className = 'freshness-dot ' + (hoursAgo < 6 ? 'fresh' : hoursAgo < 24 ? 'stale' : 'old');
-      txt.textContent = hoursAgo < 1 ? 'Just updated' : hoursAgo < 24 ? `Updated ${hoursAgo}h ago` : `Updated ${Math.round(hoursAgo / 24)}d ago`;
+      const freshClass = hoursAgo < 6 ? 'fresh' : hoursAgo < 24 ? 'stale' : 'old';
+      dot.className = 'freshness-dot ' + freshClass;
+      const freshnessText = hoursAgo < 1 ? 'Just updated' : hoursAgo < 24 ? `Updated ${hoursAgo}h ago` : `Updated ${Math.round(hoursAgo / 24)}d ago`;
+      txt.textContent = freshnessText;
+      // Update sticky refresh bar
+      const stickyBar = document.getElementById('stickyRefreshBar');
+      const stickyDot = document.getElementById('stickyFreshnessDot');
+      const stickyLbl = document.getElementById('stickyFreshnessLabel');
+      if (stickyBar) {
+        if (freshClass !== 'fresh') {
+          stickyBar.className = `sticky-refresh-bar visible ${freshClass}`;
+          if (stickyDot) stickyDot.className = `freshness-dot ${freshClass}`;
+          if (stickyLbl) stickyLbl.textContent = freshnessText + '. Refresh for today\'s regime.';
+        } else {
+          stickyBar.className = 'sticky-refresh-bar';
+        }
+      }
       // F8: ACT/WAIT/HOLD signal
       renderActSignal(fromHistory ? data.regime : regime?.regime, conviction);
 
@@ -5954,10 +6080,37 @@
       renderArchiveWithFilters();
     }
 
+    let _outcomeEvalPending = false;
+    let _outcomeEvalTimer = null;
     async function triggerOutcomeEvaluation() {
       const btn = document.querySelector('[onclick="triggerOutcomeEvaluation()"]');
       const status = document.getElementById('outcomeEvalStatus');
       if (!btn || !status) return;
+      if (!_outcomeEvalPending) {
+        _outcomeEvalPending = true;
+        const origText = btn.textContent;
+        btn.textContent = '▶ Confirm? Click again to evaluate';
+        btn.style.background = 'rgba(251,191,36,0.15)';
+        btn.style.borderColor = 'rgba(251,191,36,0.4)';
+        btn.style.color = 'var(--amber)';
+        status.textContent = 'This will evaluate all runs older than 30 days.';
+        status.style.color = 'var(--amber)';
+        _outcomeEvalTimer = setTimeout(() => {
+          _outcomeEvalPending = false;
+          btn.textContent = origText;
+          btn.style.background = '';
+          btn.style.borderColor = '';
+          btn.style.color = '';
+          status.textContent = 'Click to evaluate runs older than 30 days';
+          status.style.color = 'var(--text-3)';
+        }, 4000);
+        return;
+      }
+      clearTimeout(_outcomeEvalTimer);
+      _outcomeEvalPending = false;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
       btn.disabled = true;
       status.textContent = 'Evaluating…';
       status.style.color = 'var(--amber)';
@@ -5978,7 +6131,7 @@
           .limit(100);
         renderHistoryTable(freshData || []);
       } catch (e) {
-        status.textContent = 'Evaluation failed. Check logs.';
+        status.textContent = 'Evaluation failed. Try again.';
         status.style.color = 'var(--red)';
       } finally {
         btn.disabled = false;
@@ -6074,13 +6227,41 @@
         });
       });
       document.querySelectorAll('.form-select,.form-input').forEach(el => el.addEventListener('change', markUnsaved));
-      document.querySelectorAll('.threshold-val').forEach(el => {
-        el.addEventListener('click', () => {
-          const key = el.dataset.key; const curr = el.textContent.replace('%', '');
-          const newVal = prompt(`Set new threshold for ${key}:`, curr);
-          if (newVal !== null && !isNaN(newVal)) { el.textContent = newVal + (key.includes('threshold') && key !== 'fii_consecutive_days' ? '%' : ''); markUnsaved(); }
+      (function initThresholdEditing() {
+        document.querySelectorAll('.threshold-edit').forEach(wrap => {
+          const display = wrap.querySelector('.threshold-display');
+          const input = wrap.querySelector('.threshold-input');
+          const confirmBtn = wrap.querySelector('.threshold-confirm');
+          const key = wrap.dataset.key;
+          const hasPercent = key.includes('threshold') && key !== 'fii_consecutive_days';
+          function startEdit() {
+            input.value = wrap.dataset.value;
+            wrap.classList.add('editing');
+            input.focus();
+            input.select();
+          }
+          function commitEdit() {
+            if (!wrap.classList.contains('editing')) return;
+            const raw = input.value.trim();
+            if (raw !== '' && !isNaN(raw)) {
+              const num = key === 'fii_consecutive_days' ? parseInt(raw, 10) : parseFloat(raw);
+              wrap.dataset.value = String(num);
+              display.textContent = hasPercent ? num + '%' : String(num);
+              markUnsaved();
+            }
+            wrap.classList.remove('editing');
+          }
+          function cancelEdit() { if (wrap.classList.contains('editing')) wrap.classList.remove('editing'); }
+          display.addEventListener('click', startEdit);
+          confirmBtn.addEventListener('mousedown', e => e.preventDefault());
+          confirmBtn.addEventListener('click', e => { e.stopPropagation(); commitEdit(); });
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+            if (e.key === 'Escape') cancelEdit();
+          });
+          input.addEventListener('blur', () => { setTimeout(commitEdit, 0); });
         });
-      });
+      })();
       document.getElementById('savePrefsBtn').addEventListener('click', savePreferences);
       document.getElementById('runBtn').addEventListener('click', runEngine);
       document.getElementById('signOutBtn').addEventListener('click', signOut);
@@ -6126,7 +6307,7 @@
       const getSegVal = field => document.querySelector(`.segment-btn[data-field="${field}"].active`)?.dataset.val;
       const waNum = (document.getElementById('waNumber')?.value || '').trim();
       const prefs = { aum_size: getSegVal('aum_size'), mandate_type: document.getElementById('mandateType')?.value, client_profile: document.getElementById('clientProfile')?.value, risk_tolerance: getSegVal('risk_tolerance'), investment_horizon: getSegVal('investment_horizon'), benchmark: document.getElementById('benchmark')?.value, pdf_delivery_time: document.getElementById('pdfTime')?.value, report_tone: getSegVal('report_tone'), whatsapp_number: waNum || null };
-      const notifPrefs = { vix_threshold: parseFloat(document.getElementById('threshVIX').textContent), inr_threshold: parseFloat(document.getElementById('threshINR').textContent), fii_consecutive_days: parseInt(document.getElementById('threshFII').textContent), confidence_breach_threshold: parseFloat(document.getElementById('threshChallenger').textContent) };
+      const notifPrefs = { vix_threshold: parseFloat(document.getElementById('threshVIX').dataset.value), inr_threshold: parseFloat(document.getElementById('threshINR').dataset.value), fii_consecutive_days: parseInt(document.getElementById('threshFII').dataset.value, 10), confidence_breach_threshold: parseFloat(document.getElementById('threshChallenger').dataset.value) };
       try {
         btn.textContent = 'Saving...'; btn.disabled = true;
         const { error } = await sb.from('profiles').update(prefs).eq('id', _session.user.id);
@@ -6155,7 +6336,7 @@
         document.getElementById('profileSaveHint').style.color = 'var(--green)';
         showToast('✓ Preferences saved', 'success');
         setTimeout(() => { btn.textContent = 'Save Preferences'; btn.classList.remove('saved'); }, 3000);
-      } catch (e) { btn.textContent = 'Save Preferences'; btn.disabled = false; showToast('Failed to save preferences', 'error'); }
+      } catch (e) { btn.textContent = 'Save Preferences'; btn.disabled = false; showToast('Preferences not saved. Try again.', 'error'); }
     }
 
     function initNav() {
@@ -6373,7 +6554,7 @@
         : (regime?.narrative || '').slice(0, 120) + (regime?.narrative?.length > 120 ? '…' : '');
       const watchpoint = _getNextCalendarWatchpoint();
       document.getElementById('dpAction').textContent = action;
-      document.getElementById('dpRationale').textContent = rationale || '—';
+      document.getElementById('dpRationale').textContent = rationale || 'No key drivers identified for this regime.';
       document.getElementById('dpWatchpoint').textContent = watchpoint;
       card.classList.add('visible');
     }
@@ -7382,7 +7563,7 @@
       setTimeout(() => badge.classList.remove('show'), 3000);
     }
 
-    setInterval(pollForNewRun, 90000);
+    setInterval(() => { if (!document.hidden) pollForNewRun(); }, 90000);
 
     document.addEventListener('DOMContentLoaded', () => {
       const hamBtn = document.getElementById('navHamburger');
@@ -7394,6 +7575,15 @@
       });
     });
   </script>
+
+  <!-- STICKY REFRESH BAR -->
+  <div class="sticky-refresh-bar" id="stickyRefreshBar" role="status" aria-live="polite">
+    <div class="sticky-refresh-bar-info">
+      <div class="freshness-dot stale" id="stickyFreshnessDot"></div>
+      <span class="sticky-refresh-bar-label" id="stickyFreshnessLabel">Data is stale</span>
+    </div>
+    <button class="sticky-refresh-btn" onclick="document.getElementById('runBtn').click()">Refresh Analysis</button>
+  </div>
 </body>
 
 </html>

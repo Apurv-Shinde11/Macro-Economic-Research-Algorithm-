@@ -18,7 +18,7 @@ colors:
   text-primary: "#e8eeff"
   text-secondary: "#7a8baa"
   text-ghost: "#2e3d58"
-  light-bg: "#f4f6fc"
+  light-bg: "#ffffff"
   light-surface: "#ffffff"
   light-panel: "#eaf0fb"
 typography:
@@ -150,7 +150,7 @@ A near-black navy foundation with exactly one primary accent (Signal Blue) and f
 - **Signal Red** (`#f87171`): Stress / RISK_OFF / negative flow. Never used for branding, only for data-driven state.
 
 ### Light mode
-Light mode inverts to a blue-tinted near-white (`#f4f6fc`) with the same token names at different values. Signal colors shift to their saturated equivalents (green `#059669`, blue `#2563eb`). Both modes must meet the same contrast standards — verify monospace label text (`text-ghost` on `light-panel`) specifically, as it is the highest-risk surface.
+Light mode inverts to a pure white (`#ffffff`) with the same token names at different values. Signal colors shift to their saturated equivalents (green `#059669`, blue `#2563eb`). Both modes must meet the same contrast standards — verify monospace label text (`text-ghost` on `light-panel`) specifically, as it is the highest-risk surface.
 
 ### Named Rules
 **The Signal Color Rule.** Green, amber, red, and gold appear only when a data value warrants them. Never use these colors for decoration, background tints on non-signal elements, or marketing emphasis. A page element carrying Signal Green is making a claim about market conditions.
