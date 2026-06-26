@@ -2912,6 +2912,194 @@ async def run_simulator(
     }
 
 
+@app.post("/api/portfolio-layer")
+async def portfolio_layer(
+    body: dict,
+    profile: dict = Depends(require_access)
+):
+    """
+    Client Portfolio Layer.
+    Maps current regime signals against a client's actual allocation.
+    Returns per-sleeve analysis, risk flags, alignment score,
+    and a conviction-gated action directive.
+    """
+
+    REGIME_TARGETS = {
+        "LIQUIDITY_DRIVEN_EXPANSION": {
+            "equity": {"min": 60, "max": 80, "target": 70},
+            "debt":   {"min": 10, "max": 25, "target": 15},
+            "gold":   {"min": 5,  "max": 10, "target": 7},
+            "cash":   {"min": 2,  "max": 8,  "target": 5},
+            "bias": "RISK_ON",
+            "label": "Liquidity-Driven Expansion",
+        },
+        "MONETARY_TIGHTENING": {
+            "equity": {"min": 30, "max": 50, "target": 40},
+            "debt":   {"min": 30, "max": 50, "target": 40},
+            "gold":   {"min": 5,  "max": 10, "target": 7},
+            "cash":   {"min": 10, "max": 20, "target": 13},
+            "bias": "RISK_OFF",
+            "label": "Monetary Tightening",
+        },
+        "STAGFLATION_RISK": {
+            "equity": {"min": 25, "max": 45, "target": 35},
+            "debt":   {"min": 15, "max": 30, "target": 20},
+            "gold":   {"min": 15, "max": 25, "target": 20},
+            "cash":   {"min": 15, "max": 25, "target": 20},
+            "bias": "DEFENSIVE",
+            "label": "Stagflation Risk",
+        },
+        "GROWTH_RECOVERY": {
+            "equity": {"min": 55, "max": 75, "target": 65},
+            "debt":   {"min": 15, "max": 30, "target": 20},
+            "gold":   {"min": 5,  "max": 12, "target": 8},
+            "cash":   {"min": 5,  "max": 12, "target": 7},
+            "bias": "RISK_ON",
+            "label": "Growth Recovery",
+        },
+        "CREDIT_EXPANSION": {
+            "equity": {"min": 55, "max": 70, "target": 62},
+            "debt":   {"min": 20, "max": 35, "target": 28},
+            "gold":   {"min": 3,  "max": 8,  "target": 5},
+            "cash":   {"min": 3,  "max": 8,  "target": 5},
+            "bias": "RISK_ON",
+            "label": "Credit Expansion",
+        },
+        "LIQUIDITY_TIGHTENING": {
+            "equity": {"min": 20, "max": 40, "target": 30},
+            "debt":   {"min": 25, "max": 45, "target": 35},
+            "gold":   {"min": 10, "max": 20, "target": 15},
+            "cash":   {"min": 15, "max": 25, "target": 20},
+            "bias": "DEFENSIVE",
+            "label": "Liquidity Tightening",
+        },
+        "OVERHEATING": {
+            "equity": {"min": 40, "max": 60, "target": 50},
+            "debt":   {"min": 15, "max": 30, "target": 22},
+            "gold":   {"min": 10, "max": 18, "target": 14},
+            "cash":   {"min": 12, "max": 20, "target": 14},
+            "bias": "CAUTIOUS",
+            "label": "Overheating",
+        },
+        "DEFLATIONARY_BUST": {
+            "equity": {"min": 15, "max": 35, "target": 25},
+            "debt":   {"min": 35, "max": 55, "target": 45},
+            "gold":   {"min": 10, "max": 20, "target": 15},
+            "cash":   {"min": 15, "max": 25, "target": 15},
+            "bias": "DEFENSIVE",
+            "label": "Deflationary Bust",
+        },
+    }
+
+    current_regime = body.get("current_regime", "LIQUIDITY_DRIVEN_EXPANSION")
+    conviction     = body.get("conviction", "MEDIUM").upper()
+    allocation     = body.get("allocation", {"equity": 60, "debt": 25, "gold": 10, "cash": 5})
+    client_name    = body.get("client_name", "")  # display only; never stored
+
+    if current_regime not in REGIME_TARGETS:
+        raise HTTPException(status_code=400, detail=f"Unknown regime: {current_regime}")
+
+    targets      = REGIME_TARGETS[current_regime]
+    regime_bias  = targets["bias"]
+    regime_label = targets["label"]
+
+    # Per-sleeve analysis
+    sleeve_analysis = {}
+    for sleeve in ("equity", "debt", "gold", "cash"):
+        actual     = float(allocation.get(sleeve, 0))
+        t          = targets.get(sleeve, {})
+        target_val = float(t.get("target", actual))
+        t_min      = float(t.get("min", 0))
+        t_max      = float(t.get("max", 100))
+        delta      = actual - target_val
+
+        if actual < t_min:
+            status = "UNDERWEIGHT"
+        elif actual > t_max:
+            status = "OVERWEIGHT"
+        else:
+            status = "ON TARGET"
+
+        if status == "UNDERWEIGHT":
+            action = f"Add {round(target_val - actual)}% to reach regime target"
+        elif status == "OVERWEIGHT":
+            action = f"Trim {round(actual - target_val)}% to align with regime"
+        else:
+            action = "No action needed; within regime range"
+
+        sleeve_analysis[sleeve] = {
+            "actual":    actual,
+            "target":    target_val,
+            "range_min": t_min,
+            "range_max": t_max,
+            "delta":     round(delta, 1),
+            "status":    status,
+            "action":    action,
+        }
+
+    # Risk flags
+    risk_flags  = []
+    eq_actual   = float(allocation.get("equity", 0))
+    cash_actual = float(allocation.get("cash",   0))
+    gold_actual = float(allocation.get("gold",   0))
+    debt_actual = float(allocation.get("debt",   0))
+
+    if regime_bias == "DEFENSIVE" and eq_actual > 55:
+        risk_flags.append("Equity overexposure in defensive regime; drawdown risk elevated")
+    if regime_bias in ("RISK_ON",) and cash_actual > 15:
+        risk_flags.append("Excess cash drag in risk-on regime; deployment opportunity being missed")
+    if regime_bias == "DEFENSIVE" and cash_actual < 10:
+        risk_flags.append("Insufficient cash buffer for defensive regime; limited dry powder")
+    if gold_actual > 25:
+        risk_flags.append("Gold above 25%; concentration risk in single defensive asset")
+    if debt_actual > 60 and regime_bias == "RISK_ON":
+        risk_flags.append("Heavy debt allocation in risk-on regime; opportunity cost risk")
+    if eq_actual > 85:
+        risk_flags.append("Equity above 85%; single-asset-class concentration risk")
+
+    # Alignment score 0-100
+    total_deviation = sum(
+        abs(sleeve_analysis[s]["delta"])
+        for s in ("equity", "debt", "gold", "cash")
+    )
+    alignment_score = max(0, round(100 - total_deviation * 2))
+
+    # Conviction-gated action directive
+    if conviction == "HIGH":
+        if alignment_score < 60:
+            action_gate    = "ACT"
+            gate_rationale = "HIGH conviction with significant misalignment; rebalance now"
+        else:
+            action_gate    = "MINOR ONLY"
+            gate_rationale = "HIGH conviction but allocation largely aligned; trim edges only"
+    elif conviction == "MEDIUM":
+        if alignment_score < 50:
+            action_gate    = "MINOR ONLY"
+            gate_rationale = "MEDIUM conviction; incremental adjustments only, avoid full repositioning"
+        else:
+            action_gate    = "HOLD"
+            gate_rationale = "MEDIUM conviction with reasonable alignment; hold current positioning"
+    else:  # LOW
+        action_gate    = "HOLD"
+        gate_rationale = "LOW conviction; preserve capital and await clearer regime signal"
+
+    return {
+        "regime": {
+            "key":       current_regime,
+            "label":     regime_label,
+            "bias":      regime_bias,
+            "conviction": conviction,
+        },
+        "sleeve_analysis":  sleeve_analysis,
+        "risk_flags":       risk_flags,
+        "alignment_score":  alignment_score,
+        "action_gate":      action_gate,
+        "gate_rationale":   gate_rationale,
+        "allocation":       allocation,
+        "client_name_display": (client_name[:50] if client_name else ""),
+    }
+
+
 @app.post("/api/notify-signup")
 async def notify_signup(body: dict):
     """
