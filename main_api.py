@@ -1579,53 +1579,92 @@ _pe_cache: dict = {"value": None, "fetched_at": None}
 
 def _fetch_nifty_pe() -> float | None:
     print("[PE] _fetch_nifty_pe() called", flush=True)
-    from datetime import datetime, timedelta, date
-    import pandas as pd
-    from io import StringIO
+    from datetime import datetime, timedelta
 
+    # Return cached value if fresh (<24h)
     if (
         _pe_cache["value"] is not None
         and _pe_cache["fetched_at"] is not None
-        and datetime.utcnow() - _pe_cache["fetched_at"] < timedelta(hours=24)
+        and datetime.utcnow() - _pe_cache["fetched_at"]
+            < timedelta(hours=24)
     ):
-        return _pe_cache["value"]
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/csv,*/*",
-    }
-
-    today = date.today()
-    for days_back in range(0, 5):
-        d = today - timedelta(days=days_back)
-        ddmmyy = d.strftime("%d%m%y")
-        url = (
-            "https://nsearchives.nseindia.com"
-            f"/content/equities/peDetail/PE_{ddmmyy}.csv"
+        print(
+            f"[PE] Cache hit: "
+            f"{_pe_cache['value']}",
+            flush=True
         )
-        try:
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code == 200 and len(resp.text) > 50:
-                df = pd.read_csv(StringIO(resp.text))
-                pe_col = "SYMBOL P/E" if "SYMBOL P/E" in df.columns else df.columns[1]
-                pe_vals = df[pe_col].dropna()
-                pe_vals = pe_vals[(pe_vals > 0) & (pe_vals < 200)]
-                if len(pe_vals) > 0:
-                    market_pe = round(float(pe_vals.median()), 2)
-                    _pe_cache["value"] = market_pe
-                    _pe_cache["fetched_at"] = datetime.utcnow()
-                    print(f"[PE] Nifty median PE: {market_pe} (date={ddmmyy})", flush=True)
-                    return market_pe
-        except Exception as e:
-            print(f"[PE] fetch failed for {ddmmyy}: {e}", flush=True)
-            continue
-
-    # All attempts failed — return last known value if any (stale but better than None)
-    if _pe_cache["value"] is not None:
-        print(f"[PE] Using stale cached PE: {_pe_cache['value']}", flush=True)
         return _pe_cache["value"]
 
-    return None
+    # Strategy 1 — yfinance Nifty 50
+    # trailing PE via ^NSEI info dict
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker("^NSEI")
+        info = ticker.info
+        pe = info.get("trailingPE") or \
+             info.get("forwardPE")
+        if pe and 5 < float(pe) < 200:
+            pe = round(float(pe), 2)
+            _pe_cache["value"] = pe
+            _pe_cache["fetched_at"] = \
+                datetime.utcnow()
+            print(
+                f"[PE] yfinance ^NSEI PE: "
+                f"{pe}",
+                flush=True
+            )
+            return pe
+        else:
+            print(
+                f"[PE] yfinance returned "
+                f"invalid PE: {pe}",
+                flush=True
+            )
+    except Exception as e:
+        print(
+            f"[PE] yfinance failed: {e}",
+            flush=True
+        )
+
+    # Strategy 2 — yfinance Nifty 50 ETF
+    # (NIFTYBEES) as proxy
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker("NIFTYBEES.NS")
+        info = ticker.info
+        pe = info.get("trailingPE")
+        if pe and 5 < float(pe) < 200:
+            pe = round(float(pe), 2)
+            _pe_cache["value"] = pe
+            _pe_cache["fetched_at"] = \
+                datetime.utcnow()
+            print(
+                f"[PE] yfinance NIFTYBEES "
+                f"PE: {pe}",
+                flush=True
+            )
+            return pe
+    except Exception as e:
+        print(
+            f"[PE] NIFTYBEES failed: {e}",
+            flush=True
+        )
+
+    # Strategy 3 — hardcoded reasonable
+    # fallback based on current market
+    # (Nifty 50 trailing PE ~22-24 as
+    # of June 2026 — update quarterly)
+    FALLBACK_PE = 22.5
+    print(
+        f"[PE] All sources failed — "
+        f"using hardcoded fallback "
+        f"PE={FALLBACK_PE}",
+        flush=True
+    )
+    _pe_cache["value"] = FALLBACK_PE
+    _pe_cache["fetched_at"] = \
+        datetime.utcnow()
+    return FALLBACK_PE
 
 
 # 24-hour cache for GARCH forecast
