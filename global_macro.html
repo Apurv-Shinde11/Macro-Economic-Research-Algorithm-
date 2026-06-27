@@ -2240,12 +2240,12 @@
           </div>
           <div class="detail-primary">
             <div class="detail-card">
-              <div class="card-label">GDP Growth</div>
+              <div class="card-label">GDP Growth${eco.gdp_growth_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.gdp_growth_year}</span>` : ''}</div>
               <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
               <div class="card-sub">Annual (latest)</div>
             </div>
             <div class="detail-card">
-              <div class="card-label">Inflation</div>
+              <div class="card-label">Inflation${eco.inflation_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.inflation_year}</span>` : ''}</div>
               <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
               <div class="card-sub">CPI YoY</div>
             </div>
@@ -2267,7 +2267,7 @@
           </div>
           <div class="detail-secondary">
             <div class="detail-card">
-              <div class="card-label">Unemployment</div>
+              <div class="card-label">Unemployment${eco.unemployment_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.unemployment_year}</span>` : ''}</div>
               <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
               <div class="card-sub">Latest</div>
             </div>

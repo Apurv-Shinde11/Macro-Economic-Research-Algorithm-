@@ -3968,27 +3968,40 @@ _POLICY_RATES = {
 # Add FRED_API_KEY to Railway Variables for higher rate limits
 # Falls back to _POLICY_RATES hardcoded values when FRED is unavailable
 _FRED_RATE_SERIES = {
-    "US": "FEDFUNDS",     # Federal Funds Rate
-    "DE": "ECBDFR",       # ECB Deposit Facility Rate
-    "FR": "ECBDFR",       # ECB (same as DE)
-    "IT": "ECBDFR",       # ECB
-    "BE": "ECBDFR",       # ECB
-    "AT": "ECBDFR",       # ECB
-    "NL": "ECBDFR",       # ECB
-    "IE": "ECBDFR",       # ECB
-    "FI": "ECBDFR",       # ECB
-    "PT": "ECBDFR",       # ECB
-    "GR": "ECBDFR",       # ECB
-    "GB": "IUDSOIA",      # BoE SONIA rate
-    "CA": "IORB",         # Bank of Canada
-    "AU": "RBATCTR",      # RBA cash rate
-    "SE": "SECBRATE",     # Riksbank
-    "NO": "NORRATE",      # Norges Bank
-    "CH": "SZBPOFAINT",   # SNB policy rate
-    "DK": "DKRATE",       # Danmarks Nationalbank
-    "NZ": "NZOCR",        # RBNZ OCR
-    "ZA": "ZAREPORAT",    # SARB repo rate
-    "KR": "KORBASERATE",  # Bank of Korea
+    # ── United States ──
+    "US": "FEDFUNDS",
+
+    # ── ECB Eurozone ──
+    "DE": "ECBDFR",
+    "FR": "ECBDFR",
+    "IT": "ECBDFR",
+    "BE": "ECBDFR",
+    "AT": "ECBDFR",
+    "NL": "ECBDFR",
+    "IE": "ECBDFR",
+    "FI": "ECBDFR",
+    "PT": "ECBDFR",
+    "GR": "ECBDFR",
+
+    # ── Other major central banks ──
+    "GB": "BOEBR",               # Bank of England
+    "JP": "IRSTCI01JPM156N",     # Bank of Japan
+    "CA": "IRSTCI01CAM156N",     # Bank of Canada
+    "AU": "IRSTCI01AUM156N",     # RBA
+    "SE": "IRSTCI01SEM156N",     # Riksbank
+    "NO": "IRSTCI01NOM156N",     # Norges Bank
+    "CH": "IRSTCI01CHM156N",     # SNB
+    "KR": "IRSTCI01KRM156N",     # Bank of Korea
+    "IN": "IRSTCI01INM156N",     # RBI repo rate
+    "BR": "IRSTCI01BRM156N",     # BCB Selic
+    "MX": "IRSTCI01MXM156N",     # Banxico
+    "ZA": "IRSTCI01ZAM156N",     # SARB
+    "CZ": "IRSTCI01CZM156N",     # CNB
+    "HU": "IRSTCI01HUM156N",     # MNB
+    "PL": "IRSTCI01PLM156N",     # NBP
+    "RO": "IRSTCI01ROM156N",     # NBR
+    "NZ": "IRSTCI01NZM156N",     # RBNZ
+    "DK": "IRSTCI01DKM156N",     # Danmarks Nationalbank
 }
 
 _fred_rate_cache: dict = {"data": {}, "fetched_at": 0}
@@ -4443,8 +4456,9 @@ def _get_nominal_gdp_trillion(
 
     # 3. Live World Bank fetch
     # NY.GDP.MKTP.CD = nominal GDP in current USD
-    raw = _wb_fetch(wb_code, "NY.GDP.MKTP.CD")
-    if raw is not None:
+    result = _wb_fetch(wb_code, "NY.GDP.MKTP.CD")
+    if result is not None:
+        raw, _ = result
         # Convert USD to trillions, round to 2 decimal places
         val = round(raw / 1_000_000_000_000, 2)
         _nominal_gdp_mem_cache[code] = val
@@ -4547,7 +4561,8 @@ _PEGGED_CURRENCIES = {
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
 
 
-def _wb_fetch(wb_code: str, indicator: str) -> float | None:
+def _wb_fetch(wb_code: str, indicator: str) -> tuple[float, int] | None:
+    """Returns (value, year) tuple or None. Year is the WB data vintage."""
     try:
         import requests as _req
         url = (
@@ -4560,9 +4575,13 @@ def _wb_fetch(wb_code: str, indicator: str) -> float | None:
         data = r.json()
         records = data[1] if isinstance(data, list) and len(data) > 1 else []
         for rec in records:
-            val = rec.get("value")
+            val  = rec.get("value")
+            year = rec.get("date")
             if val is not None:
-                return round(float(val), 2)
+                return (
+                    round(float(val), 2),
+                    int(year) if year else None,
+                )
         return None
     except Exception as _e:
         print(f"[GLOBAL_MACRO] WB fetch failed {wb_code}/{indicator}: {_e}", flush=True)
@@ -4617,7 +4636,10 @@ def _build_economy_record(
     eco, gdp, inflation, unemployment,
     currency_map, yield_map,
     live_rates=None,
-    nominal_trillion=None
+    nominal_trillion=None,
+    gdp_year=None,
+    inf_year=None,
+    une_year=None,
 ):
     code = eco["code"]
     raw_fx = currency_map.get(code)
@@ -4639,10 +4661,13 @@ def _build_economy_record(
         "flag":                 eco["flag"],
         "currency_label":       eco["currency_label"],
         "gdp_growth":           gdp,
+        "gdp_growth_year":      gdp_year,
         "inflation":            inflation,
+        "inflation_year":       inf_year,
         "policy_rate":          policy_rate,
         "pmi":                  _PMI_VALUES.get(code),
         "unemployment":         unemployment,
+        "unemployment_year":    une_year,
         "currency_vs_usd":      currency_vs_usd,
         "yield_10y":            yield_10y,
         "macro_signal":         _derive_macro_signal(gdp, inflation),
@@ -4653,6 +4678,15 @@ def _build_economy_record(
                 eco["wb_code"], code
             )
         ),
+        "data_sources": {
+            "gdp":          f"World Bank NY.GDP.MKTP.KD.ZG ({gdp_year or 'latest'})",
+            "inflation":    f"World Bank FP.CPI.TOTL.ZG ({inf_year or 'latest'})",
+            "unemployment": f"World Bank SL.UEM.TOTL.ZS ({une_year or 'latest'})",
+            "policy_rate":  "Central bank official — hardcoded May 2026",
+            "pmi":          "S&P Global — hardcoded May 2026",
+            "currency":     "yfinance live",
+            "yield":        "yfinance live / hardcoded fallback",
+        },
         "last_updated":         datetime.now(timezone.utc).isoformat(),
         "recent_development": (
             _get_country_news_cached(eco.get("wb_code", code)) or {
@@ -4766,7 +4800,7 @@ async def get_global_macro():
         wb   = eco["wb_code"]
         code = eco["code"]
 
-        gdp, inflation, unemployment, nominal_usd = (
+        _gdp_r, _inf_r, _une_r, _nom_r = (
             await asyncio.gather(
                 loop.run_in_executor(
                     None, _wb_fetch, wb,
@@ -4782,6 +4816,14 @@ async def get_global_macro():
                     "NY.GDP.MKTP.CD"),
             )
         )
+
+        gdp          = _gdp_r[0] if _gdp_r else None
+        gdp_year     = _gdp_r[1] if _gdp_r else None
+        inflation    = _inf_r[0] if _inf_r else None
+        inf_year     = _inf_r[1] if _inf_r else None
+        unemployment = _une_r[0] if _une_r else None
+        une_year     = _une_r[1] if _une_r else None
+        nominal_usd  = _nom_r[0] if _nom_r else None
 
         nominal_trillion = None
         if nominal_usd is not None:
@@ -4808,19 +4850,23 @@ async def get_global_macro():
         else:
             nominal_trillion = _get_nominal_gdp_trillion(wb, code)
 
-        return (eco, gdp, inflation, unemployment, nominal_trillion)
+        return (eco, gdp, gdp_year, inflation, inf_year,
+                unemployment, une_year, nominal_trillion)
 
     print("[GLOBAL_MACRO] Parallel World Bank fetch for all 50 economies...", flush=True)
     wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
 
     economies = []
-    for (eco, gdp, inflation,
-         unemployment, nominal_trillion) in wb_results:
+    for (eco, gdp, gdp_year, inflation, inf_year,
+         unemployment, une_year, nominal_trillion) in wb_results:
         record = _build_economy_record(
             eco, gdp, inflation, unemployment,
             currency_map, yield_map,
             live_rates=live_rates,
-            nominal_trillion=nominal_trillion
+            nominal_trillion=nominal_trillion,
+            gdp_year=gdp_year,
+            inf_year=inf_year,
+            une_year=une_year,
         )
         economies.append(record)
         try:
@@ -4835,15 +4881,7 @@ async def get_global_macro():
                     "currency_vs_usd": record.get("currency_vs_usd"),
                     "yield_10y":       record.get("yield_10y"),
                     "last_updated":    datetime.now(timezone.utc).isoformat(),
-                    "data_sources": {
-                        "gdp":          "World Bank NY.GDP.MKTP.KD.ZG",
-                        "inflation":    "World Bank FP.CPI.TOTL.ZG",
-                        "unemployment": "World Bank SL.UEM.TOTL.ZS",
-                        "policy_rate":  "Central bank official — hardcoded May 2026",
-                        "pmi":          "S&P Global — hardcoded May 2026",
-                        "currency":     "yfinance live",
-                        "yield":        "yfinance live / hardcoded fallback",
-                    },
+                    "data_sources":    record.get("data_sources"),
                 },
                 on_conflict="economy",
             ).execute()
