@@ -2240,30 +2240,25 @@
           </div>
           <div class="detail-primary">
             <div class="detail-card">
-              <div class="card-label">GDP Growth${eco.gdp_growth_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.gdp_growth_year}</span>` : ''}</div>
+              <div class="card-label">GDP Growth</div>
               <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.gdp || ''}">
-                ${eco.data_sources?.gdp
-                  ? eco.data_sources.gdp
-                      .replace('World Bank ', '')
-                      .replace('NY.GDP.MKTP.KD.ZG', '')
-                      .trim()
-                  : 'World Bank · Annual'}
+                World Bank ·
+                ${eco.gdp_growth_year
+                  ? eco.gdp_growth_year + ' (latest available)'
+                  : 'latest available'}
               </div>
             </div>
             <div class="detail-card">
-              <div class="card-label">Inflation${eco.inflation_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.inflation_year}</span>` : ''}</div>
+              <div class="card-label">Inflation</div>
               <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.inflation || ''}">
-                CPI YoY ·
-                ${eco.data_sources?.inflation
-                  ? eco.data_sources.inflation
-                      .replace('World Bank ', '')
-                      .replace('FP.CPI.TOTL.ZG', '')
-                      .trim()
-                  : 'World Bank'}
+                CPI YoY · World Bank ·
+                ${eco.inflation_year
+                  ? eco.inflation_year + ' (latest available)'
+                  : 'latest available'}
               </div>
             </div>
             <div class="detail-card">
@@ -2317,17 +2312,14 @@
           </div>
           <div class="detail-secondary">
             <div class="detail-card">
-              <div class="card-label">Unemployment${eco.unemployment_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.unemployment_year}</span>` : ''}</div>
+              <div class="card-label">Unemployment</div>
               <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.unemployment || ''}">
-                ILO ·
-                ${eco.data_sources?.unemployment
-                  ? eco.data_sources.unemployment
-                      .replace('World Bank ', '')
-                      .replace('SL.UEM.TOTL.ZS', '')
-                      .trim()
-                  : 'World Bank'}
+                ILO · World Bank ·
+                ${eco.unemployment_year
+                  ? eco.unemployment_year + ' (latest available)'
+                  : 'latest available'}
               </div>
             </div>
             <div class="detail-card">
