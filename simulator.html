@@ -450,6 +450,8 @@
     }
     .scenario-tier.india { background: rgba(16,212,138,0.1); color: var(--green); border: 1px solid rgba(16,212,138,0.2); }
     .scenario-tier.global { background: rgba(79,131,255,0.1); color: var(--blue); border: 1px solid rgba(79,131,255,0.2); }
+    .scenario-tier.structural { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+    .scenario-tier.extreme { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
     .scenario-label {
       font-size: 11px;
       color: var(--text-2);
@@ -923,6 +925,58 @@
         <div class="scenario-row" data-key="oil_supply_shock" onclick="selectScenario(this)">
           <span class="scenario-tier global">GL</span>
           <span class="scenario-label">Oil Supply Shock ($110/bbl)</span>
+        </div>
+      </div>
+
+      <div class="scenario-group">
+        <div class="scenario-group-label">India Structural</div>
+        <div class="scenario-row" data-key="union_budget_expansion" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">Union Budget — Fiscal Expansion</span>
+        </div>
+        <div class="scenario-row" data-key="monsoon_failure" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">Monsoon Failure (Below 80% Normal)</span>
+        </div>
+        <div class="scenario-row" data-key="rbi_liquidity_tightening" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">RBI Liquidity Tightening (CRR Hike)</span>
+        </div>
+        <div class="scenario-row" data-key="banking_sector_stress" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">Banking Sector Stress (NPA Cycle)</span>
+        </div>
+        <div class="scenario-row" data-key="election_uncertainty" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">Election Outcome Surprise</span>
+        </div>
+        <div class="scenario-row" data-key="inr_appreciation" onclick="selectScenario(this)">
+          <span class="scenario-tier structural">IS</span>
+          <span class="scenario-label">INR Appreciation (₹80/USD)</span>
+        </div>
+      </div>
+
+      <div class="scenario-group">
+        <div class="scenario-group-label">Global Extremes</div>
+        <div class="scenario-row" data-key="us_recession" onclick="selectScenario(this)">
+          <span class="scenario-tier extreme">GX</span>
+          <span class="scenario-label">US Recession (GDP Contraction)</span>
+        </div>
+        <div class="scenario-row" data-key="em_contagion" onclick="selectScenario(this)">
+          <span class="scenario-tier extreme">GX</span>
+          <span class="scenario-label">EM Contagion (Turkey/Argentina Style)</span>
+        </div>
+        <div class="scenario-row" data-key="dollar_index_spike" onclick="selectScenario(this)">
+          <span class="scenario-tier extreme">GX</span>
+          <span class="scenario-label">Dollar Index Spike (DXY &gt; 110)</span>
+        </div>
+        <div class="scenario-row" data-key="commodity_supercycle" onclick="selectScenario(this)">
+          <span class="scenario-tier extreme">GX</span>
+          <span class="scenario-label">Global Commodity Supercycle</span>
+        </div>
+        <div class="scenario-row" data-key="geopolitical_supply_disruption" onclick="selectScenario(this)">
+          <span class="scenario-tier extreme">GX</span>
+          <span class="scenario-label">Geopolitical Supply Disruption</span>
         </div>
       </div>
 

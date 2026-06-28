@@ -2885,6 +2885,729 @@ async def run_simulator(
             },
             "advisor_note": "Emergency defensive posture. Raise gold to 15%+. Cut equity to minimum. Absolute shortest duration debt only.",
         },
+        # ── Tier 3: India Structural Events ──────────────────────────────────
+        "union_budget_expansion": {
+            "label": "Union Budget — Fiscal Expansion",
+            "tier": "India Structural",
+            "description": (
+                "Government announces major fiscal "
+                "expansion — capex surge, tax cuts, "
+                "higher deficit target. Growth "
+                "positive but inflation risk rises."
+            ),
+            "signal_shifts": {
+                "vix": -1.5,
+                "fii": +3000,
+                "crude": +2,
+                "yield_curve_score": +0.10,
+                "credit_impulse_score": +0.20,
+            },
+            "target_regime": "LIQUIDITY_DRIVEN_EXPANSION",
+            "regime_probability": 0.60,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BULLISH",
+                    "magnitude": +9,
+                    "note": (
+                        "Capex-linked sectors surge — "
+                        "infra, defence, PSU banks. "
+                        "Broad market positive."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -4,
+                    "note": (
+                        "Higher fiscal deficit widens "
+                        "spreads — avoid long G-Sec, "
+                        "prefer corporate bonds."
+                    ),
+                },
+                "gold": {
+                    "direction": "NEUTRAL",
+                    "magnitude": -1,
+                    "note": (
+                        "Risk-on environment reduces "
+                        "safe-haven demand."
+                    ),
+                },
+                "cash": {
+                    "direction": "BEARISH",
+                    "magnitude": -2,
+                    "note": (
+                        "Deploy cash into equity — "
+                        "budget surprise is a "
+                        "deployment signal."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Add to infra, defence, and PSU "
+                "banks. Reduce G-Sec duration. "
+                "This is a buy-on-announcement "
+                "environment for cyclicals."
+            ),
+        },
+        "monsoon_failure": {
+            "label": "Monsoon Failure (Below 80% Normal)",
+            "tier": "India Structural",
+            "description": (
+                "IMD declares below-normal monsoon "
+                "— food inflation risk surges, rural "
+                "demand contracts, RBI's hands tied."
+            ),
+            "signal_shifts": {
+                "vix": +2.5,
+                "fii": -2500,
+                "crude": 0,
+                "yield_curve_score": -0.10,
+                "credit_impulse_score": -0.15,
+            },
+            "target_regime": "STAGFLATION_RISK",
+            "regime_probability": 0.50,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -7,
+                    "note": (
+                        "Rural consumption names "
+                        "hit hardest — FMCG, two-"
+                        "wheelers, agri inputs. "
+                        "Urban consumption holds."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -3,
+                    "note": (
+                        "Food inflation locks RBI "
+                        "into pause — no rate cut "
+                        "tailwind for bonds."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +5,
+                    "note": (
+                        "Inflation hedge demand "
+                        "rises. Rural gold buying "
+                        "also increases in stress."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +3,
+                    "note": (
+                        "Hold cash — wait for "
+                        "monsoon revival signal "
+                        "before deploying."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Avoid rural consumption, agri, "
+                "and two-wheeler names. Add gold "
+                "to 10-12%. Wait for IMD July "
+                "revision before adding equity."
+            ),
+        },
+        "rbi_liquidity_tightening": {
+            "label": "RBI Liquidity Tightening (CRR Hike)",
+            "tier": "India Structural",
+            "description": (
+                "RBI hikes CRR by 50bps to drain "
+                "systemic liquidity without changing "
+                "the repo rate. Credit growth slows."
+            ),
+            "signal_shifts": {
+                "vix": +1.5,
+                "fii": -1500,
+                "crude": 0,
+                "yield_curve_score": -0.12,
+                "credit_impulse_score": -0.25,
+            },
+            "target_regime": "MONETARY_TIGHTENING",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -6,
+                    "note": (
+                        "Banks and NBFCs face margin "
+                        "pressure. Credit growth "
+                        "slows — avoid financials."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -3,
+                    "note": (
+                        "Short-end yields spike "
+                        "on liquidity drain. "
+                        "Reduce duration urgently."
+                    ),
+                },
+                "gold": {
+                    "direction": "NEUTRAL",
+                    "magnitude": +1,
+                    "note": (
+                        "Mild safe-haven support "
+                        "but not a strong gold "
+                        "trigger."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +4,
+                    "note": (
+                        "Liquid funds benefit from "
+                        "higher short-term rates. "
+                        "Raise cash allocation."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Reduce bank and NBFC exposure. "
+                "Shift debt to ultra-short and "
+                "liquid funds. Raise cash buffer "
+                "to 10-12%."
+            ),
+        },
+        "banking_sector_stress": {
+            "label": "Banking Sector Stress (NPA Cycle)",
+            "tier": "India Structural",
+            "description": (
+                "Rising NPAs signal a new bad loan "
+                "cycle — RBI increases provisioning "
+                "requirements. Credit growth "
+                "contracts sharply."
+            ),
+            "signal_shifts": {
+                "vix": +3.5,
+                "fii": -4000,
+                "crude": 0,
+                "yield_curve_score": -0.10,
+                "credit_impulse_score": -0.35,
+            },
+            "target_regime": "GROWTH_SLOWDOWN_SUPPORT",
+            "regime_probability": 0.60,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -12,
+                    "note": (
+                        "Bank Nifty leads decline. "
+                        "Avoid all PSU banks and "
+                        "high-NPA private banks. "
+                        "IT and pharma as refuge."
+                    ),
+                },
+                "debt": {
+                    "direction": "BULLISH",
+                    "magnitude": +3,
+                    "note": (
+                        "Flight to G-Sec safety. "
+                        "Avoid corporate bonds "
+                        "in stressed sectors."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +7,
+                    "note": (
+                        "Systemic stress drives "
+                        "safe-haven demand. "
+                        "Add gold meaningfully."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +3,
+                    "note": (
+                        "Maximum liquidity — "
+                        "deploy only into "
+                        "defensives and gold."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Exit bank-heavy funds. Rotate "
+                "to IT, pharma, and gold. Hold "
+                "G-Sec over corporate bonds. "
+                "This is a multi-quarter "
+                "restructuring cycle."
+            ),
+        },
+        "election_uncertainty": {
+            "label": "Election Outcome Surprise",
+            "tier": "India Structural",
+            "description": (
+                "Unexpected election result — "
+                "hung parliament or coalition "
+                "government. Policy continuity "
+                "uncertainty spikes."
+            ),
+            "signal_shifts": {
+                "vix": +6.0,
+                "fii": -7000,
+                "crude": 0,
+                "yield_curve_score": -0.15,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.65,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -14,
+                    "note": (
+                        "Policy-sensitive sectors "
+                        "collapse — PSU, infra, "
+                        "defence. Private sector "
+                        "quality holds better."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -4,
+                    "note": (
+                        "Fiscal slippage fears "
+                        "widen spreads. Short "
+                        "duration only."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +10,
+                    "note": (
+                        "Maximum uncertainty "
+                        "premium. Gold is the "
+                        "clearest safe haven."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +4,
+                    "note": (
+                        "Hold maximum cash — "
+                        "deploy after new "
+                        "government clarity."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Raise gold to 15%. Exit PSU "
+                "and policy-sensitive names. "
+                "Hold SIPs — do not stop. "
+                "Deploy lump-sum only after "
+                "cabinet formation clarity."
+            ),
+        },
+        "inr_appreciation": {
+            "label": "INR Appreciation (₹80/USD)",
+            "tier": "India Structural",
+            "description": (
+                "Rupee strengthens sharply to "
+                "₹80/USD on strong FII inflows "
+                "and current account surplus. "
+                "Exporters face margin squeeze."
+            ),
+            "signal_shifts": {
+                "vix": -2.0,
+                "fii": +6000,
+                "crude": -3,
+                "yield_curve_score": +0.08,
+                "credit_impulse_score": +0.10,
+            },
+            "target_regime": "LIQUIDITY_DRIVEN_EXPANSION",
+            "regime_probability": 0.60,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BULLISH",
+                    "magnitude": +6,
+                    "note": (
+                        "Domestic consumption and "
+                        "import-heavy sectors win. "
+                        "IT exporters face "
+                        "earnings headwinds."
+                    ),
+                },
+                "debt": {
+                    "direction": "BULLISH",
+                    "magnitude": +4,
+                    "note": (
+                        "FII bond buying pushes "
+                        "yields lower. Extend "
+                        "duration — G-Sec "
+                        "particularly attractive."
+                    ),
+                },
+                "gold": {
+                    "direction": "BEARISH",
+                    "magnitude": -4,
+                    "note": (
+                        "INR gold prices fall "
+                        "with currency strength. "
+                        "Trim gold allocation."
+                    ),
+                },
+                "cash": {
+                    "direction": "NEUTRAL",
+                    "magnitude": 0,
+                    "note": (
+                        "Deploy into domestic "
+                        "consumption equity "
+                        "and long-duration debt."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Rotate from IT exporters to "
+                "domestic consumption. Extend "
+                "debt duration. Trim gold. "
+                "This is a risk-on domestic "
+                "demand environment."
+            ),
+        },
+        # ── Tier 4: Global Macro Extremes ─────────────────────────────────────
+        "us_recession": {
+            "label": "US Recession (GDP Contraction)",
+            "tier": "Global Extreme",
+            "description": (
+                "US GDP contracts for two "
+                "consecutive quarters. Global "
+                "growth expectations collapse, "
+                "EM risk-off accelerates."
+            ),
+            "signal_shifts": {
+                "vix": +7.0,
+                "fii": -8000,
+                "crude": -12,
+                "yield_curve_score": -0.20,
+                "credit_impulse_score": -0.25,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.70,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -16,
+                    "note": (
+                        "India not decoupled — "
+                        "FII outflows and IT "
+                        "earnings cuts drive "
+                        "broad market decline."
+                    ),
+                },
+                "debt": {
+                    "direction": "BULLISH",
+                    "magnitude": +6,
+                    "note": (
+                        "Global flight to safety. "
+                        "India G-Sec benefits "
+                        "from rate cut "
+                        "expectations."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +14,
+                    "note": (
+                        "Maximum safe-haven "
+                        "demand. Gold is the "
+                        "single clearest "
+                        "allocation in US "
+                        "recession."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +4,
+                    "note": (
+                        "Preserve capital. "
+                        "Deploy only after "
+                        "US Fed pivot signal."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Defensive posture. Raise gold "
+                "to 15-18%. Extend G-Sec "
+                "duration. Avoid IT and export "
+                "names. Wait for Fed pivot "
+                "before adding equity."
+            ),
+        },
+        "em_contagion": {
+            "label": "EM Contagion (Turkey/Argentina Style)",
+            "tier": "Global Extreme",
+            "description": (
+                "A major EM country faces "
+                "currency crisis and debt "
+                "default — contagion spreads "
+                "to other EMs including India."
+            ),
+            "signal_shifts": {
+                "vix": +5.0,
+                "fii": -6000,
+                "crude": -4,
+                "yield_curve_score": -0.18,
+                "credit_impulse_score": -0.15,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -10,
+                    "note": (
+                        "EM-wide selloff. India "
+                        "fundamentals are better "
+                        "but contagion is "
+                        "indiscriminate short-term."
+                    ),
+                },
+                "debt": {
+                    "direction": "NEUTRAL",
+                    "magnitude": -1,
+                    "note": (
+                        "Indian sovereign risk "
+                        "rises marginally. "
+                        "Stick to short G-Sec."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +8,
+                    "note": (
+                        "Currency crisis globally "
+                        "drives gold demand. "
+                        "INR weakness amplifies."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +3,
+                    "note": (
+                        "Hold cash in INR. "
+                        "Avoid international "
+                        "fund exposure during "
+                        "contagion."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Hold SIPs. Pause lump-sum. "
+                "Add gold. Watch India's "
+                "current account and FX "
+                "reserves as the key "
+                "insulation metrics."
+            ),
+        },
+        "dollar_index_spike": {
+            "label": "Dollar Index Spike (DXY > 110)",
+            "tier": "Global Extreme",
+            "description": (
+                "US dollar surges on safe-haven "
+                "demand or Fed hawkishness. "
+                "All EM currencies under "
+                "simultaneous pressure."
+            ),
+            "signal_shifts": {
+                "vix": +4.0,
+                "fii": -5000,
+                "crude": -6,
+                "yield_curve_score": -0.12,
+                "credit_impulse_score": -0.10,
+            },
+            "target_regime": "EXTERNAL_SHOCK",
+            "regime_probability": 0.60,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -9,
+                    "note": (
+                        "FII outflows accelerate "
+                        "as dollar strength "
+                        "makes EM less attractive. "
+                        "Import-heavy sectors hit."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -3,
+                    "note": (
+                        "RBI may intervene "
+                        "aggressively — "
+                        "liquidity tightening "
+                        "risk rises."
+                    ),
+                },
+                "gold": {
+                    "direction": "NEUTRAL",
+                    "magnitude": +2,
+                    "note": (
+                        "USD gold flat to down, "
+                        "but INR gold rises "
+                        "with currency weakness."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +2,
+                    "note": (
+                        "Hold INR cash. Consider "
+                        "USD-denominated assets "
+                        "for HNI clients with "
+                        "international exposure."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Avoid import-heavy sectors. "
+                "Reduce equity to underweight "
+                "temporarily. INR gold position "
+                "benefits even if USD gold "
+                "is flat."
+            ),
+        },
+        "commodity_supercycle": {
+            "label": "Global Commodity Supercycle",
+            "tier": "Global Extreme",
+            "description": (
+                "All major commodities rising "
+                "simultaneously — oil, metals, "
+                "agri. Inflationary globally "
+                "but India is a net importer."
+            ),
+            "signal_shifts": {
+                "vix": +2.0,
+                "fii": -2000,
+                "crude": +20,
+                "yield_curve_score": -0.15,
+                "credit_impulse_score": -0.12,
+            },
+            "target_regime": "STAGFLATION_RISK",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "NEUTRAL",
+                    "magnitude": -3,
+                    "note": (
+                        "Mixed — commodity "
+                        "producers win, "
+                        "consumers lose. "
+                        "Metals and energy "
+                        "stocks outperform."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -5,
+                    "note": (
+                        "Inflation surge locks "
+                        "RBI. Avoid all "
+                        "duration — shortest "
+                        "possible tenor only."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +10,
+                    "note": (
+                        "Supercycle is the "
+                        "strongest gold "
+                        "environment. Maximum "
+                        "conviction add."
+                    ),
+                },
+                "cash": {
+                    "direction": "NEUTRAL",
+                    "magnitude": +1,
+                    "note": (
+                        "Liquid funds benefit "
+                        "from RBI pause. "
+                        "Hold for re-entry."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Rotate equity to metals, "
+                "energy, and commodity "
+                "producers. Add gold to 15%. "
+                "Cut duration to zero. "
+                "Avoid FMCG and auto."
+            ),
+        },
+        "geopolitical_supply_disruption": {
+            "label": "Geopolitical Supply Disruption",
+            "tier": "Global Extreme",
+            "description": (
+                "Major geopolitical event "
+                "disrupts global supply chains "
+                "— semiconductors, rare earth, "
+                "or shipping routes. Not just "
+                "oil this time."
+            ),
+            "signal_shifts": {
+                "vix": +4.5,
+                "fii": -4500,
+                "crude": +8,
+                "yield_curve_score": -0.12,
+                "credit_impulse_score": -0.18,
+            },
+            "target_regime": "STAGFLATIONARY_RISK",
+            "regime_probability": 0.55,
+            "sleeve_impact": {
+                "equity": {
+                    "direction": "BEARISH",
+                    "magnitude": -11,
+                    "note": (
+                        "IT hit by chip shortage. "
+                        "Auto hit by parts "
+                        "shortage. Only domestic "
+                        "demand names insulated."
+                    ),
+                },
+                "debt": {
+                    "direction": "BEARISH",
+                    "magnitude": -4,
+                    "note": (
+                        "Stagflationary — "
+                        "inflation up, growth "
+                        "down. Worst environment "
+                        "for bonds."
+                    ),
+                },
+                "gold": {
+                    "direction": "BULLISH",
+                    "magnitude": +11,
+                    "note": (
+                        "Geopolitical premium "
+                        "plus inflation hedge. "
+                        "Double driver for gold."
+                    ),
+                },
+                "cash": {
+                    "direction": "BULLISH",
+                    "magnitude": +3,
+                    "note": (
+                        "Preserve capital. "
+                        "Duration of disruption "
+                        "determines re-entry "
+                        "timing."
+                    ),
+                },
+            },
+            "advisor_note": (
+                "Rotate to domestic demand "
+                "names — FMCG, healthcare, "
+                "utilities. Maximum gold. "
+                "Avoid IT, auto, chemicals. "
+                "Shortest possible debt "
+                "duration."
+            ),
+        },
     }
 
     scenario_key = body.get("scenario", "")
