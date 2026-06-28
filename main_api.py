@@ -4902,6 +4902,26 @@ def _get_country_news_cached(wb_code: str) -> dict | None:
         return None
 
 
+# ── India domestic data overrides ────────────────────────────────────────────
+# More current than World Bank annual data. Update on release day:
+#   CPI:         ~12th of each month (MOSPI)
+#   GDP:         ~last day of May (MoSPI advance estimate)
+#   Unemployment: quarterly (CMIE/PLFS) — leave as World Bank until PLFS 2025-26
+# Last updated: June 2026
+_INDIA_OVERRIDES = {
+    "inflation": {
+        "value":  3.93,
+        "source": "MOSPI CPI · May 2026 (provisional)",
+        "year":   2026,
+    },
+    "gdp_growth": {
+        "value":  7.2,
+        "source": "MoSPI GDP Advance · FY26",
+        "year":   2026,
+    },
+    # Unemployment: leave as World Bank until PLFS 2025-26 is published
+}
+
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
 # Last verified: May 2026 (source: S&P Global Manufacturing PMI releases)
 _PMI_VALUES = {
@@ -5364,6 +5384,16 @@ def _build_economy_record(
     inf_year=None,
     une_year=None,
 ):
+    # ── Apply India domestic overrides (more current than World Bank data) ──
+    if eco.get("code") == "IN":
+        _ov = _INDIA_OVERRIDES
+        if "inflation" in _ov:
+            inflation = _ov["inflation"]["value"]
+            inf_year  = _ov["inflation"]["year"]
+        if "gdp_growth" in _ov:
+            gdp      = _ov["gdp_growth"]["value"]
+            gdp_year = _ov["gdp_growth"]["year"]
+
     code = eco["code"]
     raw_fx = currency_map.get(code)
     currency_vs_usd = 1.0 if code == "US" else (round(raw_fx, 4) if raw_fx else None)
@@ -5402,8 +5432,16 @@ def _build_economy_record(
             )
         ),
         "data_sources": {
-            "gdp":          f"World Bank NY.GDP.MKTP.KD.ZG ({gdp_year or 'latest'})",
-            "inflation":    f"World Bank FP.CPI.TOTL.ZG ({inf_year or 'latest'})",
+            "gdp": (
+                _INDIA_OVERRIDES["gdp_growth"]["source"]
+                if eco.get("code") == "IN" and "gdp_growth" in _INDIA_OVERRIDES
+                else f"World Bank NY.GDP.MKTP.KD.ZG ({gdp_year or 'latest'})"
+            ),
+            "inflation": (
+                _INDIA_OVERRIDES["inflation"]["source"]
+                if eco.get("code") == "IN" and "inflation" in _INDIA_OVERRIDES
+                else f"World Bank FP.CPI.TOTL.ZG ({inf_year or 'latest'})"
+            ),
             "unemployment": f"World Bank SL.UEM.TOTL.ZS ({une_year or 'latest'})",
             "policy_rate":  "Central bank official — hardcoded May 2026",
             "pmi":          "S&P Global — hardcoded May 2026",

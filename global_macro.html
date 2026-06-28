@@ -2244,10 +2244,9 @@
               <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.gdp || ''}">
-                World Bank ·
-                ${eco.gdp_growth_year
-                  ? eco.gdp_growth_year + ' (latest available)'
-                  : 'latest available'}
+                ${eco.data_sources?.gdp?.includes('World Bank')
+                  ? `World Bank · ${eco.gdp_growth_year ? eco.gdp_growth_year + ' (latest available)' : 'latest available'}`
+                  : eco.data_sources?.gdp || 'World Bank · Annual'}
               </div>
             </div>
             <div class="detail-card">
@@ -2255,10 +2254,9 @@
               <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.inflation || ''}">
-                CPI YoY · World Bank ·
-                ${eco.inflation_year
-                  ? eco.inflation_year + ' (latest available)'
-                  : 'latest available'}
+                ${eco.data_sources?.inflation?.includes('World Bank')
+                  ? `CPI YoY · World Bank · ${eco.inflation_year ? eco.inflation_year + ' (latest available)' : 'latest available'}`
+                  : eco.data_sources?.inflation || 'CPI YoY'}
               </div>
             </div>
             <div class="detail-card">
