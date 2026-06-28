@@ -2242,39 +2242,104 @@
             <div class="detail-card">
               <div class="card-label">GDP Growth${eco.gdp_growth_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.gdp_growth_year}</span>` : ''}</div>
               <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
-              <div class="card-sub">Annual (latest)</div>
+              <div class="card-sub"
+                   title="${eco.data_sources?.gdp || ''}">
+                ${eco.data_sources?.gdp
+                  ? eco.data_sources.gdp
+                      .replace('World Bank ', '')
+                      .replace('NY.GDP.MKTP.KD.ZG', '')
+                      .trim()
+                  : 'World Bank · Annual'}
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">Inflation${eco.inflation_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.inflation_year}</span>` : ''}</div>
               <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
-              <div class="card-sub">CPI YoY</div>
+              <div class="card-sub"
+                   title="${eco.data_sources?.inflation || ''}">
+                CPI YoY ·
+                ${eco.data_sources?.inflation
+                  ? eco.data_sources.inflation
+                      .replace('World Bank ', '')
+                      .replace('FP.CPI.TOTL.ZG', '')
+                      .trim()
+                  : 'World Bank'}
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">Policy Rate</div>
               <div class="card-value" style="color:var(--text)">${fmt(eco.policy_rate, 2, '%')}</div>
-              <div class="card-sub">${(meta && meta.cb) || 'Central Bank'}</div>
+              <div class="card-sub"
+                   title="${eco.data_sources?.policy_rate || ''}">
+                ${(meta && meta.cb) || 'Central Bank'}
+                <span style="
+                  font-family:var(--font-mono);
+                  font-size:8px;
+                  color:var(--text-3);
+                  margin-left:4px;">
+                  ${eco.data_sources?.policy_rate?.includes('FRED')
+                    ? '· FRED Live'
+                    : eco.data_sources?.policy_rate?.includes('hardcoded')
+                      ? '· May 2026'
+                      : ''}
+                </span>
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">PMI</div>
               <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi, 1)}</div>
-              <div class="card-sub">Manufacturing</div>
+              <div class="card-sub"
+                   title="${eco.data_sources?.pmi || ''}">
+                Mfg PMI
+                <span style="
+                  font-family:var(--font-mono);
+                  font-size:8px;
+                  color:var(--amber);
+                  margin-left:4px;">
+                  · May 2026
+                </span>
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">Nominal GDP</div>
               <div class="card-value" style="color:var(--blue)">${eco.gdp_nominal_trillion != null ? '$' + eco.gdp_nominal_trillion + 'T' : '—'}</div>
-              <div class="card-sub">IMF WEO 2026</div>
+              <div class="card-sub">
+                World Bank · USD
+                <span style="
+                  font-family:var(--font-mono);
+                  font-size:8px;
+                  color:var(--text-3);
+                  margin-left:4px;">
+                  · 30d cache
+                </span>
+              </div>
             </div>
           </div>
           <div class="detail-secondary">
             <div class="detail-card">
               <div class="card-label">Unemployment${eco.unemployment_year ? `<span style="font-family:var(--font-mono);font-size:8px;color:var(--text-3);margin-left:4px;">${eco.unemployment_year}</span>` : ''}</div>
               <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
-              <div class="card-sub">Latest</div>
+              <div class="card-sub"
+                   title="${eco.data_sources?.unemployment || ''}">
+                ILO ·
+                ${eco.data_sources?.unemployment
+                  ? eco.data_sources.unemployment
+                      .replace('World Bank ', '')
+                      .replace('SL.UEM.TOTL.ZS', '')
+                      .trim()
+                  : 'World Bank'}
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">Currency</div>
               <div class="card-value mono-sm" style="color:var(--text)">${fmtCurrency(eco)}</div>
-              <div class="card-sub">vs USD</div>
+              <div class="card-sub">
+                vs USD
+                <span class="live-badge"
+                      style="margin-left:4px;">
+                  LIVE
+                </span>
+              </div>
             </div>
             <div class="detail-card">
               <div class="card-label">Yield 10Y <span class="live-badge">LIVE</span></div>
@@ -2300,6 +2365,45 @@
               <svg id="currencySparklineSVG" width="100%" height="80" viewBox="0 0 600 80" preserveAspectRatio="none"></svg>
             </div>
             <div class="currency-chart-footer" id="currencyChartFooter"></div>
+          </div>
+          <div style="
+            padding:10px 0 4px;
+            border-top:1px solid var(--border);
+            margin-top:8px;
+            display:flex;
+            gap:16px;
+            flex-wrap:wrap;">
+            <span style="
+              font-family:var(--font-mono);
+              font-size:8px;
+              color:var(--text-3);
+              letter-spacing:0.08em;">
+              SOURCES
+            </span>
+            <span style="
+              font-family:var(--font-mono);
+              font-size:8px;
+              color:var(--text-3);">
+              GDP/CPI/Unemployment: World Bank API
+            </span>
+            <span style="
+              font-family:var(--font-mono);
+              font-size:8px;
+              color:var(--text-3);">
+              Policy Rate: FRED (major economies) · hardcoded elsewhere
+            </span>
+            <span style="
+              font-family:var(--font-mono);
+              font-size:8px;
+              color:var(--text-3);">
+              Currency/Yield: yfinance live
+            </span>
+            <span style="
+              font-family:var(--font-mono);
+              font-size:8px;
+              color:var(--amber);">
+              PMI: S&amp;P Global · hardcoded May 2026
+            </span>
           </div>
           <div class="detail-summary">
             <div class="summary-label">Macro Context</div>
