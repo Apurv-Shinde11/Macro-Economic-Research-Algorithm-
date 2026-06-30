@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EconIq — Geopolitical Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══ DARK THEME (default) ══ */
+    :root {
+      --bg:          #04060f;
+      --bg-2:        #080d1c;
+      --bg-3:        #0d1428;
+      --bg-4:        #111d38;
+      --bg-glass:    rgba(8, 13, 28, 0.70);
+      --border:      rgba(99, 132, 255, 0.10);
+      --border-2:    rgba(99, 132, 255, 0.20);
+      --text:        #e8eeff;
+      --text-2:      #7a8baa;
+      --text-3:      #2e3d58;
+      --blue:        #4f83ff;
+      --blue-light:  #7aa3ff;
+      --blue-dim:    rgba(79, 131, 255, 0.10);
+      --indigo:      #6366f1;
+      --violet:      #8b5cf6;
+      --cyan:        #22d3ee;
+      --green:       #10d48a;
+      --green-dim:   rgba(16, 212, 138, 0.10);
+      --amber:       #fbbf24;
+      --amber-dim:   rgba(251, 191, 36, 0.10);
+      --red:         #f87171;
+      --red-dim:     rgba(248, 113, 113, 0.10);
+      --font-serif:  'Cormorant Garamond', Georgia, serif;
+      --font-sans:   'DM Sans', sans-serif;
+      --font-mono:   'JetBrains Mono', monospace;
+      --nav-h:       64px;
+      --radius:      8px;
+      --radius-lg:   14px;
+      --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
+    }
+
+    /* ══ LIGHT THEME ══ */
+    html.light {
+      --bg:        #ffffff;
+      --bg-2:      #ffffff;
+      --bg-3:      #eaf0fb;
+      --bg-4:      #dde8f8;
+      --bg-glass:  rgba(255, 255, 255, 0.80);
+      --border:    rgba(79, 131, 255, 0.12);
+      --border-2:  rgba(79, 131, 255, 0.22);
+      --text:      #0d1120;
+      --text-2:    #4a5872;
+      --text-3:    #9aaabb;
+      --blue:      #2563eb;
+      --blue-light:#3b82f6;
+      --blue-dim:  rgba(37, 99, 235, 0.08);
+      --indigo:    #4f46e5;
+      --violet:    #7c3aed;
+      --cyan:      #0891b2;
+      --green:     #059669;
+      --green-dim: rgba(5, 150, 105, 0.09);
+      --amber:     #b45309;
+      --amber-dim: rgba(180, 83, 9, 0.08);
+      --red:       #dc2626;
+      --red-dim:   rgba(220, 38, 38, 0.08);
+      --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(79, 131, 255, 0.08);
+    }
+
+    body, nav, .theme-card { transition: background 0.32s ease, color 0.32s ease, border-color 0.32s ease; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ══ GRID TEXTURE ══ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79, 131, 255, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 131, 255, 0.028) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    html.light body::before {
+      background-image:
+        linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
+    }
+
+    /* ══ AURORA ══ */
+    .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .aurora-blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(110px); opacity: 0.10;
+      animation: auroraFloat 22s ease-in-out infinite;
+    }
+    .aurora-blob:nth-child(1) {
+      width: 800px; height: 600px;
+      background: radial-gradient(circle, #4f83ff 0%, #6366f1 50%, transparent 70%);
+      top: -250px; left: -200px; animation-duration: 24s;
+    }
+    .aurora-blob:nth-child(2) {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #8b5cf6 0%, #4f83ff 50%, transparent 70%);
+      top: 40%; right: -100px; animation-duration: 19s; animation-delay: -8s;
+    }
+    .aurora-blob:nth-child(3) {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #10d48a 0%, #22d3ee 50%, transparent 70%);
+      bottom: -100px; left: 35%; animation-duration: 28s; animation-delay: -16s;
+    }
+    html.light .aurora-blob { opacity: 0.06; }
+    @keyframes auroraFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%  { transform: translate(60px, -40px) scale(1.06); }
+      66%  { transform: translate(-40px, 55px) scale(0.96); }
+    }
+
+    /* ══ NAV ══ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(4, 6, 15, 0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    html.light .nav { background: rgba(244, 246, 252, 0.80); }
+
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .nav-logo {
+      font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+      letter-spacing: 0.14em; text-decoration: none; color: var(--text);
+    }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      color: var(--text-2); text-decoration: none;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--blue); border-color: var(--border); background: var(--bg-3); }
+    .nav-link.active { color: var(--blue); border-color: var(--border-2); background: var(--blue-dim); }
+
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+
+    .theme-toggle {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border-2);
+      background: rgba(79, 131, 255, 0.07);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background 0.2s, border-color 0.2s, transform 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .theme-toggle:hover { border-color: var(--blue); transform: rotate(15deg); }
+    .theme-toggle .icon-sun, .theme-toggle .icon-moon {
+      position: absolute; transition: opacity 0.3s ease, transform 0.4s ease;
+    }
+    .theme-toggle .icon-sun  { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+    .theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+
+    .btn-sentinel {
+      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+      padding: 8px 18px; border-radius: var(--radius);
+      background: var(--blue); color: #fff;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s; white-space: nowrap;
+    }
+    .btn-sentinel:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ══ HAMBURGER / MOBILE NAV ══ */
+    .nav-hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 6px;
+      z-index: 110; flex-shrink: 0;
+    }
+    .nav-hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--text-2); border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-mobile-menu {
+      position: fixed; top: var(--nav-h); left: 0; right: 0; bottom: 0;
+      background: var(--bg-2); z-index: 99;
+      padding: 32px 24px; border-top: 1px solid var(--border); overflow-y: auto;
+    }
+    .nav-mobile-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0; }
+    .nav-mobile-links li { border-bottom: 1px solid var(--border); }
+    .nav-mobile-links a {
+      display: block; padding: 18px 0; font-size: 16px; font-weight: 500;
+      color: var(--text-2); text-decoration: none; transition: color 0.2s;
+    }
+    .nav-mobile-links a:hover { color: var(--text); }
+
+    @media (max-width: 768px) {
+      .nav-hamburger { display: flex; }
+      .nav-links { display: none; }
+      .btn-sentinel { display: none; }
+    }
+
+    /* ══ PAGE ══ */
+    .page-main {
+      position: relative; z-index: 1;
+      padding-top: calc(var(--nav-h) + 32px);
+      padding-bottom: 60px;
+    }
+
+    .page-header {
+      text-align: center; padding: 24px 28px 40px;
+      max-width: 760px; margin: 0 auto;
+    }
+    .page-eyebrow {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 12px;
+    }
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600; line-height: 1.2;
+      color: var(--text); margin-bottom: 12px;
+    }
+    .page-subtitle { font-size: 14px; color: var(--text-2); max-width: 520px; margin: 0 auto; }
+
+    /* ══ THEME GRID ══ */
+    .themes-section { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* ══ THEME CARD ══ */
+    .theme-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 22px 18px;
+      box-shadow: var(--card-shadow);
+      display: flex; flex-direction: column; gap: 0;
+      animation: cardIn 0.3s ease both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .card-label {
+      font-family: var(--font-serif); font-size: 16px; font-weight: 600;
+      color: var(--text); line-height: 1.3; flex: 1;
+    }
+    .card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+
+    .status-badge {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .status-ESCALATING  { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+    .status-STABLE      { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(79,131,255,0.25); }
+    .status-DE_ESCALATING { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.25); }
+
+    .confidence-label {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em;
+      color: var(--text-3);
+    }
+    .confidence-label.low { color: var(--amber); }
+
+    .card-summary {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      line-height: 1.45; margin-bottom: 10px;
+    }
+    .card-context {
+      font-size: 12px; color: var(--text-2); line-height: 1.65;
+      margin-bottom: 14px;
+    }
+
+    .card-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
+
+    .linkage-block { margin-bottom: 14px; }
+    .linkage-eyebrow {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--blue); margin-bottom: 7px;
+    }
+    .channel-pill {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 3px;
+      background: var(--blue-dim); color: var(--blue);
+      border: 1px solid rgba(79,131,255,0.2);
+      margin-bottom: 8px;
+    }
+    .linkage-text { font-size: 12px; color: var(--text-2); line-height: 1.65; }
+
+    .watchfor-block { margin-bottom: 14px; }
+    .watchfor-label {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.10em;
+      text-transform: uppercase; color: var(--amber); margin-bottom: 6px;
+    }
+    .watchfor-text { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+
+    .card-footer {
+      margin-top: auto; padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+    }
+    .card-source-count {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+    .card-fetch-time {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+    }
+
+    /* ══ SKELETON LOADING ══ */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
+      background-size: 400% 100%;
+      animation: shimmer 1.5s ease infinite;
+      border-radius: 4px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .skeleton-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 22px;
+      box-shadow: var(--card-shadow);
+    }
+    .sk-line { height: 12px; margin-bottom: 10px; }
+    .sk-line.wide  { width: 80%; }
+    .sk-line.med   { width: 55%; }
+    .sk-line.short { width: 35%; }
+    .sk-line.full  { width: 100%; }
+    .sk-badge { height: 20px; width: 90px; border-radius: 4px; margin-bottom: 12px; }
+
+    /* ══ ERROR STATE ══ */
+    .error-state {
+      grid-column: 1 / -1;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 48px 32px;
+      text-align: center;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--text-2);
+    }
+
+    /* ══ PAGE UPDATED ══ */
+    .page-meta {
+      max-width: 1160px; margin: 28px auto 0; padding: 0 20px;
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 8px;
+    }
+    .page-meta-text {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.08em; color: var(--text-3);
+    }
+
+    /* ══ FOOTER ══ */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      margin-top: 60px;
+    }
+    .footer-logo { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-2); }
+    .footer-sources { font-size: 11px; color: var(--text-2); }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 1000px) {
+      .themes-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .themes-grid { grid-template-columns: 1fr; }
+      .nav { padding: 0 16px; }
+      .themes-section { padding: 0 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-blob, .skeleton, .theme-card { animation: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="aurora">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+  </div>
+
+  <!-- ══ NAV ══ -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a class="nav-logo" href="landing_page.html">EconIq</a>
+      <div class="nav-links">
+        <a class="nav-link" href="dashboard.html">Dashboard</a>
+        <a class="nav-link" href="global_macro.html">Global Macro</a>
+        <a class="nav-link active" href="geopolitics.html">Geo Watch</a>
+        <a class="nav-link" href="pe.html">PE Intel</a>
+        <a class="nav-link" href="portfolio.html">Portfolio</a>
+        <a class="nav-link" href="admin.html" id="adminNavLink" style="display:none;">Admin</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+      </button>
+      <a class="btn-sentinel" href="login.html">Access Sentinel →</a>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile-menu" id="navMobileMenu" style="display:none;">
+    <ul class="nav-mobile-links">
+      <li><a href="landing_page.html" onclick="closeMobileMenu()">Home</a></li>
+      <li><a href="dashboard.html" onclick="closeMobileMenu()">Dashboard</a></li>
+      <li><a href="global_macro.html" onclick="closeMobileMenu()">Global Macro</a></li>
+      <li><a href="geopolitics.html" onclick="closeMobileMenu()">Geopolitical Watch</a></li>
+      <li><a href="pe.html" onclick="closeMobileMenu()">PE Intel</a></li>
+      <li><a href="portfolio.html" onclick="closeMobileMenu()">Portfolio</a></li>
+    </ul>
+    <a class="btn-sentinel" href="login.html" onclick="closeMobileMenu()" style="display:block;text-align:center;padding:14px;margin-top:24px;font-size:15px;">Access Sentinel →</a>
+  </div>
+
+  <main class="page-main">
+
+    <!-- ══ HEADER ══ -->
+    <div class="page-header">
+      <div class="page-eyebrow">Live Intelligence</div>
+      <h1 class="page-title">Geopolitical Watch</h1>
+      <p class="page-subtitle">10 ongoing global themes and what they mean for the Indian economy. Updated every 3 days.</p>
+    </div>
+
+    <!-- ══ THEMES GRID ══ -->
+    <section class="themes-section">
+      <div class="themes-grid" id="themes-grid">
+        <!-- Skeleton placeholders while loading -->
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton sk-badge"></div>
+          <div class="skeleton sk-line wide"></div>
+          <div class="skeleton sk-line full"></div>
+          <div class="skeleton sk-line med"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ PAGE META ══ -->
+    <div class="page-meta" id="page-meta" style="display:none;">
+      <span class="page-meta-text" id="page-updated-text"></span>
+    </div>
+
+  </main>
+
+  <footer>
+    <span class="footer-logo">EconIq</span>
+    <span class="footer-sources">Data: NewsData.io · Analysis: AI-generated from recent headlines · 72h cache</span>
+  </footer>
+
+  <script>
+    const RAIL = 'https://macro-economic-research-algorithm.onrender.com';
+
+    function relTime(isoStr) {
+      if (!isoStr) return 'Unknown';
+      const h = Math.floor((Date.now() - new Date(isoStr).getTime()) / 3600000);
+      if (h < 1) return 'Just now';
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      if (d < 30) return d + 'd ago';
+      return Math.floor(d / 30) + 'mo ago';
+    }
+
+    function statusLabel(s) {
+      if (s === 'ESCALATING')    return 'Escalating';
+      if (s === 'DE_ESCALATING') return 'De-escalating';
+      return 'Stable';
+    }
+
+    function channelLabel(c) {
+      const map = {
+        TRADE: 'Trade', CURRENCY: 'Currency', ENERGY: 'Energy',
+        CAPITAL_FLOWS: 'Capital Flows', SUPPLY_CHAIN: 'Supply Chain', MULTIPLE: 'Multiple Channels'
+      };
+      return map[c] || c;
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderCard(theme, idx) {
+      const status     = theme.status || 'STABLE';
+      const conf       = (theme.status_confidence || 'LOW').toLowerCase();
+      const confLabel  = conf.charAt(0).toUpperCase() + conf.slice(1) + ' confidence';
+      const confClass  = conf === 'low' ? 'confidence-label low' : 'confidence-label';
+      const srcCount   = Array.isArray(theme.source_headlines) ? theme.source_headlines.length : 0;
+      const delay      = (idx * 0.05).toFixed(2);
+
+      return `
+        <div class="theme-card" style="animation-delay:${delay}s">
+          <div class="card-header">
+            <div class="card-label">${esc(theme.theme_label || '')}</div>
+            <div class="card-badges">
+              <span class="status-badge status-${status}">${statusLabel(status)}</span>
+              <span class="${confClass}">${confLabel}</span>
+            </div>
+          </div>
+
+          <div class="card-summary">${esc(theme.headline_summary || '')}</div>
+          <div class="card-context">${esc(theme.context || '')}</div>
+
+          <div class="card-divider"></div>
+
+          <div class="linkage-block">
+            <div class="linkage-eyebrow">India Linkage</div>
+            <span class="channel-pill">${channelLabel(theme.india_transmission_channel || 'MULTIPLE')}</span>
+            <div class="linkage-text">${esc(theme.india_linkage || '')}</div>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <div class="watchfor-block">
+            <div class="watchfor-label">Watch For →</div>
+            <div class="watchfor-text">${esc(theme.watch_for || '')}</div>
+          </div>
+
+          <div class="card-footer">
+            <span class="card-source-count">${srcCount} recent article${srcCount !== 1 ? 's' : ''}</span>
+            <span class="card-fetch-time">Updated ${relTime(theme.fetched_at)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadThemes() {
+      const grid = document.getElementById('themes-grid');
+      const meta = document.getElementById('page-meta');
+      const metaText = document.getElementById('page-updated-text');
+
+      try {
+        const resp = await fetch(`${RAIL}/api/geopolitical-watch`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        const themes = data.themes || [];
+        if (themes.length === 0) {
+          grid.innerHTML = '<div class="error-state">No theme data available. Check back shortly.</div>';
+          return;
+        }
+
+        grid.innerHTML = themes.map((t, i) => renderCard(t, i)).join('');
+
+        if (data.page_updated_at) {
+          metaText.textContent = `Page data as of ${relTime(data.page_updated_at)} · refreshes every 3 days`;
+          meta.style.display = '';
+        }
+      } catch (err) {
+        console.error('[GeoWatch] Fetch failed:', err);
+        grid.innerHTML = `
+          <div class="error-state">
+            <div style="margin-bottom:8px;font-size:18px;">⚡</div>
+            <div>Could not load geopolitical data.</div>
+            <div style="margin-top:6px;font-size:10px;color:var(--text-3);">${esc(String(err))}</div>
+          </div>
+        `;
+      }
+    }
+
+    // ══ THEME TOGGLE ══
+    function applyTheme(t) {
+      document.documentElement.classList.toggle('light', t === 'light');
+      localStorage.setItem('theme', t);
+    }
+    document.getElementById('theme-btn').addEventListener('click', () => {
+      const cur = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+      applyTheme(cur === 'light' ? 'dark' : 'light');
+    });
+    applyTheme(localStorage.getItem('theme') || 'dark');
+
+    // ══ MOBILE NAV ══
+    const hamburger = document.getElementById('navHamburger');
+    const mobileMenu = document.getElementById('navMobileMenu');
+    function closeMobileMenu() {
+      mobileMenu.style.display = 'none';
+      hamburger.classList.remove('open');
+    }
+    hamburger.addEventListener('click', () => {
+      const open = mobileMenu.style.display === 'block';
+      mobileMenu.style.display = open ? 'none' : 'block';
+      hamburger.classList.toggle('open', !open);
+    });
+
+    loadThemes();
+  </script>
+
+</body>
+</html>

@@ -4902,6 +4902,227 @@ def _get_country_news_cached(wb_code: str) -> dict | None:
         return None
 
 
+# ── Geopolitical Watch ────────────────────────────────────────────────────────
+# 10 named themes relevant to India. NLP-generated analysis, 72h cache TTL.
+# Update search queries here if a theme's focus shifts; the NLP prompt stays.
+
+GEOPOLITICAL_THEMES = {
+    "us_iran_hormuz": {
+        "label": "US-Iran & Strait of Hormuz",
+        "search_query": "Iran Strait of Hormuz oil tensions",
+    },
+    "russia_ukraine_europe": {
+        "label": "Russia-Ukraine & European Energy",
+        "search_query": "Russia Ukraine war Europe energy sanctions",
+    },
+    "indo_pacific_china": {
+        "label": "Indo-Pacific & China Rivalry",
+        "search_query": "China India border South China Sea tensions",
+    },
+    "india_eu_trade": {
+        "label": "India-EU Trade Negotiations",
+        "search_query": "India EU free trade agreement FTA negotiations",
+    },
+    "critical_minerals": {
+        "label": "Critical Minerals & Supply Chains",
+        "search_query": "critical minerals rare earth lithium supply chain India",
+    },
+    "nato_g7_coordination": {
+        "label": "NATO-G7 Coordination",
+        "search_query": "NATO G7 sanctions trade coordination policy",
+    },
+    "red_sea_maritime": {
+        "label": "Red Sea & Maritime Security",
+        "search_query": "Red Sea shipping Houthi maritime security freight",
+    },
+    "quad_india_japan": {
+        "label": "Quad & India-Japan-Australia-US",
+        "search_query": "Quad India Japan Australia US strategic partnership",
+    },
+    "fragmentation_decoupling": {
+        "label": "Global Fragmentation & Decoupling",
+        "search_query": "global trade fragmentation decoupling protectionism tariffs",
+    },
+    "climate_indian_ocean": {
+        "label": "Climate & Indian Ocean Diplomacy",
+        "search_query": "Indian Ocean island nations climate diplomacy strategic",
+    },
+}
+
+
+def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
+    """
+    Fetches recent news headlines for a geopolitical theme via NewsData.io
+    using a free-text query. Returns list of {"title","source","published_at"}
+    or empty list on failure.
+    """
+    news_api_key = os.environ.get("NEWSDATA_API_KEY", "")
+    if not news_api_key:
+        return []
+    try:
+        import requests as _req
+        resp = _req.get(
+            "https://newsdata.io/api/1/news",
+            params={
+                "apikey":   news_api_key,
+                "q":        search_query,
+                "language": "en",
+                "size":     limit,
+            },
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            print(
+                f"[GEOWATCH] News fetch failed {resp.status_code} for: {search_query}",
+                flush=True,
+            )
+            return []
+        return [
+            {
+                "title":        r.get("title", ""),
+                "source":       r.get("source_id", ""),
+                "published_at": r.get("pubDate", ""),
+            }
+            for r in resp.json().get("results", [])[:limit]
+        ]
+    except Exception as e:
+        print(f"[GEOWATCH] News fetch error: {e}", flush=True)
+        return []
+
+
+def _generate_theme_analysis(
+    theme_label: str,
+    headlines: list[dict],
+    nlp_engine,
+) -> dict:
+    """
+    Calls the NLP engine with a structured prompt to produce a geopolitical
+    theme analysis. Returns dict matching the geopolitical_watch_cache schema,
+    or a safe fallback dict if NLP fails or headlines are empty.
+    """
+    fallback = {
+        "status":                      "STABLE",
+        "status_confidence":           "LOW",
+        "headline_summary":            "No significant recent developments found.",
+        "context":                     "Insufficient recent coverage to assess current state.",
+        "india_transmission_channel":  "MULTIPLE",
+        "india_linkage":               "Insufficient recent coverage for confident assessment.",
+        "watch_for":                   "No specific near-term catalyst identified.",
+    }
+
+    if not headlines:
+        return fallback
+
+    headlines_text = "\n".join(
+        f"- {h['title']} ({h.get('source', 'unknown')})"
+        for h in headlines
+    )
+
+    prompt = f"""You are analyzing the geopolitical theme "{theme_label}" for an Indian financial advisory platform. Base your response ONLY on the news excerpts below — do not use prior knowledge or invent details not present in these excerpts.
+
+NEWS EXCERPTS:
+{headlines_text}
+
+Respond with ONLY valid JSON, no markdown formatting, no code fences, matching exactly this structure:
+
+{{
+  "status": "ESCALATING" or "STABLE" or "DE_ESCALATING",
+  "status_confidence": "HIGH" or "MEDIUM" or "LOW",
+  "headline_summary": "one sentence, what is happening right now",
+  "context": "2-3 sentences on recent developments only, no speculation beyond the excerpts",
+  "india_transmission_channel": "TRADE" or "CURRENCY" or "ENERGY" or "CAPITAL_FLOWS" or "SUPPLY_CHAIN" or "MULTIPLE",
+  "india_linkage": "2-3 sentences on the specific economic transmission mechanism to India — must explicitly reference India, not generic global impact",
+  "watch_for": "one sentence, the next concrete event or date to monitor, or 'No specific near-term catalyst identified' if none is evident"
+}}
+
+Rules:
+- If excerpts do not contain enough information to confidently assess India linkage, set status_confidence to LOW and write 'Insufficient recent coverage for confident assessment' in india_linkage.
+- Do not reference specific numbers, percentages, or dates unless they appear explicitly in the excerpts.
+- If excerpts are unrelated or too sparse, return status STABLE, status_confidence LOW, headline_summary 'No significant recent developments found.'
+- Return ONLY the JSON object, no other text."""
+
+    try:
+        raw = nlp_engine.generate_text(prompt)
+        if not raw:
+            return fallback
+
+        import json as _json
+        import re as _re
+        cleaned = _re.sub(r'^```json\s*|\s*```$', '', raw.strip())
+        parsed  = _json.loads(cleaned)
+
+        required = [
+            "status", "status_confidence", "headline_summary",
+            "context", "india_transmission_channel",
+            "india_linkage", "watch_for",
+        ]
+        if all(k in parsed for k in required):
+            return parsed
+        print("[GEOWATCH] NLP response missing required keys, using fallback", flush=True)
+        return fallback
+
+    except Exception as e:
+        print(f"[GEOWATCH] NLP analysis failed: {e}", flush=True)
+        return fallback
+
+
+def _get_theme_cached(
+    theme_key:    str,
+    theme_label:  str,
+    search_query: str,
+    nlp_engine,
+) -> dict:
+    """
+    Returns cached theme analysis if fresh (<72h / 3 days), else fetches
+    news + generates new analysis and upserts cache. Falls back to stale
+    cache if fetch/generation fails.
+    """
+    try:
+        cached = (
+            _supabase.table("geopolitical_watch_cache")
+            .select("*")
+            .eq("theme_key", theme_key)
+            .limit(1)
+            .execute()
+        )
+        if cached.data:
+            row       = cached.data[0]
+            age_hours = (
+                datetime.now(timezone.utc)
+                - datetime.fromisoformat(row["fetched_at"])
+            ).total_seconds() / 3600
+            if age_hours < 72:
+                return row
+    except Exception as e:
+        print(f"[GEOWATCH] Cache read failed {theme_key}: {e}", flush=True)
+
+    headlines = _fetch_theme_news(search_query)
+    analysis  = _generate_theme_analysis(theme_label, headlines, nlp_engine)
+
+    row = {
+        "theme_key":   theme_key,
+        "theme_label": theme_label,
+        "status":                     analysis["status"],
+        "status_confidence":          analysis["status_confidence"],
+        "headline_summary":           analysis["headline_summary"],
+        "context":                    analysis["context"],
+        "india_transmission_channel": analysis["india_transmission_channel"],
+        "india_linkage":              analysis["india_linkage"],
+        "watch_for":                  analysis["watch_for"],
+        "source_headlines":           headlines,
+        "fetched_at":                 datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        _supabase.table("geopolitical_watch_cache").upsert(
+            row, on_conflict="theme_key"
+        ).execute()
+    except Exception as e:
+        print(f"[GEOWATCH] Cache upsert failed {theme_key}: {e}", flush=True)
+
+    return row
+
+
 # ── India domestic data overrides ────────────────────────────────────────────
 # More current than World Bank annual data. Update on release day:
 #   CPI:         ~12th of each month (MOSPI)
@@ -6202,3 +6423,29 @@ async def get_india_activity():
         return {"activity": data}
     except Exception as e:
         return {"activity": None, "error": str(e)}
+
+
+@app.get("/api/geopolitical-watch")
+async def get_geopolitical_watch():
+    """
+    Returns all 10 geopolitical theme analyses with 72h cache TTL.
+    Free endpoint — no auth required, same tier as /api/global-macro.
+    """
+    nlp_engine = _engines.get("nlp")
+    themes = []
+    for key, meta in GEOPOLITICAL_THEMES.items():
+        row = _get_theme_cached(
+            key,
+            meta["label"],
+            meta["search_query"],
+            nlp_engine,
+        )
+        themes.append(row)
+
+    return {
+        "themes": themes,
+        "page_updated_at": max(
+            (t.get("fetched_at", "") for t in themes),
+            default=None,
+        ),
+    }

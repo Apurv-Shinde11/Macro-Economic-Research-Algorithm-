@@ -386,6 +386,136 @@ Return ONLY this JSON structure, no other text:
             print(f"[NLP] All LLM providers failed:\n" + "\n".join(f"  - {e}" for e in errors))
         return self._build_output(keyword_output)
 
+    def generate_text(self, prompt: str) -> str | None:
+        """
+        Generic method: sends a prompt to the LLM provider chain and returns
+        raw text response, or None if all providers fail. Uses the same
+        provider order as get_regime_scores. Used by features that need custom
+        structured output (e.g. Geopolitical Watch) rather than regime scoring.
+        """
+        import urllib.request as _urllib
+
+        for provider in self.providers:
+            name = provider["name"]
+            try:
+                print(f"[NLP] Trying {name} for generate_text...", flush=True)
+
+                if name == "gemini":
+                    last_err = None
+                    for model in provider.get("models", GEMINI_MODELS):
+                        try:
+                            url = (
+                                f"https://generativelanguage.googleapis.com/v1beta/models/"
+                                f"{model}:generateContent?key={provider['key']}"
+                            )
+                            payload = json.dumps({
+                                "contents": [{"parts": [{"text": prompt}]}],
+                                "generationConfig": {
+                                    "temperature": 0.2,
+                                    "maxOutputTokens": 1000,
+                                },
+                            }).encode("utf-8")
+                            req = _urllib.Request(
+                                url, data=payload,
+                                headers={"Content-Type": "application/json"},
+                                method="POST",
+                            )
+                            with _urllib.urlopen(req, timeout=25) as resp:
+                                data = json.loads(resp.read().decode("utf-8"))
+                            text = data["candidates"][0]["content"]["parts"][0]["text"]
+                            print(f"[NLP] generate_text: {name}/{model} succeeded", flush=True)
+                            return text
+                        except Exception as _e:
+                            print(f"[NLP] generate_text: {name}/{model} failed: {str(_e)[:80]}", flush=True)
+                            last_err = _e
+                            continue
+                    if last_err:
+                        raise last_err
+
+                elif name == "openrouter":
+                    import requests as _req
+                    last_err = None
+                    for model in provider.get("models", OPENROUTER_MODELS):
+                        try:
+                            r = _req.post(
+                                "https://openrouter.ai/api/v1/chat/completions",
+                                headers={
+                                    "Authorization": f"Bearer {provider['key']}",
+                                    "Content-Type":  "application/json",
+                                    "HTTP-Referer":  "https://macro-economic-research-algorithm.vercel.app",
+                                    "X-Title":       "Sentinel Macro Intelligence",
+                                },
+                                json={
+                                    "model":       model,
+                                    "messages":    [{"role": "user", "content": prompt}],
+                                    "max_tokens":  1000,
+                                    "temperature": 0.1,
+                                },
+                                timeout=30,
+                            )
+                            if r.status_code != 200:
+                                raise Exception(f"HTTP {r.status_code}: {r.text[:100]}")
+                            text = r.json()["choices"][0]["message"]["content"]
+                            print(f"[NLP] generate_text: {name}/{model} succeeded", flush=True)
+                            return text
+                        except Exception as _e:
+                            print(f"[NLP] generate_text: {name}/{model} failed: {str(_e)[:80]}", flush=True)
+                            last_err = _e
+                            time.sleep(1)
+                            continue
+                    if last_err:
+                        raise last_err
+
+                else:
+                    # groq, mistral, openai — all use OpenAI-compatible format
+                    api_urls = {
+                        "groq":    "https://api.groq.com/openai/v1/chat/completions",
+                        "mistral": "https://api.mistral.ai/v1/chat/completions",
+                        "openai":  "https://api.openai.com/v1/chat/completions",
+                    }
+                    api_url = api_urls.get(name)
+                    if not api_url:
+                        continue
+                    models = (
+                        provider.get("models")
+                        or ([provider["model"]] if provider.get("model") else [])
+                    )
+                    last_err = None
+                    for model in models:
+                        try:
+                            payload = json.dumps({
+                                "model":       model,
+                                "messages":    [{"role": "user", "content": prompt}],
+                                "temperature": 0.2,
+                                "max_tokens":  1000,
+                            }).encode("utf-8")
+                            req = _urllib.Request(
+                                api_url, data=payload,
+                                headers={
+                                    "Content-Type":  "application/json",
+                                    "Authorization": f"Bearer {provider['key']}",
+                                },
+                                method="POST",
+                            )
+                            with _urllib.urlopen(req, timeout=25) as resp:
+                                data = json.loads(resp.read().decode("utf-8"))
+                            text = data["choices"][0]["message"]["content"]
+                            print(f"[NLP] generate_text: {name}/{model} succeeded", flush=True)
+                            return text
+                        except Exception as _e:
+                            print(f"[NLP] generate_text: {name}/{model} failed: {str(_e)[:80]}", flush=True)
+                            last_err = _e
+                            continue
+                    if last_err:
+                        raise last_err
+
+            except Exception as e:
+                print(f"[NLP] generate_text: {name} failed: {str(e)[:80]}", flush=True)
+                continue
+
+        print("[NLP] generate_text: all providers failed", flush=True)
+        return None
+
     def _build_output(self, scores):
         return {
             "dominant_theme":         scores.get("dominant_theme",        ""),

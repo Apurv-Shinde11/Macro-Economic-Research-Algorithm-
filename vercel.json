@@ -33,6 +33,10 @@
         {
             "src": "portfolio.html",
             "use": "@vercel/static"
+        },
+        {
+            "src": "geopolitics.html",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -67,6 +71,10 @@
         {
             "src": "/portfolio",
             "dest": "/portfolio.html"
+        },
+        {
+            "src": "/geopolitical-watch",
+            "dest": "/geopolitics.html"
         },
         {
             "src": "/(.*\\.html)",
