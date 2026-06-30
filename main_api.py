@@ -4965,11 +4965,14 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
             "https://newsdata.io/api/1/news",
             params={
                 "apikey":   news_api_key,
-                "q":        search_query,
+                "category": "world,politics,business",
                 "language": "en",
-                "size":     limit,
             },
             timeout=10,
+        )
+        print(
+            f"[GEOWATCH] Raw response {resp.status_code}: {resp.text[:200]}",
+            flush=True,
         )
         if resp.status_code != 200:
             print(
@@ -4977,13 +4980,34 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
                 flush=True,
             )
             return []
+        data = resp.json()
+        all_results = data.get("results", [])
+
+        # Filter by keyword overlap with search_query since
+        # NewsData free tier doesn't support q= search reliably
+        keywords = [
+            w.lower() for w in search_query.split()
+            if len(w) > 3
+        ]
+        filtered = [
+            r for r in all_results
+            if any(
+                kw in (
+                    r.get("title", "") + " " + (r.get("description", "") or "")
+                ).lower()
+                for kw in keywords
+            )
+        ]
+        # Fall back to all results if keyword filter is too strict
+        final_results = filtered if filtered else all_results
+
         return [
             {
                 "title":        r.get("title", ""),
                 "source":       r.get("source_id", ""),
                 "published_at": r.get("pubDate", ""),
             }
-            for r in resp.json().get("results", [])[:limit]
+            for r in final_results[:limit]
         ]
     except Exception as e:
         print(f"[GEOWATCH] News fetch error: {e}", flush=True)
