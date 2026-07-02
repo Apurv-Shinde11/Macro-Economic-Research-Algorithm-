@@ -6464,7 +6464,7 @@ async def get_geopolitical_watch():
     Returns all 10 geopolitical theme analyses with 72h cache TTL.
     Free endpoint — no auth required, same tier as /api/global-macro.
     """
-    nlp_engine = _engines.get("nlp")
+    nlp_engine = eng.get("nlp")
     if not nlp_engine:
         print(
             "[GEOWATCH] NLP engine not available — skipping analysis",
