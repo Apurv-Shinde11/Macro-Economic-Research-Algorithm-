@@ -6472,6 +6472,7 @@ async def get_india_activity():
 
 @app.get("/api/geopolitical-watch")
 async def get_geopolitical_watch():
+    print("[GEOWATCH] Endpoint called", flush=True)
     """
     Returns all 10 geopolitical theme analyses with 72h cache TTL.
     Free endpoint — no auth required, same tier as /api/global-macro.
