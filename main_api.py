@@ -6473,6 +6473,10 @@ async def get_india_activity():
 @app.get("/api/geopolitical-watch")
 async def get_geopolitical_watch():
     print("[GEOWATCH] Endpoint called", flush=True)
+    print(f"[GEOWATCH] Theme count: {len(GEOPOLITICAL_THEMES)}", flush=True)
+    for key, meta in GEOPOLITICAL_THEMES.items():
+        print(f"[GEOWATCH] Processing {key}", flush=True)
+    row = _get_theme_cached(...)
     """
     Returns all 10 geopolitical theme analyses with 72h cache TTL.
     Free endpoint — no auth required, same tier as /api/global-macro.
