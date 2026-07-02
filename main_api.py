@@ -4983,23 +4983,32 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
         data = resp.json()
         all_results = data.get("results", [])
 
-        # Filter by keyword overlap with search_query since
-        # NewsData free tier doesn't support q= search reliably
+        # Use title + description for keyword matching. Description
+        # is often null on free tier — handle gracefully.
+        # Lower min keyword length to 3 so short but specific terms
+        # like "Iran", "NATO", "Quad" are included.
         keywords = [
             w.lower() for w in search_query.split()
-            if len(w) > 3
+            if len(w) >= 3
         ]
-        filtered = [
-            r for r in all_results
-            if any(
-                kw in (
-                    r.get("title", "") + " " + (r.get("description", "") or "")
-                ).lower()
-                for kw in keywords
-            )
-        ]
-        # Fall back to all results if keyword filter is too strict
-        final_results = filtered if filtered else all_results
+
+        def _score(article):
+            text = (
+                (article.get("title") or "")
+                + " "
+                + (article.get("description") or "")
+                + " "
+                + " ".join(article.get("keywords") or [])
+            ).lower()
+            return sum(1 for kw in keywords if kw in text)
+
+        # Score all articles and sort by keyword overlap
+        scored = sorted(all_results, key=_score, reverse=True)
+
+        # Use top results with at least 1 keyword match —
+        # fall back to all results if none match
+        matched = [r for r in scored if _score(r) >= 1]
+        final_results = matched if matched else all_results
 
         return [
             {
