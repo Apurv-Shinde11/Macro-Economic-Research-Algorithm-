@@ -606,7 +606,13 @@
       const metaText = document.getElementById('page-updated-text');
 
       try {
-        const resp = await fetch(`${RAIL}/api/geopolitical-watch`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        const resp = await fetch(
+          `${RAIL}/api/geopolitical-watch`,
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
 
