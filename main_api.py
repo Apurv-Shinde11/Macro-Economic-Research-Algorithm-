@@ -4959,6 +4959,10 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
     news_api_key = os.environ.get("NEWSDATA_API_KEY", "")
     if not news_api_key:
         return []
+    print(
+        f"[GEOWATCH] Fetching news with category filter...",
+        flush=True,
+    )
     try:
         import requests as _req
         resp = _req.get(
@@ -4971,7 +4975,7 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
             timeout=10,
         )
         print(
-            f"[GEOWATCH] Raw response {resp.status_code}: {resp.text[:200]}",
+            f"[GEOWATCH] NewsData response: status={resp.status_code} body={resp.text[:300]}",
             flush=True,
         )
         if resp.status_code != 200:
@@ -4991,6 +4995,10 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
             w.lower() for w in search_query.split()
             if len(w) >= 3
         ]
+        print(
+            f"[GEOWATCH] Got {len(all_results)} articles, keywords={keywords}",
+            flush=True,
+        )
 
         def _score(article):
             text = (
@@ -5008,6 +5016,10 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
         # Use top results with at least 1 keyword match —
         # fall back to all results if none match
         matched = [r for r in scored if _score(r) >= 1]
+        print(
+            f"[GEOWATCH] Matched {len(matched)} after filter",
+            flush=True,
+        )
         final_results = matched if matched else all_results
 
         return [
