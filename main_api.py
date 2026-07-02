@@ -5136,7 +5136,7 @@ def _get_theme_cached(
                 datetime.now(timezone.utc)
                 - datetime.fromisoformat(row["fetched_at"])
             ).total_seconds() / 3600
-            if age_hours < 72:
+            if age_hours < 0:  # TEMP: force refresh
                 return row
     except Exception as e:
         print(f"[GEOWATCH] Cache read failed {theme_key}: {e}", flush=True)
