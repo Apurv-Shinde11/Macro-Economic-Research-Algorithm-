@@ -6465,6 +6465,11 @@ async def get_geopolitical_watch():
     Free endpoint — no auth required, same tier as /api/global-macro.
     """
     nlp_engine = _engines.get("nlp")
+    if not nlp_engine:
+        print(
+            "[GEOWATCH] NLP engine not available — skipping analysis",
+            flush=True,
+        )
     themes = []
     for key, meta in GEOPOLITICAL_THEMES.items():
         row = _get_theme_cached(
