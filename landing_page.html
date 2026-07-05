@@ -1056,6 +1056,173 @@
       nav .btn-primary,
       nav .theme-toggle { display: none; }
     }
+
+    /* ══ WORKFLOW TIMELINE ══ */
+    .workflow-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 48px;
+      max-width: 640px;
+    }
+    .workflow-step {
+      display: grid;
+      grid-template-columns: 80px 32px 1fr;
+      gap: 0 16px;
+      align-items: start;
+    }
+    .workflow-time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--blue);
+      letter-spacing: 0.08em;
+      padding-top: 6px;
+      text-align: right;
+    }
+    .workflow-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .workflow-connector::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--blue);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .workflow-connector::after {
+      content: '';
+      width: 1px;
+      flex: 1;
+      background: linear-gradient(to bottom, var(--blue), transparent);
+      min-height: 48px;
+    }
+    .workflow-connector.last::after { background: transparent; }
+    .workflow-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius, 10px);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .workflow-step-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+    .workflow-step-desc {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+    @media (max-width: 768px) {
+      .workflow-step { grid-template-columns: 60px 24px 1fr; }
+    }
+
+    /* ══ PRODUCT JOURNEY ══ */
+    .journey-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      gap: 0 8px;
+      margin-top: 48px;
+      align-items: start;
+    }
+    .journey-arrow {
+      font-size: 20px;
+      color: var(--blue);
+      opacity: 0.4;
+      padding-top: 48px;
+      align-self: start;
+    }
+    .journey-step {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 14px);
+      padding: 20px 18px;
+    }
+    .journey-step-primary {
+      border-color: var(--blue);
+      background: var(--bg-3);
+    }
+    .journey-number {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.14em;
+      margin-bottom: 6px;
+    }
+    .journey-label {
+      font-family: var(--font-mono);
+      font-size: 7px;
+      color: var(--blue);
+      letter-spacing: 0.16em;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .journey-name {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .journey-desc {
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .journey-link {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+    }
+    .journey-link:hover { opacity: 0.75; }
+    .journey-specialist {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius, 10px);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .journey-specialist-label {
+      font-family: var(--font-mono);
+      font-size: 7px;
+      color: var(--text-3);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .journey-specialist-name {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .journey-specialist-desc {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.5;
+      flex: 1;
+      min-width: 200px;
+    }
+    @media (max-width: 768px) {
+      .journey-grid { grid-template-columns: 1fr; }
+      .journey-arrow { display: none; }
+      .journey-specialist { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -1131,11 +1298,12 @@
         Daily Market Clarity for Indian Advisors
       </div>
       <h1 class="hero-h1 delay-1">
-        Know if now is a good time<br>
-        to <em>invest your clients' money</em>
+        Every morning, Sentinel tells you
+        one thing clearly:<br>
+        <em>add, hold, or reduce.</em>
       </h1>
       <p class="hero-sub delay-2">
-        Every morning, Sentinel reads the Indian economy and tells you one thing clearly: should your clients add more investments right now, hold what they have, or play it safe. Updated daily, backed by live market data.
+        Nine live macro signals. One plain-language regime read. Built for Indian CAs, IFAs, and wealth managers who need a defensible answer before clients call.
       </p>
       <div class="hero-ctas delay-3">
         <a class="btn-primary" href="login.html">Access Sentinel</a>
@@ -1143,24 +1311,38 @@
       </div>
       <div class="hero-proof delay-4">
         <div class="proof-stat">
-          <div class="num" id="stat-sharpe">0.68</div>
-          <div class="label">Sharpe Ratio<br>Risk-adjusted returns</div>
+          <div class="num" data-target="4" data-suffix=" events">0</div>
+          <div class="label">Major market cycles<br>backtested</div>
         </div>
         <div class="proof-divider"></div>
         <div class="proof-stat">
-          <div class="num" id="stat-dd">−7.95%</div>
-          <div class="label">Max Drawdown<br>vs −23.25% Nifty decline</div>
+          <div class="num" data-target="9" data-suffix=" signals">0</div>
+          <div class="label">Live macro signals<br>read every morning</div>
         </div>
         <div class="proof-divider"></div>
         <div class="proof-stat">
-          <div class="num" id="stat-win">69%</div>
-          <div class="label">Monthly<br>Accuracy Rate</div>
+          <div class="num" data-target="50" data-suffix=" economies">0</div>
+          <div class="label">Countries tracked<br>globally</div>
         </div>
       </div>
     </div>
 
     <div class="hero-right delay-2" style="position:relative;">
       <canvas id="signalNet" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.7;"></canvas>
+      <div id="confidenceArc" style="position:relative;width:160px;height:160px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;">
+        <svg width="160" height="160" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">
+          <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(79,131,255,0.12)" stroke-width="8"/>
+          <circle id="arcProgress" cx="80" cy="80" r="68" fill="none" stroke="var(--blue)" stroke-width="8"
+            stroke-linecap="round" stroke-dasharray="427" stroke-dashoffset="427"
+            style="transition:stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)"/>
+        </svg>
+        <div style="text-align:center;position:relative;z-index:1;">
+          <div id="arcConfidence" style="font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--blue);line-height:1;">—</div>
+          <div id="arcRegime" style="font-family:var(--font-mono);font-size:8px;color:var(--text-2);letter-spacing:0.1em;margin-top:4px;max-width:100px;text-align:center;line-height:1.3;">LOADING</div>
+          <div style="font-family:var(--font-mono);font-size:7px;color:var(--text-3);letter-spacing:0.08em;margin-top:2px;">CONFIDENCE</div>
+        </div>
+      </div>
+
       <div class="terminal-wrap" style="position:relative;z-index:1;">
         <div class="terminal-glow"></div>
         <div class="terminal">
@@ -1217,6 +1399,27 @@
     </div>
   </section>
 
+  <!-- ════ SIGNAL TO DECISION ════ -->
+  <section id="signal-to-decision" class="section" style="padding:80px 0;overflow:hidden;">
+    <div class="container" style="max-width:900px;margin:0 auto;padding:0 52px;">
+      <div class="section-eyebrow reveal">HOW SENTINEL WORKS</div>
+      <h2 class="section-heading reveal reveal-delay-1">Nine signals.<br><em>One clear answer.</em></h2>
+      <div class="section-sub reveal reveal-delay-2">
+        Every morning, Sentinel reads nine independent India macro signals and classifies the economic environment into one of eight named regimes — giving you a single, defensible read.
+      </div>
+
+      <div id="signalDotsWrap" style="position:relative;height:280px;margin:48px auto 0;max-width:700px;">
+        <canvas id="signalDotsCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      </div>
+
+      <div id="regimeOutput" style="text-align:center;margin-top:32px;opacity:0;transition:opacity 0.8s;">
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.18em;color:var(--blue);margin-bottom:8px;">REGIME CLASSIFICATION</div>
+        <div style="font-family:var(--font-serif);font-size:clamp(28px,4vw,48px);font-weight:600;color:var(--text);">Liquidity Driven Expansion</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--green);margin-top:8px;letter-spacing:0.08em;">RISK_ON · 68% CONFIDENCE · HOLD CURRENT POSITIONS</div>
+      </div>
+    </div>
+  </section>
+
   <!-- ════ WHAT WE DELIVER ════ -->
   <section id="problem" class="section">
     <h2 class="section-h2 reveal">Three things Sentinel tells you every morning,<br><em>before your client calls.</em></h2>
@@ -1239,39 +1442,95 @@
 
   <!-- ════ HOW IT WORKS ════ -->
   <section id="how" class="section">
-    <h2 class="section-h2 reveal">Here is what Sentinel does each morning,<br><em>and what you get from it.</em></h2>
-    <p class="section-sub reveal">You do not need to understand how Sentinel works. You just need to know what it says, but if you are curious, here is what happens behind the scenes.</p>
-    <div class="how-grid reveal">
-      <div class="how-card">
-        <div class="how-icon" aria-hidden="true">📡</div>
-        <div class="how-title">Step 1: Sentinel reads the market</div>
-        <div class="how-desc">Every morning, Sentinel automatically checks stock market signals, foreign investor activity, oil prices, interest rate direction, and economic data from across India and the world, with no manual work needed on your end.</div>
-        <div class="how-tags">
-          <span class="how-tag">NSE Live</span><span class="how-tag">RBI DBIE</span>
-          <span class="how-tag">FII/DII</span><span class="how-tag">Yield Curve</span>
-          <span class="how-tag">LLM Headlines</span><span class="how-tag">World Bank</span>
-          <span class="how-tag">FRED Policy Rates</span>
+    <div class="section-eyebrow reveal">THE MORNING WORKFLOW</div>
+    <h2 class="section-heading reveal reveal-delay-1">From market open to client call<br><em>in under 30 seconds.</em></h2>
+
+    <div class="workflow-timeline">
+
+      <div class="workflow-step reveal reveal-delay-1">
+        <div class="workflow-time">7:00 AM</div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-card">
+          <div class="workflow-step-label">SENTINEL READS THE MARKET</div>
+          <div class="workflow-step-desc">Nine live signals update automatically — VIX, FII flows, crude, PMI, yield curve, PE ratio, GARCH volatility, credit impulse, FII momentum.</div>
         </div>
       </div>
-      <div class="how-card">
-        <div class="how-icon" aria-hidden="true">🧠</div>
-        <div class="how-title">Step 2: It classifies the environment</div>
-        <div class="how-desc">Sentinel compares today's readings against historical patterns and places India's economy into one of eight named categories, from a strong growth phase to a cautious, risk-off environment. Think of it like a weather forecast, but for the economy.</div>
-        <div class="how-tags">
-          <span class="how-tag">8 Regimes</span><span class="how-tag">Live Signals</span>
-          <span class="how-tag">Leading Score</span><span class="how-tag">Confidence</span>
-          <span class="how-tag">Challenger</span>
+
+      <div class="workflow-step reveal reveal-delay-2">
+        <div class="workflow-time">7:15 AM</div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-card">
+          <div class="workflow-step-label">REGIME CLASSIFIED</div>
+          <div class="workflow-step-desc">One of eight named economic regimes — with confidence score, sector heatmap, and a plain-language playbook for equity, debt, gold, and currency.</div>
         </div>
       </div>
-      <div class="how-card">
-        <div class="how-icon" aria-hidden="true">🎯</div>
-        <div class="how-title">Step 3: You get a clear answer</div>
-        <div class="how-desc">The result: a plain-language daily briefing that tells you whether to add more investments, hold steady, or reduce risk. Includes which sectors to favour, what to do with equity, debt, gold, and currency, and what to watch next.</div>
-        <div class="how-tags">
-          <span class="how-tag">Playbook</span><span class="how-tag">Sector Heatmap</span>
-          <span class="how-tag">PE Intel</span><span class="how-tag">Global Macro</span>
-          <span class="how-tag">Alerts</span>
+
+      <div class="workflow-step reveal reveal-delay-3">
+        <div class="workflow-time">7:30 AM</div>
+        <div class="workflow-connector last"></div>
+        <div class="workflow-card">
+          <div class="workflow-step-label" style="color:var(--green);">CLIENT CALLS. YOU HAVE THE ANSWER.</div>
+          <div class="workflow-step-desc">A defensible, data-backed read on whether now is the right environment to add, hold, or reduce — specific to your client's mandate and risk profile.</div>
         </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════ PRODUCT JOURNEY ════ -->
+  <section id="product-journey" class="section">
+    <div class="container" style="max-width:1100px;margin:0 auto;padding:0 52px;">
+      <div class="section-eyebrow reveal">THE FULL PLATFORM</div>
+      <h2 class="section-heading reveal reveal-delay-1">One integrated workflow.<br><em>Six connected tools.</em></h2>
+      <div class="section-sub reveal reveal-delay-2">Each tool is a step in the same morning routine — from global context to client-specific action.</div>
+
+      <div class="journey-grid">
+
+        <div class="journey-step reveal reveal-delay-1">
+          <div class="journey-number">01</div>
+          <div class="journey-label">GLOBAL CONTEXT</div>
+          <div class="journey-name">Atlas</div>
+          <div class="journey-desc">50 economies. GDP, inflation, policy rates, currency moves. Free, no login.</div>
+          <a class="journey-link" href="global_macro.html">Explore Atlas →</a>
+        </div>
+
+        <div class="journey-arrow reveal">→</div>
+
+        <div class="journey-step journey-step-primary reveal reveal-delay-2">
+          <div class="journey-number">02</div>
+          <div class="journey-label">DAILY REGIME READ</div>
+          <div class="journey-name">Sentinel</div>
+          <div class="journey-desc">Nine signals → one answer: add, hold, or reduce. Updated every morning.</div>
+          <a class="journey-link" href="login.html">Access Sentinel →</a>
+        </div>
+
+        <div class="journey-arrow reveal">→</div>
+
+        <div class="journey-step reveal reveal-delay-3">
+          <div class="journey-number">03</div>
+          <div class="journey-label">SCENARIO STRESS TEST</div>
+          <div class="journey-name">Simulator</div>
+          <div class="journey-desc">22 macro scenarios. See how your client's allocation holds up before it happens.</div>
+          <a class="journey-link" href="login.html">Run a Simulation →</a>
+        </div>
+
+        <div class="journey-arrow reveal">→</div>
+
+        <div class="journey-step reveal reveal-delay-4">
+          <div class="journey-number">04</div>
+          <div class="journey-label">CLIENT PORTFOLIO</div>
+          <div class="journey-name">Portfolio Layer</div>
+          <div class="journey-desc">Is this client's allocation aligned with today's regime? Sleeve-by-sleeve read.</div>
+          <a class="journey-link" href="login.html">Analyse a Portfolio →</a>
+        </div>
+
+      </div>
+
+      <div class="journey-specialist reveal" style="margin-top:24px;">
+        <div class="journey-specialist-label">FOR ALTERNATIVE INVESTMENT ADVISORS</div>
+        <div class="journey-specialist-name">PE Intel</div>
+        <div class="journey-specialist-desc">The macro regime translated into private equity deal environment signals — cost of capital, IRR implications, sector cycle positioning.</div>
+        <a href="pe.html" class="journey-link">Explore PE Intel →</a>
       </div>
     </div>
   </section>
@@ -1670,13 +1929,16 @@
     }
     const proofObs = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
-        animCounter(document.getElementById('stat-sharpe'), 0.68, '', 1600);
-        animCounter(document.getElementById('stat-dd'),     -7.95,'%',1600);
-        animCounter(document.getElementById('stat-win'),    69,   '%',1600);
+        const sh = document.getElementById('stat-sharpe');
+        const dd = document.getElementById('stat-dd');
+        const wn = document.getElementById('stat-win');
+        if (sh) animCounter(sh, 0.68, '', 1600);
+        if (dd) animCounter(dd, -7.95,'%',1600);
+        if (wn) animCounter(wn, 69,   '%',1600);
         proofObs.disconnect();
       }
     }, { threshold: 0.5 });
-    proofObs.observe(document.querySelector('.hero-proof'));
+    if (document.querySelector('.hero-proof')) proofObs.observe(document.querySelector('.hero-proof'));
 
     /* ── Terminal cycler ── */
     const regimes = [
@@ -2070,6 +2332,230 @@
     }, { threshold: 0.12 });
 
     els.forEach(el => obs.observe(el));
+  })();
+  </script>
+
+  <!-- ── Confidence arc + typewriter ── -->
+  <script>
+  async function initConfidenceArc() {
+    try {
+      const r = await fetch('https://macro-economic-research-algorithm.onrender.com/api/ticker');
+      const d = await r.json();
+      const conf = d.confidence_pct || d.confidence || 62;
+      const regime = (d.regime || 'SENTINEL').replace(/_/g, ' ');
+
+      const el = document.getElementById('arcConfidence');
+      const regimeEl = document.getElementById('arcRegime');
+      const duration = 1500;
+      const startTime = performance.now();
+      function tick(now) {
+        const p = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(ease * conf) + '%';
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      const circumference = 427;
+      const offset = circumference - (conf / 100) * circumference;
+      setTimeout(() => {
+        const arc = document.getElementById('arcProgress');
+        if (arc) arc.style.strokeDashoffset = offset;
+      }, 100);
+
+      regimeEl.textContent = regime;
+    } catch(e) {
+      const el = document.getElementById('arcConfidence');
+      const regimeEl = document.getElementById('arcRegime');
+      if (el) el.textContent = '62%';
+      if (regimeEl) regimeEl.textContent = 'SENTINEL';
+    }
+  }
+
+  function typewriterOnce(el, text, speed) {
+    speed = speed || 45;
+    el.textContent = '';
+    let i = 0;
+    const timer = setInterval(() => {
+      el.textContent += text[i];
+      i++;
+      if (i >= text.length) clearInterval(timer);
+    }, speed);
+  }
+
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    initConfidenceArc().then(() => {
+      setTimeout(() => {
+        const regimeEl = document.getElementById('arcRegime');
+        if (regimeEl && regimeEl.textContent !== 'LOADING') {
+          typewriterOnce(regimeEl, regimeEl.textContent);
+        }
+      }, 2000);
+    });
+  } else {
+    // Reduced motion: show fallback immediately
+    const el = document.getElementById('arcConfidence');
+    const regimeEl = document.getElementById('arcRegime');
+    if (el) el.textContent = '—';
+    if (regimeEl) regimeEl.textContent = 'SENTINEL';
+    initConfidenceArc();
+  }
+  </script>
+
+  <!-- ── Signal dots canvas animation ── -->
+  <script>
+  (function() {
+    const SIGNALS = [
+      {label:'VIX',   color:'#10d48a'},
+      {label:'FII',   color:'#4f83ff'},
+      {label:'CRUDE', color:'#4f83ff'},
+      {label:'YIELD', color:'#f87171'},
+      {label:'PMI',   color:'#10d48a'},
+      {label:'PE',    color:'#4f83ff'},
+      {label:'GARCH', color:'#fbbf24'},
+      {label:'CREDIT',color:'#10d48a'},
+      {label:'TREND', color:'#4f83ff'},
+    ];
+
+    const canvas = document.getElementById('signalDotsCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width  = canvas.offsetWidth  * devicePixelRatio;
+      canvas.height = canvas.offsetHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    const cx = W / 2;
+    const cy = H / 2;
+    const R = Math.min(W, H) * 0.38;
+
+    const dots = SIGNALS.map((s, i) => {
+      const angle = (i / SIGNALS.length) * Math.PI * 2 - Math.PI / 2;
+      return {
+        label: s.label, color: s.color,
+        x: cx + Math.cos(angle) * R,
+        y: cy + Math.sin(angle) * R,
+        opacity: 0, scale: 0,
+      };
+    });
+
+    let phase = 'idle';
+    let phaseStart = 0;
+    let animFrame;
+
+    function draw(ts) {
+      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      const elapsed = ts - phaseStart;
+
+      if (phase === 'appear' || phase === 'done') {
+        SIGNALS.forEach((_, i) => {
+          const delay = i * 180;
+          const p = Math.max(0, Math.min(1, (elapsed - delay) / 400));
+          dots[i].opacity = phase === 'done' ? 1 : p;
+          dots[i].scale   = phase === 'done' ? 1 : p;
+        });
+
+        dots.forEach(d => {
+          if (d.opacity < 0.05) return;
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(cx, cy);
+          ctx.strokeStyle = d.color + Math.round(d.opacity * 40).toString(16).padStart(2, '0');
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        dots.forEach(d => {
+          if (d.opacity < 0.05) return;
+          ctx.save();
+          ctx.globalAlpha = d.opacity;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 8 * d.scale, 0, Math.PI * 2);
+          ctx.fillStyle = d.color;
+          ctx.fill();
+          ctx.font = '600 9px "JetBrains Mono",monospace';
+          ctx.fillStyle = d.color;
+          ctx.textAlign = 'center';
+          const ang = Math.atan2(d.y - cy, d.x - cx);
+          ctx.fillText(d.label, d.x + Math.cos(ang) * 20, d.y + Math.sin(ang) * 20 + 3);
+          ctx.restore();
+        });
+
+        const centerP = phase === 'done' ? 1 : Math.max(0, Math.min(1, (elapsed - 1800) / 600));
+        if (centerP > 0) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 16 * centerP, 0, Math.PI * 2);
+          ctx.fillStyle = '#4f83ff';
+          ctx.globalAlpha = centerP;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        if (phase === 'appear' && elapsed > 2600) {
+          phase = 'done';
+          const ro = document.getElementById('regimeOutput');
+          if (ro) ro.style.opacity = '1';
+        }
+      }
+
+      if (phase === 'appear') animFrame = requestAnimationFrame(draw);
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      dots.forEach(d => { d.opacity = 1; d.scale = 1; });
+      phase = 'done';
+      draw(0);
+      const ro = document.getElementById('regimeOutput');
+      if (ro) ro.style.opacity = '1';
+      return;
+    }
+
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && phase === 'idle') {
+        phase = 'appear';
+        phaseStart = performance.now();
+        animFrame = requestAnimationFrame(draw);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    const section = document.getElementById('signal-to-decision');
+    if (section) obs.observe(section);
+  })();
+  </script>
+
+  <!-- ── Proof stat count-up (data-target) ── -->
+  <script>
+  (function() {
+    const nums = document.querySelectorAll('.proof-stat .num[data-target]');
+    if (!nums.length) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        const target = parseInt(el.dataset.target);
+        const suffix = el.dataset.suffix || '';
+        if (mq.matches) { el.textContent = target + suffix; return; }
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now) {
+          const p = Math.min((now - start) / duration, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(ease * target) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        obs.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+
+    nums.forEach(n => obs.observe(n));
   })();
   </script>
 
