@@ -258,8 +258,27 @@
       display: flex; align-items: center;
       padding: 120px 52px 80px; gap: 72px;
     }
-    .hero-left { flex: 1; max-width: 580px; }
-    .hero-right { flex: 1; max-width: 560px; }
+    .hero-left {
+      flex: 1;
+      max-width: 580px;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-right {
+      flex: 1;
+      max-width: 560px;
+      position: relative;
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    #hero .hero-eyebrow { color: var(--blue); }
+    #hero .hero-h1 { color: #e8eeff !important; }
+    #hero .hero-h1 em { color: var(--blue) !important; }
+    #hero .hero-sub { color: rgba(232,238,255,0.65) !important; }
+    #hero .hero-proof { color: rgba(232,238,255,0.5); border-top-color: rgba(232,238,255,0.1); }
+    #hero .proof-stat .num { color: #e8eeff; }
+    #hero .proof-stat .label { color: rgba(232,238,255,0.45); }
 
     .hero-eyebrow {
       font-family: var(--font-mono); font-size: 11px;
@@ -1224,7 +1243,6 @@
       .journey-specialist { flex-direction: column; align-items: flex-start; gap: 8px; }
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -1290,7 +1308,8 @@
   </div>
 
   <!-- ════ HERO ════ -->
-  <section id="hero" style="padding-top:148px;">
+  <section id="hero" style="padding-top:148px;position:relative;background:#04060f;overflow:hidden;">
+    <canvas id="heroCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;display:block;"></canvas>
     <div class="hero-left">
       <div class="hero-eyebrow fade-in">
         <span class="eyebrow-line"></span>
@@ -1327,8 +1346,7 @@
       </div>
     </div>
 
-    <div class="hero-right delay-2" style="position:relative;overflow:hidden;">
-      <canvas id="signalNet" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.35;"></canvas>
+    <div class="hero-right delay-2">
       <div class="terminal-wrap" style="position:relative;z-index:1;">
         <div class="terminal-glow"></div>
         <div class="terminal">
@@ -2163,129 +2181,6 @@
 })();
   </script>
 
-  <!-- ── Three.js signal network in hero-right ── -->
-  <script>
-  (function() {
-    if (typeof THREE === 'undefined') return;
-
-    const canvas = document.getElementById('signalNet');
-    if (!canvas) return;
-
-    const W = canvas.offsetWidth || 560;
-    const H = canvas.offsetHeight || 500;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(W, H);
-    renderer.setScissorTest(true);
-    renderer.setScissor(0, 0, W, H);
-    renderer.setViewport(0, 0, W, H);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
-    camera.position.z = 220;
-
-    const BLUE  = 0x4f83ff;
-    const GREEN = 0x10d48a;
-    const RED   = 0xf87171;
-
-    const SIGNALS = [
-      { label: 'VIX',    color: GREEN },
-      { label: 'FII',    color: BLUE  },
-      { label: 'CRUDE',  color: BLUE  },
-      { label: 'YIELD',  color: RED   },
-      { label: 'PMI',    color: GREEN },
-      { label: 'PE',     color: BLUE  },
-      { label: 'GARCH',  color: RED   },
-      { label: 'CREDIT', color: GREEN },
-      { label: 'TREND',  color: BLUE  },
-    ];
-
-    const nodes = [];
-    const lines = [];
-
-    // Center node
-    const centerGeo = new THREE.SphereGeometry(7, 16, 16);
-    const centerMat = new THREE.MeshBasicMaterial({ color: BLUE });
-    const centerMesh = new THREE.Mesh(centerGeo, centerMat);
-    scene.add(centerMesh);
-
-    // Signal nodes arranged in ellipse
-    SIGNALS.forEach((sig, i) => {
-      const angle = (i / SIGNALS.length) * Math.PI * 2;
-      const rx = 120, ry = 80;
-      const x = Math.cos(angle) * rx;
-      const y = Math.sin(angle) * ry;
-      const z = Math.sin(angle * 2) * 30;
-
-      const geo = new THREE.SphereGeometry(4, 16, 16);
-      const mat = new THREE.MeshBasicMaterial({ color: sig.color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, y, z);
-      mesh.userData.baseY = y;
-      mesh.userData.baseZ = z;
-      mesh.userData.phase = i * 0.7;
-      scene.add(mesh);
-      nodes.push(mesh);
-
-      // Line from node to center
-      const points = [
-        new THREE.Vector3(x, y, z),
-        new THREE.Vector3(0, 0, 0),
-      ];
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-      const lineMat = new THREE.LineBasicMaterial({ color: sig.color, transparent: true, opacity: 0.25 });
-      const line = new THREE.Line(lineGeo, lineMat);
-      scene.add(line);
-      lines.push(line);
-    });
-
-    let t = 0;
-    let animId;
-    function animate() {
-      animId = requestAnimationFrame(animate);
-      t += 0.008;
-
-      // Float nodes
-      nodes.forEach((node) => {
-        node.position.y = node.userData.baseY + Math.sin(t + node.userData.phase) * 4;
-      });
-
-      // Update lines
-      lines.forEach((line, i) => {
-        const pos = line.geometry.attributes.position;
-        pos.setXYZ(0, nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
-        pos.needsUpdate = true;
-      });
-
-      // Pulse center node
-      const pulse = 1 + Math.sin(t * 0.5) * 0.08;
-      centerMesh.scale.setScalar(pulse);
-
-      // Slow Y rotation of entire scene
-      scene.rotation.y += 0.0003;
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Resize
-    window.addEventListener('resize', () => {
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    });
-
-    // Reduced motion — stop animation, render one static frame
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
-      cancelAnimationFrame(animId);
-      renderer.render(scene, camera);
-    }
-  })();
-  </script>
 
   <!-- ── Parallax on hero-left ── -->
   <script>
@@ -2527,6 +2422,268 @@
     }, { threshold: 0.3 });
     const section = document.getElementById('signal-to-decision');
     if (section) obs.observe(section);
+  })();
+  </script>
+
+  <!-- ── heroCanvas atmospheric animation ── -->
+  <script>
+  (function () {
+    const noMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const canvas = document.getElementById('heroCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const BLUE  = '#4f83ff';
+    const GREEN = '#10d48a';
+    const AMBER = '#fbbf24';
+    const RED   = '#f87171';
+
+    const SIGNAL_COLORS = [
+      BLUE, GREEN, BLUE, AMBER,
+      GREEN, BLUE, RED, GREEN, BLUE
+    ];
+    const SIGNAL_LABELS = [
+      'VIX','FII','CRUDE','YIELD',
+      'PMI','PE','GARCH','CREDIT','TREND'
+    ];
+    const REGIMES = [
+      'LIQUIDITY DRIVEN EXPANSION',
+      'STABLE GROWTH',
+      'MONETARY TIGHTENING',
+      'EXTERNAL SHOCK',
+      'STAGFLATION RISK',
+      'EARLY CYCLE RECOVERY',
+      'GROWTH SLOWDOWN',
+      'STAGFLATIONARY RISK',
+    ];
+
+    let W, H, dpr;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.offsetWidth;
+      H = canvas.offsetHeight;
+      canvas.width  = W * dpr;
+      canvas.height = H * dpr;
+      ctx.scale(dpr, dpr);
+      initColumns();
+      initPulses();
+    }
+
+    /* ── Layer 1: data stream columns ── */
+    const NUM_COLS = 14;
+    const CHAR_H   = 14;
+    const CHAR_SET = '0123456789.0123456789.+-%.%';
+    let columns = [];
+
+    function randChar() {
+      return CHAR_SET[Math.floor(Math.random() * CHAR_SET.length)];
+    }
+
+    function initColumns() {
+      columns = [];
+      const spacing = W / (NUM_COLS + 1);
+      for (let i = 0; i < NUM_COLS; i++) {
+        const numChars = Math.ceil(H / CHAR_H) + 5;
+        columns.push({
+          x: spacing * (i + 1),
+          y: Math.random() * -H,
+          speed: 0.25 + Math.random() * 0.45,
+          chars: Array.from({ length: numChars }, randChar),
+          mutateTimer: 0,
+          mutateInterval: 40 + Math.floor(Math.random() * 80),
+        });
+      }
+    }
+
+    function drawColumns() {
+      ctx.font = '10px "JetBrains Mono",monospace';
+      ctx.textAlign = 'center';
+      columns.forEach(col => {
+        col.y += col.speed;
+        if (col.y > H + CHAR_H * 5) col.y = -CHAR_H * col.chars.length * 0.5;
+
+        col.mutateTimer++;
+        if (col.mutateTimer >= col.mutateInterval) {
+          col.chars[Math.floor(Math.random() * col.chars.length)] = randChar();
+          col.mutateTimer = 0;
+        }
+
+        col.chars.forEach((ch, i) => {
+          const y = col.y + i * CHAR_H;
+          if (y < -CHAR_H || y > H + CHAR_H) return;
+          const fadeTop = Math.max(0, Math.min(1, y / (H * 0.15)));
+          const fadeBot = Math.max(0, Math.min(1, (H - y) / (H * 0.2)));
+          const alpha = fadeTop * fadeBot * 0.13;
+          ctx.fillStyle = `rgba(79,131,255,${alpha})`;
+          ctx.fillText(ch, col.x, y);
+        });
+      });
+    }
+
+    /* ── Layer 2: signal pulse lines ── */
+    let pulses = [];
+
+    function initPulses() {
+      pulses = SIGNAL_LABELS.map((label, i) => {
+        const totalSlots = 9;
+        const startY = H * 0.55;
+        const endY   = H * 0.92;
+        const y = startY + (i / (totalSlots - 1)) * (endY - startY);
+        return {
+          label,
+          color: SIGNAL_COLORS[i],
+          y,
+          x: -50,
+          speed: 1.2 + i * 0.15,
+          trail: [],
+          trailLen: 80 + Math.floor(Math.random() * 60),
+          pauseUntil: Date.now() + i * 300,
+        };
+      });
+    }
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.slice(1,3), 16);
+      const g = parseInt(hex.slice(3,5), 16);
+      const b = parseInt(hex.slice(5,7), 16);
+      return `${r},${g},${b}`;
+    }
+
+    function drawPulses() {
+      const now = Date.now();
+      pulses.forEach(p => {
+        if (now < p.pauseUntil) return;
+
+        p.trail.push(p.x);
+        if (p.trail.length > p.trailLen) p.trail.shift();
+        p.x += p.speed;
+        if (p.x > W + 100) {
+          p.x = -50;
+          p.trail = [];
+          p.pauseUntil = now + 800 + Math.random() * 1200;
+        }
+
+        const rgb = hexToRgb(p.color);
+
+        ctx.beginPath();
+        ctx.moveTo(0, p.y);
+        ctx.lineTo(W, p.y);
+        ctx.strokeStyle = `rgba(${rgb},0.06)`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        p.trail.forEach((tx, ti) => {
+          const tAlpha = (ti / p.trail.length) * 0.5;
+          ctx.beginPath();
+          ctx.arc(tx, p.y, 1, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb},${tAlpha})`;
+          ctx.fill();
+        });
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.9;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12);
+        grd.addColorStop(0, `rgba(${rgb},0.3)`);
+        grd.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+
+        ctx.font = '7px "JetBrains Mono",monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = `rgba(${rgb},0.35)`;
+        ctx.fillText(p.label, 8, p.y + 2.5);
+      });
+    }
+
+    /* ── Layer 3: regime watermarks ── */
+    let regimeState = {
+      current: 0, alpha: 0, phase: 'fadein',
+      timer: 0, x: 0, y: 0,
+    };
+    const FADE_FRAMES = 50;
+    const HOLD_FRAMES = 90;
+
+    function nextRegimePos() {
+      regimeState.x = W * 0.1 + Math.random() * W * 0.3;
+      regimeState.y = H * 0.25 + Math.random() * H * 0.35;
+    }
+
+    function drawRegime() {
+      const rs = regimeState;
+      rs.timer++;
+      if (rs.phase === 'fadein') {
+        rs.alpha = Math.min(1, rs.timer / FADE_FRAMES);
+        if (rs.timer >= FADE_FRAMES) { rs.phase = 'hold'; rs.timer = 0; }
+      } else if (rs.phase === 'hold') {
+        if (rs.timer >= HOLD_FRAMES) { rs.phase = 'fadeout'; rs.timer = 0; }
+      } else if (rs.phase === 'fadeout') {
+        rs.alpha = Math.max(0, 1 - rs.timer / FADE_FRAMES);
+        if (rs.timer >= FADE_FRAMES) {
+          rs.current = (rs.current + 1) % REGIMES.length;
+          rs.phase = 'fadein';
+          rs.timer = 0;
+          nextRegimePos();
+        }
+      }
+      const fontSize = Math.max(22, Math.min(42, W * 0.032));
+      ctx.font = `700 ${fontSize}px "JetBrains Mono",monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = `rgba(232,238,255,${rs.alpha * 0.045})`;
+      ctx.fillText(REGIMES[rs.current], rs.x, rs.y);
+    }
+
+    /* ── Main loop ── */
+    let raf;
+    let paused = false;
+
+    function loop() {
+      if (paused) return;
+
+      ctx.fillStyle = '#04060f';
+      ctx.fillRect(0, 0, W, H);
+
+      if (!noMotion) {
+        drawColumns();
+        drawPulses();
+        drawRegime();
+      } else {
+        ctx.strokeStyle = 'rgba(79,131,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < W; x += 60) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 60) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+      }
+
+      raf = requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(raf);
+      resize();
+      nextRegimePos();
+      loop();
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', () => {
+      paused = document.hidden;
+      if (!paused) loop();
+    });
+
+    resize();
+    nextRegimePos();
+    loop();
   })();
   </script>
 
