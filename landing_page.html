@@ -203,6 +203,20 @@
       background: rgba(4,6,15,0.85);
       box-shadow: 0 1px 0 rgba(79,131,255,0.12), 0 8px 32px rgba(0,0,0,0.4);
     }
+
+    /* Nav transparent over dark hero */
+    body:not(.scrolled) nav,
+    body:not(.scrolled) .nav,
+    body:not(.scrolled) header {
+      background: transparent !important;
+      border-bottom-color: rgba(79,131,255,0.15) !important;
+      backdrop-filter: none !important;
+    }
+
+    nav, header, .nav {
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
     .nav-logo {
       font-family: var(--font-mono);
       font-size: 15px; font-weight: 600;
@@ -2528,8 +2542,8 @@
     function initPulses() {
       pulses = SIGNAL_LABELS.map((label, i) => {
         const totalSlots = 9;
-        const startY = H * 0.55;
-        const endY   = H * 0.92;
+        const startY = H * 0.42;
+        const endY   = H * 0.72;
         const y = startY + (i / (totalSlots - 1)) * (endY - startY);
         return {
           label,
@@ -2684,6 +2698,26 @@
     resize();
     nextRegimePos();
     loop();
+  })();
+  </script>
+
+  <!-- ── Nav transparent over hero ── -->
+  <script>
+  (function() {
+    const hero = document.getElementById('hero');
+    if (!hero) return;
+
+    function updateNav() {
+      const heroBottom = hero.getBoundingClientRect().bottom;
+      if (heroBottom > 80) {
+        document.body.classList.remove('scrolled');
+      } else {
+        document.body.classList.add('scrolled');
+      }
+    }
+
+    window.addEventListener('scroll', updateNav, { passive: true });
+    updateNav();
   })();
   </script>
 
