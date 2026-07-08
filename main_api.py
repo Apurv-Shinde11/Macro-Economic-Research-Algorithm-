@@ -2034,6 +2034,10 @@ def _compute_fii_trend(sb_url: str, sb_key: str) -> dict:
 
 
 def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
+    _headlines = []
+    _rbi_context = []
+    _fii_context = []
+    _market_context = []
     try:
         eng = _engines
         rep = eng["repair"]
