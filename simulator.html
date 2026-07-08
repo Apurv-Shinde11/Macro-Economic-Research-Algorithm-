@@ -829,8 +829,8 @@
 
     <!-- LEFT PANEL: INPUTS -->
     <aside class="sim-panel sim-panel-left">
-      <div class="sim-eyebrow">Macro Shock Simulator</div>
-      <div class="sim-heading">Stress-test your allocation</div>
+      <div class="sim-eyebrow">Scenario Stress Test</div>
+      <div class="sim-heading">See what happens to your client's money under different scenarios</div>
 
       <!-- Client Profile -->
       <div class="sim-profile-block" id="profileBlock">
@@ -846,7 +846,7 @@
       </div>
 
       <!-- Allocation Sliders -->
-      <div class="sim-section-label">Portfolio Allocation</div>
+      <div class="sim-section-label">Your Client's Current Mix</div>
       <div class="slider-block">
         <div class="slider-row">
           <span class="slider-name">Equity</span>
@@ -876,10 +876,10 @@
       </div>
 
       <!-- Scenario Selector -->
-      <div class="sim-section-label">Select Scenario</div>
+      <div class="sim-section-label">Pick a "What If" Scenario</div>
 
       <div class="scenario-group">
-        <div class="scenario-group-label">India Macro</div>
+        <div class="scenario-group-label">India Events</div>
         <div class="scenario-row" data-key="rbi_rate_hike" onclick="selectScenario(this)">
           <span class="scenario-tier india">IN</span>
           <span class="scenario-label">RBI Rate Hike (+50bps)</span>
@@ -911,7 +911,7 @@
       </div>
 
       <div class="scenario-group">
-        <div class="scenario-group-label">Global Macro</div>
+        <div class="scenario-group-label">Global Events</div>
         <div class="scenario-row" data-key="us_fed_hike" onclick="selectScenario(this)">
           <span class="scenario-tier global">GL</span>
           <span class="scenario-label">US Fed Rate Hike (+50bps)</span>
@@ -931,7 +931,7 @@
       </div>
 
       <div class="scenario-group">
-        <div class="scenario-group-label">India Structural</div>
+        <div class="scenario-group-label">India Structural Changes</div>
         <div class="scenario-row" data-key="union_budget_expansion" onclick="selectScenario(this)">
           <span class="scenario-tier structural">IS</span>
           <span class="scenario-label">Union Budget — Fiscal Expansion</span>
@@ -959,7 +959,7 @@
       </div>
 
       <div class="scenario-group">
-        <div class="scenario-group-label">Global Extremes</div>
+        <div class="scenario-group-label">Extreme Global Scenarios</div>
         <div class="scenario-row" data-key="us_recession" onclick="selectScenario(this)">
           <span class="scenario-tier extreme">GX</span>
           <span class="scenario-label">US Recession (GDP Contraction)</span>
@@ -983,7 +983,7 @@
       </div>
 
       <button class="sim-run-btn" id="runBtn" disabled onclick="runSimulation()">
-        Run Simulation →
+        Show me the impact →
       </button>
     </aside>
 
@@ -1018,7 +1018,7 @@
 
         <!-- 2: Regime shift -->
         <div class="res-card">
-          <div class="res-card-label">Regime Shift</div>
+          <div class="res-card-label">How The Economic Environment Would Change</div>
           <div class="regime-shift-row">
             <span class="regime-pill" id="resRegimeFrom"></span>
             <span class="regime-arrow">→</span>
@@ -1036,21 +1036,21 @@
 
         <!-- 3: Sleeve impact -->
         <div class="res-card">
-          <div class="res-card-label">Sleeve Impact</div>
+          <div class="res-card-label">Impact On Each Part Of The Portfolio</div>
           <div class="sleeve-grid" id="resSleeveGrid"></div>
         </div>
 
         <!-- 4: Portfolio impact -->
         <div class="res-card">
-          <div class="res-card-label">Portfolio Impact — Weighted Average</div>
+          <div class="res-card-label">Overall Estimated Impact On Your Client's Portfolio</div>
           <div class="impact-number" id="resImpactNum">—</div>
           <div class="impact-label">Estimated portfolio impact, weighted across your current allocation</div>
-          <div class="impact-disclaimer">Based on historical regime instances. Directional only — not a prediction.</div>
+          <div class="impact-disclaimer">Based on how markets behaved in similar past situations. This is directional guidance only — not a guarantee of future performance.</div>
         </div>
 
         <!-- 5: Advisor note -->
         <div class="advisor-card">
-          <div class="advisor-label">Advisor Action</div>
+          <div class="advisor-label">What To Do</div>
           <div class="advisor-text" id="resAdvisorNote"></div>
         </div>
 
@@ -1059,7 +1059,7 @@
 
     <!-- RIGHT PANEL: HISTORICAL CONTEXT -->
     <aside class="sim-panel sim-panel-right">
-      <div class="hist-heading">Historical Context</div>
+      <div class="hist-heading">How This Has Played Out Historically</div>
       <div id="histContent">
         <div class="hist-empty">Run a simulation to see historical regime performance.</div>
       </div>
@@ -1305,6 +1305,7 @@
       // Sleeve impact grid
       const sleeves = r.sleeve_impact || {};
       const grid = document.getElementById('resSleeveGrid');
+      const _DIR_SUBS = { bullish: 'Good for this part', bearish: 'Challenging for this part', neutral: 'Limited impact expected' };
       grid.innerHTML = '';
       ['equity','debt','gold','cash'].forEach(s => {
         const sv = sleeves[s] || {};
@@ -1312,6 +1313,7 @@
         const mag = sv.magnitude || 0;
         const sign = mag > 0 ? '+' : '';
         const alloc = allocation[s] || 0;
+        const dirSub = _DIR_SUBS[dir] || '';
         grid.innerHTML += `
           <div class="sleeve-card ${dir}">
             <div class="sleeve-header">
@@ -1319,6 +1321,7 @@
               <span class="sleeve-alloc">${alloc}%</span>
             </div>
             <span class="sleeve-direction ${dir}">${sv.direction || 'NEUTRAL'}</span>
+            ${dirSub ? `<div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">${dirSub}</div>` : ''}
             <div class="sleeve-magnitude ${dir}">${sign}${mag}%</div>
             <div class="sleeve-note">${sv.note || ''}</div>
           </div>`;
