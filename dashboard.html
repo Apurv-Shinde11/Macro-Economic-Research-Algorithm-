@@ -4928,6 +4928,23 @@
     let _allArchiveRuns = [];
     let _openArchiveRows = new Set();
 
+    const REGIME_DISPLAY = {
+      'LIQUIDITY_DRIVEN_EXPANSION': 'Good time to invest — markets are supportive',
+      'STABLE_GROWTH':              'Steady conditions — hold your positions',
+      'MONETARY_TIGHTENING':        'Rising rates — exercise caution',
+      'EXTERNAL_SHOCK':             'Global disruption — play it safe',
+      'STAGFLATION_RISK':           'High inflation + slow growth — be defensive',
+      'STAGFLATIONARY_RISK':        'Severe inflation stress — maximum caution',
+      'EARLY_CYCLE_RECOVERY':       'Recovery beginning — selective opportunity',
+      'GROWTH_SLOWDOWN_SUPPORT':    'Growth slowing — reduce risk gradually',
+    };
+
+    function displayRegime(key) {
+      if (!key) return key;
+      const clean = key.trim().toUpperCase().replace(/ /g, '_');
+      return REGIME_DISPLAY[clean] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
     function setLoadingState() {
       const confEl = document.getElementById('confidenceValue');
       if (confEl) confEl.textContent = '—';
@@ -5230,12 +5247,12 @@
       const confidence = fromHistory ? data.confidence : regime?.confidence || 0;
       const conviction = strategy?.conviction || '—';
       const runAt = data.run_at || new Date().toISOString();
-      const displayName = regimeName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const displayName = displayRegime(regimeName);
       document.getElementById('regimeName').textContent = displayName;
       const verdictEl = document.getElementById('regimeVerdict');
       if (verdictEl && conviction && conviction !== '—') {
         const impliedAction = _deriveImpliedAction(regimeName.toUpperCase().replace(/ /g, '_'), conviction);
-        verdictEl.textContent = `${displayName} regime, ${conviction.toLowerCase()} conviction. ${impliedAction}.`;
+        verdictEl.textContent = `${displayName}, ${conviction.toLowerCase()} conviction. ${impliedAction}.`;
         verdictEl.style.display = '';
       }
       const pct = Math.round(confidence * 100); const circ = 2 * Math.PI * 36;
@@ -5272,10 +5289,10 @@
           sc.title = stabData.explanation || '';
         }
         document.getElementById('pillRBI').textContent = comp.rbi_signal || regime?.rbi_data?.policy_direction || '—';
-        document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime?.replace(/_/g, ' ') || '—';
+        document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime ? displayRegime(liquidity.liquidity_regime) : '—';
       } else { document.getElementById('pillConviction').textContent = conviction; }
       if (!fromHistory && regime?.challenger) {
-        document.getElementById('challengerName').textContent = regime.challenger.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        document.getElementById('challengerName').textContent = displayRegime(regime.challenger);
         document.getElementById('challengerBanner').style.display = 'flex';
       }
       document.getElementById('convictionMeta').textContent = conviction + ' conviction';
@@ -5967,7 +5984,7 @@
             data-index="${i}"
             onclick="toggleArchiveRow(${i})">
           <td class="archive-date">${dateStr}</td>
-          <td><span class="archive-regime-badge">${(r.regime || '').replace(/_/g, ' ')}</span></td>
+          <td><span class="archive-regime-badge">${displayRegime(r.regime || '')}</span></td>
           <td>
             <div class="archive-conf-wrap">
               <div class="archive-conf-bar-outer">
@@ -5990,7 +6007,7 @@
               <div class="archive-detail-grid">
                 <div class="archive-detail-item">
                   <div class="archive-detail-label">REGIME</div>
-                  <div class="archive-detail-value">${(r.regime || '—').replace(/_/g, ' ')}</div>
+                  <div class="archive-detail-value">${displayRegime(r.regime || '—')}</div>
                 </div>
                 <div class="archive-detail-item">
                   <div class="archive-detail-label">CONFIDENCE</div>
@@ -7119,7 +7136,7 @@
         return `<div class="admin-log-row">
           <span>${ts}</span>
           <span style="color:var(--text);">${(l.recipient || '').slice(0, 32)}</span>
-          <span>${(l.regime || '—').replace(/_/g, ' ').slice(0, 20)}</span>
+          <span>${displayRegime(l.regime || '—').slice(0, 36)}</span>
           <span style="color:${statusClr};">${l.status || '—'}</span>
         </div>`;
       }).join('');
@@ -7131,7 +7148,7 @@
       el.innerHTML = `<table class="admin-regime-table">
         <thead><tr><th>Regime</th><th>Calls</th><th>Avg Conf</th><th>Last Called</th></tr></thead>
         <tbody>${stats.map(r => `<tr>
-          <td>${(r.regime || '—').replace(/_/g, ' ')}</td>
+          <td>${displayRegime(r.regime || '—')}</td>
           <td style="font-family:var(--font-mono);">${r.count}</td>
           <td style="font-family:var(--font-mono);">${Math.round(r.avg_confidence || 0)}%</td>
           <td style="font-family:var(--font-mono);font-size:10px;">${r.last_called ? new Date(r.last_called).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>

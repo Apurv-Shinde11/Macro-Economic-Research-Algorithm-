@@ -1001,6 +1001,23 @@
     let _currentRegime    = 'LIQUIDITY_DRIVEN_EXPANSION';
     let _currentConviction = 'MEDIUM';
 
+    const REGIME_DISPLAY = {
+      'LIQUIDITY_DRIVEN_EXPANSION': 'Good time to invest — markets are supportive',
+      'STABLE_GROWTH':              'Steady conditions — hold your positions',
+      'MONETARY_TIGHTENING':        'Rising rates — exercise caution',
+      'EXTERNAL_SHOCK':             'Global disruption — play it safe',
+      'STAGFLATION_RISK':           'High inflation + slow growth — be defensive',
+      'STAGFLATIONARY_RISK':        'Severe inflation stress — maximum caution',
+      'EARLY_CYCLE_RECOVERY':       'Recovery beginning — selective opportunity',
+      'GROWTH_SLOWDOWN_SUPPORT':    'Growth slowing — reduce risk gradually',
+    };
+
+    function displayRegime(key) {
+      if (!key) return key;
+      const clean = key.trim().toUpperCase().replace(/ /g, '_');
+      return REGIME_DISPLAY[clean] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
     /* ══ AUTH ══ */
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
@@ -1080,18 +1097,7 @@
           _currentConviction = latest.conviction || 'MEDIUM';
           document.getElementById('convictionSelect').value = _currentConviction;
 
-          const REGIME_LABELS = {
-            LIQUIDITY_DRIVEN_EXPANSION: 'Liquidity-Driven Expansion',
-            MONETARY_TIGHTENING:        'Monetary Tightening',
-            STAGFLATION_RISK:           'Stagflation Risk',
-            GROWTH_RECOVERY:            'Growth Recovery',
-            CREDIT_EXPANSION:           'Credit Expansion',
-            LIQUIDITY_TIGHTENING:       'Liquidity Tightening',
-            OVERHEATING:                'Overheating',
-            DEFLATIONARY_BUST:          'Deflationary Bust',
-          };
-
-          const regimeLabel     = REGIME_LABELS[_currentRegime] || _currentRegime;
+          const regimeLabel = displayRegime(_currentRegime);
           const convictionLabel = _currentConviction || 'MEDIUM';
           chipsEl.innerHTML = `
             <span class="regime-chip active">${regimeLabel}</span>
@@ -1182,7 +1188,7 @@
 
       /* Client header */
       document.getElementById('resClientName').textContent = clientDisplay || 'Portfolio Analysis';
-      document.getElementById('resClientSub').textContent  = `Regime: ${regime.label || regime.key || '—'} | Bias: ${regime.bias || '—'}`;
+      document.getElementById('resClientSub').textContent  = `Regime: ${displayRegime(regime.key || regime.label || '—')} | Bias: ${regime.bias || '—'}`;
 
       /* Gate badge */
       const _GATE_LABELS = { 'HOLD': 'WAIT — confidence too low to act', 'MINOR ONLY': 'SMALL CHANGES ONLY', 'ACT': 'GOOD TIME TO ADJUST' };
@@ -1248,7 +1254,7 @@
       document.getElementById('regimeContext').innerHTML = `
         <div class="ptf-regime-context-row">
           <span>Regime</span>
-          <span class="ptf-regime-context-val">${regime.label || regime.key || '—'}</span>
+          <span class="ptf-regime-context-val">${displayRegime(regime.key || regime.label || '—')}</span>
         </div>
         <div class="ptf-regime-context-row">
           <span>Bias</span>

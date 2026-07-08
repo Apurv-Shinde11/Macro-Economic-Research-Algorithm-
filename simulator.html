@@ -1095,6 +1095,23 @@
     let _selectedScenario = null;
     let _currentRegime = 'LIQUIDITY_DRIVEN_EXPANSION';
 
+    const REGIME_DISPLAY = {
+      'LIQUIDITY_DRIVEN_EXPANSION': 'Good time to invest — markets are supportive',
+      'STABLE_GROWTH':              'Steady conditions — hold your positions',
+      'MONETARY_TIGHTENING':        'Rising rates — exercise caution',
+      'EXTERNAL_SHOCK':             'Global disruption — play it safe',
+      'STAGFLATION_RISK':           'High inflation + slow growth — be defensive',
+      'STAGFLATIONARY_RISK':        'Severe inflation stress — maximum caution',
+      'EARLY_CYCLE_RECOVERY':       'Recovery beginning — selective opportunity',
+      'GROWTH_SLOWDOWN_SUPPORT':    'Growth slowing — reduce risk gradually',
+    };
+
+    function displayRegime(key) {
+      if (!key) return key;
+      const clean = key.trim().toUpperCase().replace(/ /g, '_');
+      return REGIME_DISPLAY[clean] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
     /* ══ AUTH ══ */
     async function init() {
       const { data: { session } } = await sb.auth.getSession();
@@ -1446,7 +1463,7 @@
     }
 
     function fmt(regime) {
-      return (regime || '').replace(/_/g, ' ');
+      return displayRegime(regime || '');
     }
 
     /* ══ TOAST ══ */
