@@ -3975,6 +3975,7 @@
       .sticky-refresh-bar, .sticky-refresh-btn { transition: none; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -4672,6 +4673,7 @@
           <div class="flow-amount" id="diiNet">—</div>
           <div class="flow-signal" id="diiSignal">Loading...</div>
         </div>
+        <div style="margin-top:16px;position:relative;height:160px;"><canvas id="fiiDiiChart"></canvas></div>
         <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
         <div class="flow-context" id="flowContext"></div>
       </div>
@@ -4701,6 +4703,7 @@
           <div class="yield-sub" id="carrySignal">India-US 10Y</div>
         </div>
       </div>
+      <div style="margin-top:16px;position:relative;height:140px;"><canvas id="yieldCurveChart"></canvas></div>
 
       <div class="divider"></div>
 
@@ -4980,6 +4983,7 @@
       initOnboarding();
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
       loadActivitySignals();
+      initFiiDiiChart();
       const _tickerInterval = setInterval(() => { if (!document.hidden) loadTicker(); }, 300000);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) loadTicker(); });
       initNav(); initSidebar();
@@ -6197,7 +6201,143 @@
         document.getElementById('usShape').textContent = analysis.us_curve_shape || '—';
         const cs = analysis.carry_signal || '';
         document.getElementById('carrySignal').textContent = cs === 'STRONG_FII_MAGNET' ? 'FII Magnet 🟢' : cs === 'FII_OUTFLOW_RISK' ? 'FII Risk 🔴' : 'Neutral';
+        const _india10y = indiaY['10Y'] ?? 0;
+        const _us10y = _india10y - (analysis.india_us_spread_10y ?? 0);
+        initYieldCurveChart(analysis.india_spread_10y_2y ?? 0, _india10y, analysis.us_spread_10y_2y ?? 0, _us10y);
       } catch (e) { console.error('Yield curve failed:', e); }
+    }
+
+    async function initFiiDiiChart() {
+      const canvas = document.getElementById('fiiDiiChart');
+      if (!canvas) return;
+      if (typeof Chart === 'undefined') return;
+      try {
+        const { data, error } = await sb
+          .from('fii_dii_daily')
+          .select('trade_date,fii_net_crore,dii_net_crore')
+          .order('trade_date', { ascending: false })
+          .limit(14);
+        if (error || !data || !data.length) {
+          const wrap = canvas.closest('div');
+          if (wrap) wrap.style.display = 'none';
+          return;
+        }
+        const rows = [...data].reverse();
+        const labels = rows.map(r => {
+          const d = new Date(r.trade_date);
+          return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        });
+        const fiiVals = rows.map(r => r.fii_net_crore || 0);
+        const diiVals = rows.map(r => r.dii_net_crore || 0);
+        const fiiColors = fiiVals.map(v => v >= 0 ? 'rgba(79,131,255,0.75)' : 'rgba(248,113,113,0.75)');
+        const diiColors = diiVals.map(v => v >= 0 ? 'rgba(16,212,138,0.75)' : 'rgba(248,113,113,0.75)');
+        const isDark = !document.documentElement.classList.contains('light');
+        const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+        const tickColor = isDark ? 'rgba(122,139,170,0.8)' : 'rgba(74,88,114,0.8)';
+        new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'FII Net', data: fiiVals, backgroundColor: fiiColors, borderRadius: 3, borderSkipped: false, barPercentage: 0.4, categoryPercentage: 0.8 },
+              { label: 'DII Net', data: diiVals, backgroundColor: diiColors, borderRadius: 3, borderSkipped: false, barPercentage: 0.4, categoryPercentage: 0.8 },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600, easing: 'easeOutQuart' },
+            plugins: {
+              legend: {
+                display: true, position: 'top', align: 'end',
+                labels: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 9 }, boxWidth: 8, boxHeight: 8, padding: 8 },
+              },
+              tooltip: {
+                backgroundColor: isDark ? '#0d1428' : '#ffffff',
+                borderColor: 'rgba(79,131,255,0.3)', borderWidth: 1,
+                titleColor: isDark ? '#e8eeff' : '#0d1120',
+                bodyColor: isDark ? '#7a8baa' : '#4a5872',
+                titleFont: { family: "'JetBrains Mono',monospace", size: 10 },
+                bodyFont: { family: "'JetBrains Mono',monospace", size: 10 },
+                callbacks: {
+                  label(ctx) {
+                    const v = ctx.parsed.y;
+                    return ctx.dataset.label + ': ₹' + (v >= 0 ? '+' : '') + v.toLocaleString('en-IN') + ' Cr';
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 8 }, maxRotation: 0, maxTicksLimit: 7 },
+                border: { display: false },
+              },
+              y: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 8 }, callback: v => '₹' + (v / 1000).toFixed(1) + 'k' },
+                border: { display: false },
+              },
+            },
+          },
+        });
+      } catch (e) { console.error('[FII/DII Chart]', e); }
+    }
+
+    function initYieldCurveChart(indiaSpread, india10y, usSpread, us10y) {
+      const canvas = document.getElementById('yieldCurveChart');
+      if (!canvas) return;
+      if (typeof Chart === 'undefined') return;
+      if (canvas._chartInstance) { canvas._chartInstance.destroy(); }
+      const india2y = india10y - indiaSpread;
+      const india5y = india2y + (indiaSpread * 0.6);
+      const us2y = us10y - usSpread;
+      const us5y = us2y + (usSpread * 0.6);
+      const isDark = !document.documentElement.classList.contains('light');
+      const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+      const tickColor = isDark ? 'rgba(122,139,170,0.8)' : 'rgba(74,88,114,0.8)';
+      canvas._chartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: ['2Y', '5Y', '10Y'],
+          datasets: [
+            { label: 'India', data: [india2y, india5y, india10y], borderColor: '#4f83ff', backgroundColor: 'rgba(79,131,255,0.08)', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#4f83ff', tension: 0.3, fill: true },
+            { label: 'US', data: [us2y, us5y, us10y], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#fbbf24', tension: 0.3, fill: false },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 800, easing: 'easeOutQuart' },
+          plugins: {
+            legend: {
+              display: true, position: 'top', align: 'end',
+              labels: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 9 }, boxWidth: 8, boxHeight: 8, padding: 8 },
+            },
+            tooltip: {
+              backgroundColor: isDark ? '#0d1428' : '#ffffff',
+              borderColor: 'rgba(79,131,255,0.3)', borderWidth: 1,
+              titleColor: isDark ? '#e8eeff' : '#0d1120',
+              bodyColor: isDark ? '#7a8baa' : '#4a5872',
+              titleFont: { family: "'JetBrains Mono',monospace", size: 10 },
+              bodyFont: { family: "'JetBrains Mono',monospace", size: 10 },
+              callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%' },
+            },
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor, drawBorder: false },
+              ticks: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 9 } },
+              border: { display: false },
+            },
+            y: {
+              grid: { color: gridColor, drawBorder: false },
+              ticks: { color: tickColor, font: { family: "'JetBrains Mono',monospace", size: 9 }, callback: v => v.toFixed(1) + '%' },
+              border: { display: false },
+            },
+          },
+        },
+      });
     }
 
     async function loadActivitySignals() {
