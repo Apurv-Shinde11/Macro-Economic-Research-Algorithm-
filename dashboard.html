@@ -4464,6 +4464,7 @@
           </div>
           <div class="activity-card">
             <div class="activity-card-label">Auto Sales</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Vehicle sales — a real economy indicator</div>
             <div class="activity-card-period" id="actAutoPeriod">—</div>
             <div class="activity-card-value" id="actAutoValue">—</div>
             <div class="activity-card-yoy" id="actAutoYoy">—</div>
@@ -4471,6 +4472,7 @@
           </div>
           <div class="activity-card">
             <div class="activity-card-label">Bank Credit</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">How much banks are lending — higher = more economic activity</div>
             <div class="activity-card-period" id="actCreditPeriod">—</div>
             <div class="activity-card-value" id="actCreditValue">—</div>
             <div class="activity-card-yoy" id="actCreditYoy">—</div>
@@ -4481,7 +4483,7 @@
 
       <!-- Signal Intelligence Card -->
       <div class="card signal-intel-card" id="signalIntelCard" style="display:none;">
-        <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Signal Intelligence</div>
+        <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">What The Data Shows</div>
 
         <div class="signal-visual-summary" id="signalVisualSummary">
           <!-- Left: Donut chart -->
@@ -4517,7 +4519,7 @@
             </div>
             <div class="signal-plain-read" id="signalPlainRead">—</div>
             <div class="signal-trend-row">
-              <span class="signal-trend-label">SIGNAL TREND</span>
+              <span class="signal-trend-label">OVERALL DIRECTION</span>
               <span class="signal-trend-value" id="signalTrendValue">—</span>
             </div>
           </div>
@@ -4526,7 +4528,7 @@
         <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
         <div class="signal-grid" id="signalGrid"></div>
         <div class="signal-intel-footer">
-          Leading score weights VIX, crude, FII flows, yield curve, PMI, PE ratio, volatility forecast, credit impulse, and FII trend momentum.
+          This score combines nine live checks on the Indian economy. Higher means more conditions are supportive for investing.
         </div>
       </div>
 
@@ -4560,7 +4562,7 @@
 
       <div class="divider"></div>
 
-      <div class="section-header"><span class="section-title">Scenario Outlook</span></div>
+      <div class="section-header"><span class="section-title">What Could Happen Next</span></div>
 
       <div class="scenario-visual" id="scenarioVisual">
         <div class="scenario-prob-bars">
@@ -4596,7 +4598,7 @@
           </div>
         </div>
         <div class="scenario-dominant" id="scenarioDominant">
-          <div class="scenario-dominant-label">MOST LIKELY OUTCOME</div>
+          <div class="scenario-dominant-label">MOST LIKELY SCENARIO</div>
           <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
           <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
         </div>
@@ -4621,11 +4623,11 @@
       <div class="divider"></div>
 
       <div class="section-header">
-        <span class="section-title">Sector Heatmap</span>
+        <span class="section-title">Where To Invest Right Now</span>
         <span class="section-meta" id="heatmapMeta">Based on current regime</span>
       </div>
       <div class="heatmap-context">
-        Reflects portfolio allocation positioning, not consumer demand or business fundamentals. Regime-driven capital rotation logic.
+        These are suggestions for how to position client portfolios — not recommendations to buy or sell specific stocks. Based on the current economic environment only.
       </div>
       <div class="heatmap-card" id="heatmapCard">
         <div class="heatmap-columns" id="heatmapColumns">
@@ -4640,7 +4642,7 @@
       <div class="divider"></div>
 
       <div class="section-header">
-        <span class="section-title">Historical Regime Performance</span>
+        <span class="section-title">How This Environment Has Performed In The Past</span>
         <span class="section-meta" id="backtestMeta">Based on 2010–2025 data</span>
       </div>
       <div class="backtest-card" id="backtestCard">
@@ -4652,7 +4654,7 @@
       <div class="divider"></div>
 
       <div class="section-header">
-        <span class="section-title">FII / DII Flow Intelligence</span>
+        <span class="section-title">What Big Investors Are Doing</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="section-meta" id="flowDate">—</span>
           <div class="flow-timeframe-tabs" id="flowTabs" style="display:none;">
@@ -4665,12 +4667,12 @@
       </div>
       <div class="flows-grid">
         <div class="flow-card">
-          <div class="flow-type">FII Net</div>
+          <div class="flow-type">Foreign Investors (FII)</div>
           <div class="flow-amount" id="fiiNet">—</div>
           <div class="flow-signal" id="fiiSignal">Loading...</div>
         </div>
         <div class="flow-card">
-          <div class="flow-type">DII Net</div>
+          <div class="flow-type">Indian Institutions (DII)</div>
           <div class="flow-amount" id="diiNet">—</div>
           <div class="flow-signal" id="diiSignal">Loading...</div>
         </div>
@@ -4681,10 +4683,10 @@
 
       <div class="divider"></div>
 
-      <div class="section-header"><span class="section-title">Yield Curve Intelligence</span></div>
+      <div class="section-header"><span class="section-title">Interest Rate Environment</span></div>
       <div class="yield-grid">
         <div class="yield-card">
-          <div class="yield-label">India 10Y-2Y</div>
+          <div class="yield-label">India Rate Curve</div>
           <div class="yield-value" id="yieldSpread">—</div>
           <div class="yield-sub" id="yieldShape">Loading...</div>
         </div>
@@ -4699,7 +4701,7 @@
           <div class="yield-sub" id="usShape">Loading...</div>
         </div>
         <div class="yield-card">
-          <div class="yield-label">Carry Signal<span class="tip-icon" data-tip="carry">ⓘ</span></div>
+          <div class="yield-label">Rate Advantage<span class="tip-icon" data-tip="carry">ⓘ</span></div>
           <div class="yield-value" id="carrySpread">—</div>
           <div class="yield-sub" id="carrySignal">India-US 10Y</div>
         </div>
@@ -4709,7 +4711,7 @@
       <div class="divider"></div>
 
       <div class="section-header">
-        <span class="section-title">Economic Calendar</span>
+        <span class="section-title">Upcoming Events To Watch</span>
         <span class="section-meta">Next 90 days</span>
       </div>
       <div class="calendar-list" id="calendarList">
@@ -5667,9 +5669,11 @@
 
     function renderScenarios(scenarios) {
       const grid = document.getElementById('scenarioGrid'); if (!scenarios?.length) return;
+      const _SCENARIO_SUBS = { base: 'Things continue as expected', baseline: 'Things continue as expected', bullish: 'Better than expected', bearish: 'Something goes wrong' };
       grid.innerHTML = scenarios.slice(0, 3).map(sc => {
         const pct = Math.round((sc.probability || 0) * 100);
-        return `<div class="scenario-card ${sc.type || 'base'}" data-expanded="false" onclick="toggleScenarioCard(this)"><div class="scenario-card-header"><div class="scenario-name">${sc.name || sc.type}</div><div style="display:flex;align-items:center;gap:6px;"><span class="scenario-prob">${pct}%</span><span class="scenario-card-toggle">›</span></div></div><div class="scenario-desc">${sc.description || ''}</div></div>`;
+        const sub = _SCENARIO_SUBS[sc.type || 'base'] || '';
+        return `<div class="scenario-card ${sc.type || 'base'}" data-expanded="false" onclick="toggleScenarioCard(this)"><div class="scenario-card-header"><div class="scenario-name">${sc.name || sc.type}${sub ? `<div style="font-size:9px;color:var(--text-3);font-family:var(--font-sans);font-weight:400;letter-spacing:0;text-transform:none;margin-top:2px;font-style:italic;">${sub}</div>` : ''}</div><div style="display:flex;align-items:center;gap:6px;"><span class="scenario-prob">${pct}%</span><span class="scenario-card-toggle">›</span></div></div><div class="scenario-desc">${sc.description || ''}</div></div>`;
       }).join('');
     }
 
@@ -6600,11 +6604,11 @@
           ? _AGGRESSIVE_IMPLICATIONS
           : mapping;
       bridgeEl.innerHTML = `
-      <div class="regime-bridge-title">Actionable Implications</div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Equity</span><span class="regime-bridge-text">${impl.equity}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Debt</span><span class="regime-bridge-text">${impl.debt}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Currency</span><span class="regime-bridge-text">${impl.currency}</span></div>
-      <div class="regime-bridge-row"><span class="regime-bridge-label">Risk</span><span class="regime-bridge-text">${impl.risk}</span></div>
+      <div class="regime-bridge-title">What This Means For Your Clients</div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Equity investments</span><span class="regime-bridge-text">${impl.equity}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Fixed income / debt</span><span class="regime-bridge-text">${impl.debt}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Currency exposure</span><span class="regime-bridge-text">${impl.currency}</span></div>
+      <div class="regime-bridge-row"><span class="regime-bridge-label">Key risk to watch</span><span class="regime-bridge-text">${impl.risk}</span></div>
     `;
     }
 
@@ -7343,11 +7347,11 @@
       summaryEl.innerHTML = `
         <div class="backtest-stat">
           <span class="backtest-stat-val">${d.instances ?? '—'}</span>
-          <span class="backtest-stat-label">Instances</span>
+          <span class="backtest-stat-label">Times Seen Historically</span>
         </div>
         <div class="backtest-stat">
           <span class="backtest-stat-val">${d.avg_duration_months ?? '—'}<span style="font-size:12px;font-weight:400"> mo</span></span>
-          <span class="backtest-stat-label">Avg Duration</span>
+          <span class="backtest-stat-label">Typically Lasts</span>
         </div>
         <div class="backtest-stat" style="flex:1;max-width:none;text-align:left;align-items:flex-start;">
           <span class="backtest-stat-label" style="font-size:11px;line-height:1.5;color:var(--text-2);">${d.summary || ''}</span>
@@ -7425,15 +7429,29 @@
         return 'var(--red)';
       }
 
+      const _SIG_SUBTITLES = {
+        'INDIA VIX': 'Market fear level',
+        'CRUDE OIL': 'Oil price signal',
+        'FII FLOWS': 'Foreign investor activity',
+        'INDIA YIELD CURVE': 'Interest rate shape',
+        'MANUFACTURING PMI': 'Business activity',
+        'NIFTY P/E RATIO': 'Stock valuation',
+        'VOL FORECAST (GARCH)': 'Expected turbulence',
+        'CREDIT IMPULSE': 'Credit flow',
+        'FII TREND (7D)': '7-day foreign investor trend',
+      };
       grid.innerHTML = signals.map(sig => {
         const pct    = Math.round((sig.score || 0) * 100);
         const color  = scoreColor(sig.score || 0);
         const bColor = barColor(sig.score || 0);
         const label  = (sig.signal || '').replace(/_/g, ' ');
+        const indKey = (sig.indicator || '').toUpperCase();
+        const sub    = _SIG_SUBTITLES[indKey] || '';
         return `
           <div class="signal-item">
             <div class="signal-item-left">
               <div class="signal-item-name">${sig.indicator || ''}</div>
+              ${sub ? `<div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">${sub}</div>` : ''}
               <div class="signal-item-label" style="color:${color}">${label}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
@@ -7575,13 +7593,13 @@
         return;
       }
       const sections = [
-        { key: 'FAVOUR', cls: 'favour', label: 'Favour' },
-        { key: 'NEUTRAL', cls: 'neutral', label: 'Neutral' },
-        { key: 'AVOID', cls: 'avoid', label: 'Avoid' },
+        { key: 'FAVOUR', cls: 'favour', label: 'Favour', sub: 'Increase exposure' },
+        { key: 'NEUTRAL', cls: 'neutral', label: 'Neutral', sub: 'Hold existing' },
+        { key: 'AVOID', cls: 'avoid', label: 'Avoid', sub: 'Reduce exposure' },
       ];
       col.innerHTML = sections.map(s =>
         `<div class="heatmap-col ${s.cls}">` +
-        `<div class="heatmap-col-title">${s.label}</div>` +
+        `<div class="heatmap-col-title">${s.label}<div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);font-weight:400;letter-spacing:0;text-transform:none;margin-top:2px;font-style:italic;">${s.sub}</div></div>` +
         (heatmap[s.key] || []).map(sector => {
           const name = typeof sector === 'string' ? sector : sector.sector;
           const reason = typeof sector === 'string' ? null : sector.reason;
