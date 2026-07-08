@@ -1366,9 +1366,8 @@
     <!-- ══ HEADER ══ -->
     <div class="page-header">
       <div class="page-eyebrow">Live Intelligence</div>
-      <h1 class="page-title">Global Macro Intelligence</h1>
-      <p class="page-subtitle">Click any economy on the map to explore GDP, inflation, policy rates, and macro regime
-        signals.</p>
+      <h1 class="page-title">How the World's Economies Are Doing Right Now</h1>
+      <p class="page-subtitle">Click any country on the map to see how its economy is performing — growth, inflation, interest rates, and what it means for global investing.</p>
     </div>
 
     <!-- ══ MAP ══ -->
@@ -1404,9 +1403,8 @@
     <!-- ══ CTA ══ -->
     <section class="cta-section">
       <div class="cta-inner">
-        <div class="cta-title">Run India Regime Analysis</div>
-        <p class="cta-sub">Access the full SENTINEL engine: real-time regime detection, allocation signals, and FII/DII
-          flow analytics.</p>
+        <div class="cta-title">Get India's Daily Economic Read</div>
+        <p class="cta-sub">Get a daily plain-language read on the Indian economy — what it means for your clients' investments and what to do about it.</p>
         <a class="cta-btn" href="login.html">Access Sentinel →</a>
       </div>
     </section>
@@ -2030,8 +2028,8 @@
       if (!rowsHtml) return;
       container.innerHTML = `
         <div class="economy-size-standalone-inner">
-          <div class="economy-size-standalone-title">Economy Size: Top 50 by Nominal GDP</div>
-          <div class="economy-size-standalone-sub">IMF World Economic Outlook, April 2026 · Click any row to view macro details</div>
+          <div class="economy-size-standalone-title">World's 50 Largest Economies by Size</div>
+          <div class="economy-size-standalone-sub">Ranked by economic size (GDP). Click any country to see full details.</div>
           <div class="economy-comparison">${rowsHtml}</div>
         </div>
       `;
@@ -2046,7 +2044,7 @@
       section.innerHTML = `
         <div class="economy-size-standalone-inner">
           <div class="economy-size-standalone-title">
-            AI Infrastructure Pulse
+            Global AI Spending Pulse
           </div>
           <div class="economy-size-standalone-sub">
             Loading market data…
@@ -2074,9 +2072,9 @@
         }[data.pulse_label] || '';
 
         const SIMPLE_LABELS = {
-          SMH: 'Chip Demand',
-          VST: 'Power Demand',
-          DLR: 'Data Center Demand',
+          SMH: 'Chip Demand (semiconductors)',
+          VST: 'Power Demand (data center energy)',
+          DLR: 'Data Center Demand (cloud infra)',
         };
 
         const basketRows = Object.values(data.basket)
@@ -2183,7 +2181,7 @@
         section.innerHTML = `
           <div class="economy-size-standalone-inner">
             <div class="economy-size-standalone-title">
-              AI Infrastructure Pulse
+              Global AI Spending Pulse
             </div>
             <div class="economy-size-standalone-sub">
               ${PULSE_PLAIN}
@@ -2210,7 +2208,7 @@
         section.innerHTML = `
           <div class="economy-size-standalone-inner">
             <div class="economy-size-standalone-title">
-              AI Infrastructure Pulse
+              Global AI Spending Pulse
             </div>
             <div class="economy-size-standalone-sub">
               Unable to load market data — try again shortly.
@@ -2253,8 +2251,8 @@
               <div class="card-sub"
                    title="${eco.data_sources?.gdp || ''}">
                 ${eco.data_sources?.gdp?.includes('World Bank')
-                  ? `World Bank · ${eco.gdp_growth_year ? eco.gdp_growth_year + ' (latest available)' : 'latest available'}`
-                  : eco.data_sources?.gdp || 'World Bank · Annual'}
+                  ? `Source: World Bank · ${eco.gdp_growth_year ? eco.gdp_growth_year + ' (most recent available)' : 'most recent available'}`
+                  : eco.data_sources?.gdp || 'Source: World Bank · Annual'}
               </div>
             </div>
             <div class="detail-card">
@@ -2263,7 +2261,7 @@
               <div class="card-sub"
                    title="${eco.data_sources?.inflation || ''}">
                 ${eco.data_sources?.inflation?.includes('World Bank')
-                  ? `CPI YoY · World Bank · ${eco.inflation_year ? eco.inflation_year + ' (latest available)' : 'latest available'}`
+                  ? `Source: World Bank · ${eco.inflation_year ? eco.inflation_year + ' (most recent available)' : 'most recent available'}`
                   : eco.data_sources?.inflation || 'CPI YoY'}
               </div>
             </div>
@@ -2279,7 +2277,7 @@
                   color:var(--text-3);
                   margin-left:4px;">
                   ${eco.data_sources?.policy_rate?.includes('FRED')
-                    ? '· FRED Live'
+                    ? '· Source: US Federal Reserve · Live'
                     : eco.data_sources?.policy_rate?.includes('hardcoded')
                       ? '· May 2026'
                       : ''}
@@ -2291,13 +2289,13 @@
               <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi, 1)}</div>
               <div class="card-sub"
                    title="${eco.data_sources?.pmi || ''}">
-                Mfg PMI
+                Source: S&amp;P Global
                 <span style="
                   font-family:var(--font-mono);
                   font-size:8px;
                   color:var(--amber);
                   margin-left:4px;">
-                  · May 2026
+                  · May 2026, updated monthly
                 </span>
               </div>
             </div>
@@ -2376,42 +2374,42 @@
               font-size:8px;
               color:var(--text-3);
               letter-spacing:0.08em;">
-              SOURCES
+              DATA SOURCES
             </span>
             <span style="
               font-family:var(--font-mono);
               font-size:8px;
               color:var(--text-3);">
-              GDP/CPI/Unemployment: World Bank API
+              Economic data: World Bank
             </span>
             <span style="
               font-family:var(--font-mono);
               font-size:8px;
               color:var(--text-3);">
-              Policy Rate: FRED (major economies) · hardcoded elsewhere
+              Interest rates: US Federal Reserve (FRED) for major economies
             </span>
             <span style="
               font-family:var(--font-mono);
               font-size:8px;
               color:var(--text-3);">
-              Currency/Yield: yfinance live
+              Currency &amp; bond yields: Live market data
             </span>
             <span style="
               font-family:var(--font-mono);
               font-size:8px;
               color:var(--amber);">
-              PMI: S&amp;P Global · hardcoded May 2026
+              Business activity (PMI): S&amp;P Global · updated monthly
             </span>
           </div>
           <div class="detail-summary">
-            <div class="summary-label">Macro Context</div>
+            <div class="summary-label">Economic Summary</div>
             <p class="summary-text">${buildSummary(eco)}</p>
           </div>
           ${eco.recent_development?.headline ? `
           <div class="detail-card-wide"
                style="margin-top:10px;">
             <div class="card-label">
-              RECENT DEVELOPMENT
+              LATEST NEWS
             </div>
             <div style="font-size:13px;
               color:var(--text);
@@ -2458,7 +2456,7 @@
           ${isHome ? `
           <div class="detail-summary" id="india-ai-context">
             <div class="card-label">
-              What This Means For India
+              What This Means For India's IT Sector
             </div>
             <div class="india-ai-loading">
               Loading global AI infrastructure context…
@@ -2489,7 +2487,7 @@
 
         el.innerHTML = `
           <div class="card-label">
-            What This Means For India
+            What This Means For India's IT Sector
           </div>
           <div class="india-ai-text">
             ${IT_NOTE}
@@ -2505,7 +2503,7 @@
         );
         el.innerHTML = `
           <div class="card-label">
-            What This Means For India
+            What This Means For India's IT Sector
           </div>
           <div class="india-ai-text">
             Unable to load context right now.
