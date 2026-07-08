@@ -1474,8 +1474,8 @@
             <div class="terminal-live"><div class="live-dot"></div>LIVE</div>
           </div>
           <div class="terminal-body">
-            <div class="t-label">Current Regime</div>
-            <div class="t-regime" id="t-regime">Stable Growth</div>
+            <div class="t-label">TODAY'S ECONOMIC ENVIRONMENT</div>
+            <div class="t-regime" id="t-regime">Good time to invest — markets are supportive</div>
             <div class="t-conf-row">
               <div class="t-conf-bar-wrap"><div class="t-conf-bar" id="t-bar" style="transform:scaleX(0.72)"></div></div>
               <div class="t-conf-pct" id="t-pct">72%</div>
@@ -2163,7 +2163,7 @@
       const $ = id => document.getElementById(id);
       $('t-regime').style.opacity = '0';
       setTimeout(() => {
-        $('t-regime').textContent = r.name; $('t-regime').style.opacity = '1';
+        $('t-regime').textContent = 'Good time to invest — markets are supportive'; $('t-regime').style.opacity = '1';
         $('t-bar').style.transform = 'scaleX('+r.conf/100+')'; $('t-pct').textContent = r.conf+'%';
         $('t-equity').textContent = r.equity; $('t-equity').style.color = r.eq_c;
         $('t-conviction').textContent = r.conviction; $('t-conviction').style.color = r.cv_c;
