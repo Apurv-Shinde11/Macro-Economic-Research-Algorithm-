@@ -386,6 +386,51 @@ class MacroRegimeEngine:
         else:
             return round(base_confidence * 0.92, 2)
 
+    def _smooth_confidence(
+        self,
+        raw_confidence: float,
+        recent_runs: list
+    ) -> float:
+        """
+        3-run exponential weighted average on displayed confidence.
+        Raw confidence drives all internal logic unchanged.
+        Weights: current=0.50, prev=0.30, prev-2=0.20
+        """
+        if not recent_runs:
+            return raw_confidence
+
+        prior = []
+        for r in (recent_runs or [])[-2:]:
+            c = r.get("confidence")
+            if c is not None:
+                try:
+                    prior.append(float(c))
+                except (ValueError, TypeError):
+                    pass
+
+        if len(prior) == 0:
+            return raw_confidence
+        elif len(prior) == 1:
+            smoothed = round(
+                0.60 * raw_confidence
+                + 0.40 * prior[-1], 3
+            )
+        else:
+            smoothed = round(
+                0.50 * raw_confidence
+                + 0.30 * prior[-1]
+                + 0.20 * prior[-2], 3
+            )
+
+        print(
+            f"[CONF_SMOOTH] raw="
+            f"{raw_confidence:.3f} "
+            f"prior={[round(p,3) for p in prior]} "
+            f"smoothed={smoothed:.3f}",
+            flush=True
+        )
+        return smoothed
+
     # =========================
     # ✅ THREE-STATE SIGNAL HELPER
     # =========================
@@ -1598,6 +1643,14 @@ class MacroRegimeEngine:
             max(0.40, min(0.95, confidence + persistence_adj)), 2
         )
 
+        # Store raw for all internal logic (gates, change detection)
+        _raw_conf = confidence
+        # Smooth for display only — does not affect scoring or gates
+        confidence = self._smooth_confidence(
+            confidence,
+            recent_runs or []
+        )
+
         # -------------------------
         # ✅ REGIME CHANGE DETECTION
         # Runs after final confidence is calculated so the
@@ -1605,7 +1658,7 @@ class MacroRegimeEngine:
         # -------------------------
         change_info = self._detect_regime_change(
             current_regime      = regime,
-            current_confidence  = confidence,
+            current_confidence  = _raw_conf,
             recent_runs         = recent_runs
         )
 
@@ -1663,30 +1716,31 @@ class MacroRegimeEngine:
         # change_info flows to scheduler.py for alert firing
         # and to main.py for the in-app banner (future use)
         # -------------------------
-        if confidence < 0.60:
+        if _raw_conf < 0.60:
             print(
                 f"  [GATE] Briefing BLOCKED — "
-                f"confidence {confidence:.0%} below 0.60 gate",
+                f"raw_conf {_raw_conf:.0%} below 0.60 gate",
                 flush=True
             )
         else:
             print(
                 f"  [GATE] Briefing ALLOWED — "
-                f"confidence {confidence:.0%} above 0.60 gate",
+                f"raw_conf {_raw_conf:.0%} above 0.60 gate",
                 flush=True
             )
 
         return {
             # ── Premortem safety gates ──────────────
-            "briefing_allowed": confidence >= 0.60,
+            "briefing_allowed": _raw_conf >= 0.60,
             "briefing_blocked_reason": (
-                None if confidence >= 0.60
-                else f"Confidence {confidence:.0%} below 60% gate — "
+                None if _raw_conf >= 0.60
+                else f"Confidence {_raw_conf:.0%} below 60% gate — "
                      f"briefing suppressed to prevent low-conviction advice"
             ),
 
-            "regime":     regime,
-            "confidence": confidence,
+            "regime":         regime,
+            "confidence":     confidence,
+            "raw_confidence": _raw_conf,
             "narrative":  narrative,
 
             "components": {

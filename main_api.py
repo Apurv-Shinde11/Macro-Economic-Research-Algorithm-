@@ -2040,7 +2040,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         news_raw = eng["ingestor"].fetch_news_sentiment()
         macro    = eng["ingestor"].fetch_macro_indicators()
         market   = eng["ingestor"].fetch_market_data()
-        news = " ".join(news_raw.get("headlines", [])) if isinstance(news_raw, dict) else str(news_raw)
+        _headlines = (
+            news_raw.get("headlines", [])
+            if isinstance(news_raw, dict)
+            else []
+        )
+        news = " ".join(_headlines)
         nse_snapshot = {}
         try:
             nse_snapshot = eng["nse"].get_full_snapshot()
@@ -2223,6 +2228,49 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 f"({_garch['direction']})",
                 flush=True
             )
+        # Enrich news with structured context from nse_snapshot
+        # (nse_snapshot is fully populated at this point — crude, FII, VIX)
+        _fii_context = []
+        if nse_snapshot.get("fii_net_crore"):
+            fii_val = nse_snapshot["fii_net_crore"]
+            _fii_context.append(
+                f"FII net flow today: "
+                f"{'buying' if fii_val > 0 else 'selling'} "
+                f"₹{abs(fii_val):.0f} Cr"
+            )
+
+        _market_context = []
+        vix_val = nse_snapshot.get("india_vix")
+        if vix_val:
+            _market_context.append(
+                f"India VIX at {vix_val:.1f} "
+                f"— {'elevated fear' if vix_val > 20 else 'calm markets'}"
+            )
+        crude_val = nse_snapshot.get("crude_price")
+        if crude_val:
+            _market_context.append(
+                f"Crude oil at ${crude_val:.1f}"
+            )
+
+        news = " | ".join(
+            _headlines
+            + _fii_context
+            + _market_context
+        )
+
+        if not news.strip():
+            news = (
+                "No significant news available. "
+                "Market signals should drive regime classification."
+            )
+
+        print(
+            f"[NLP_INPUT] length={len(news)} "
+            f"headlines={len(_headlines)} "
+            f"context_items={len(_fii_context + _market_context)}",
+            flush=True
+        )
+
         # Pass hard signal values for NLP validation
         _hard_sigs = {
             "vix_score": nse_snapshot.get("vix_score", 0.5),
