@@ -2040,6 +2040,10 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         news_raw = eng["ingestor"].fetch_news_sentiment()
         macro    = eng["ingestor"].fetch_macro_indicators()
         market   = eng["ingestor"].fetch_market_data()
+        print(
+        f"[NLP_INPUT] headlines={len(_headlines)} "
+        f"sources={news_raw.get('sources', [])} "
+        f"sample={_headlines[:2]}", flush=True)
         _headlines = (
             news_raw.get("headlines", [])
             if isinstance(news_raw, dict)
