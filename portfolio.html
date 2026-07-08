@@ -847,8 +847,8 @@
 
     <!-- LEFT PANEL: INPUTS -->
     <aside class="ptf-panel-left">
-      <div class="ptf-eyebrow">Client Portfolio Layer</div>
-      <div class="ptf-heading">Map allocation to today's regime</div>
+      <div class="ptf-eyebrow">Client Portfolio Check</div>
+      <div class="ptf-heading">Is your client's money in the right place right now?</div>
 
       <!-- Current Regime -->
       <div class="ptf-regime-block">
@@ -876,7 +876,7 @@
       </div>
 
       <!-- Allocation Sliders -->
-      <div class="ptf-section-label" style="margin-top:4px;">Client Allocation</div>
+      <div class="ptf-section-label" style="margin-top:4px;">Your Client's Current Mix</div>
       <div class="slider-block">
         <div class="slider-row">
           <span class="slider-name">Equity</span>
@@ -905,7 +905,7 @@
         <span id="totalPct">100%</span>
       </div>
 
-      <button class="ptf-run-btn" id="runBtn" disabled>Analyse Portfolio →</button>
+      <button class="ptf-run-btn" id="runBtn" disabled>Check this portfolio →</button>
     </aside>
 
     <!-- RIGHT PANEL: RESULTS -->
@@ -914,7 +914,7 @@
       <!-- Empty state -->
       <div class="ptf-empty" id="emptyState">
         <div class="ptf-empty-icon">⚖</div>
-        <div class="ptf-empty-text">Set allocation and click Analyse Portfolio</div>
+        <div class="ptf-empty-text">Enter your client's current investment mix above and click "Check this portfolio" to see whether it fits today's conditions.</div>
       </div>
 
       <!-- Loading skeleton -->
@@ -937,7 +937,7 @@
             <div class="ptf-client-sub" id="resClientSub">Regime: —</div>
           </div>
           <div class="ptf-gate">
-            <div class="ptf-gate-badge hold" id="gateLabel">HOLD</div>
+            <div class="ptf-gate-badge hold" id="gateLabel">WAIT — confidence too low to act</div>
             <div class="ptf-gate-rationale" id="gateRationale"></div>
           </div>
         </div>
@@ -955,13 +955,13 @@
 
         <!-- Sleeve analysis -->
         <div class="ptf-sleeves-section">
-          <div class="ptf-section-title">Per-Sleeve Analysis</div>
+          <div class="ptf-section-title">Each Part Of The Portfolio</div>
           <div class="ptf-sleeve-grid" id="sleeveGrid"></div>
         </div>
 
         <!-- Risk flags -->
         <div class="ptf-flags-section">
-          <div class="ptf-section-title">Risk Flags</div>
+          <div class="ptf-section-title">Things To Watch Out For</div>
           <div id="flagsContainer"></div>
         </div>
 
@@ -1185,28 +1185,33 @@
       document.getElementById('resClientSub').textContent  = `Regime: ${regime.label || regime.key || '—'} | Bias: ${regime.bias || '—'}`;
 
       /* Gate badge */
+      const _GATE_LABELS = { 'HOLD': 'WAIT — confidence too low to act', 'MINOR ONLY': 'SMALL CHANGES ONLY', 'ACT': 'GOOD TIME TO ADJUST' };
       const gateEl = document.getElementById('gateLabel');
-      gateEl.textContent = gate;
+      gateEl.textContent = _GATE_LABELS[gate] || gate;
       gateEl.className   = 'ptf-gate-badge ' + (gate === 'ACT' ? 'act' : gate === 'MINOR ONLY' ? 'minor' : 'hold');
       document.getElementById('gateRationale').textContent = rationale;
 
       /* Alignment score */
+      const _ALIGN_LABELS = { high: 'Good Fit For Today\'s Conditions', medium: 'Small Adjustments Suggested', low: 'Review Recommended' };
       const scoreClass = score >= 75 ? 'high' : score >= 50 ? 'medium' : 'low';
       const scoreNumEl = document.getElementById('scoreNum');
       scoreNumEl.textContent = score;
       scoreNumEl.className   = 'ptf-score-num ' + scoreClass;
+      document.querySelector('.ptf-score-label').textContent = _ALIGN_LABELS[scoreClass];
       const barEl = document.getElementById('scoreBar');
       barEl.style.width = score + '%';
       barEl.className   = 'ptf-score-bar ' + scoreClass;
 
       /* Sleeve grid */
       const SLEEVE_LABELS = { equity: 'Equity', debt: 'Debt', gold: 'Gold', cash: 'Cash' };
+      const _STATUS_LABELS = { 'ON TARGET': 'About Right', 'OVERWEIGHT': 'More Than Needed Right Now', 'UNDERWEIGHT': 'Less Than Ideal Right Now' };
       const gridEl = document.getElementById('sleeveGrid');
       gridEl.innerHTML = '';
       for (const key of ['equity', 'debt', 'gold', 'cash']) {
         const s      = sleeves[key] || {};
         const status = s.status || 'ON TARGET';
         const statusClass = status === 'ON TARGET' ? 'on-target' : status === 'OVERWEIGHT' ? 'overweight' : 'underweight';
+        const statusLabel = _STATUS_LABELS[status] || status;
         const delta  = s.delta || 0;
         const deltaStr = delta > 0 ? `+${delta}%` : delta < 0 ? `${delta}%` : '0%';
 
@@ -1218,7 +1223,7 @@
               <span class="ptf-sleeve-vs">vs</span>
               <span class="ptf-sleeve-target">${s.target ?? '—'}% target</span>
             </div>
-            <span class="ptf-sleeve-status ${statusClass}">${status} (${deltaStr})</span>
+            <span class="ptf-sleeve-status ${statusClass}">${statusLabel} (${deltaStr})</span>
             <div class="ptf-sleeve-range">Range: ${s.range_min ?? '—'}% – ${s.range_max ?? '—'}%</div>
             <div class="ptf-sleeve-action">${s.action || ''}</div>
           </div>
@@ -1228,7 +1233,7 @@
       /* Risk flags */
       const flagsEl = document.getElementById('flagsContainer');
       if (flags.length === 0) {
-        flagsEl.innerHTML = '<div class="ptf-no-flags">No risk flags for this allocation.</div>';
+        flagsEl.innerHTML = '<div class="ptf-no-flags">No concerns with this mix for today\'s conditions.</div>';
       } else {
         flagsEl.innerHTML = flags.map(f => `
           <div class="ptf-flag-item">
