@@ -1256,6 +1256,108 @@
       .journey-arrow { display: none; }
       .journey-specialist { flex-direction: column; align-items: flex-start; gap: 8px; }
     }
+
+    /* ══ VALIDATION CAROUSEL ══ */
+    .val-card {
+      flex-shrink: 0;
+      width: 260px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 14px);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .val-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(79,131,255,0.12);
+    }
+    .val-card-featured {
+      border-color: var(--blue);
+      background: var(--bg-3);
+    }
+    .val-card-cta {
+      border-style: dashed;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .val-card-date {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+    }
+    .val-card-event {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .val-card-regime {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--blue);
+      letter-spacing: 0.1em;
+    }
+    .val-card-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+    .val-card-before,
+    .val-card-after {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    .val-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 7px;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      margin-bottom: 2px;
+    }
+    .val-card-verdict {
+      margin-top: auto;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      align-self: flex-start;
+    }
+    .val-card-verdict.correct {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+    #validationTrack::-webkit-scrollbar { display: none; }
+
+    /* ══ SECTION GRID TEXTURE ══ */
+    .section { position: relative; }
+    .section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79,131,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,131,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .section > .container,
+    .section > div {
+      position: relative;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -1428,10 +1530,90 @@
         </div>
       </div>
     </div>
+
+    <!-- Hero bottom gradient fade -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:180px;background:linear-gradient(to bottom,transparent,#04060f 60%,#04060f);pointer-events:none;z-index:1;"></div>
+
+    <!-- Transition bridge from hero dark to content background -->
+    <div style="position:absolute;bottom:-60px;left:0;right:0;height:120px;background:linear-gradient(to bottom,#04060f,transparent);pointer-events:none;z-index:10;"></div>
+  </section>
+
+  <!-- ════ VALIDATION CAROUSEL ════ -->
+  <section id="validation-carousel" style="padding:60px 0 40px;overflow:hidden;background:var(--bg);position:relative;">
+
+    <div style="text-align:center;margin-bottom:32px;padding:0 24px;">
+      <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.18em;color:var(--blue);margin-bottom:8px;">LIVE VALIDATION TRACK RECORD</div>
+      <div style="font-family:var(--font-serif);font-size:clamp(20px,3vw,28px);font-weight:600;color:var(--text);">
+        Four live events. <em style="color:var(--blue);">Four correct reads.</em>
+      </div>
+    </div>
+
+    <!-- Carousel track -->
+    <div id="validationTrack" style="display:flex;gap:20px;padding:0 40px;overflow-x:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;">
+
+      <!-- Card 1 — GDP Print -->
+      <div class="val-card">
+        <div class="val-card-date">MAY 29, 2026</div>
+        <div class="val-card-event">GDP Print</div>
+        <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
+        <div class="val-card-divider"></div>
+        <div class="val-card-before"><span class="val-label">PRE-EVENT</span>54–62% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">OUTCOME</span>Regime confirmed post-print ✓</div>
+        <div class="val-card-verdict correct">CORRECT</div>
+      </div>
+
+      <!-- Card 2 — RBI MPC Hold -->
+      <div class="val-card">
+        <div class="val-card-date">JUN 5, 2026</div>
+        <div class="val-card-event">RBI MPC Decision</div>
+        <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
+        <div class="val-card-divider"></div>
+        <div class="val-card-before"><span class="val-label">PRE-EVENT</span>67% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">OUTCOME</span>RBI held. No regime shift. ✓</div>
+        <div class="val-card-verdict correct">CORRECT</div>
+      </div>
+
+      <!-- Card 3 — CPI Print (featured) -->
+      <div class="val-card val-card-featured">
+        <div class="val-card-date">JUN 12, 2026</div>
+        <div class="val-card-event">CPI May Print</div>
+        <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
+        <div class="val-card-divider"></div>
+        <div class="val-card-before"><span class="val-label">PRE-EVENT</span>56% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">OUTCOME</span>+8pts confidence · Nifty +2% · VIX -6% ✓</div>
+        <div class="val-card-verdict correct">CORRECT</div>
+      </div>
+
+      <!-- Card 4 — SEBI Meeting -->
+      <div class="val-card">
+        <div class="val-card-date">JUN 20, 2026</div>
+        <div class="val-card-event">SEBI Board Meeting</div>
+        <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
+        <div class="val-card-divider"></div>
+        <div class="val-card-before"><span class="val-label">PRE-EVENT</span>64% confidence · HIGH stability</div>
+        <div class="val-card-after"><span class="val-label">OUTCOME</span>Regime held all day. No false alarm. ✓</div>
+        <div class="val-card-verdict correct">CORRECT</div>
+      </div>
+
+      <!-- CTA card — next event -->
+      <div class="val-card val-card-cta">
+        <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.14em;color:var(--blue);margin-bottom:12px;">NEXT EVENT</div>
+        <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px;">CPI June 2026</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-2);margin-bottom:20px;">July 13, 2026 · 5 days away</div>
+        <a href="login.html" style="display:inline-block;background:var(--blue);color:#fff;padding:10px 20px;border-radius:var(--radius,8px);font-size:12px;font-weight:600;text-decoration:none;font-family:var(--font-sans);">Track it live →</a>
+      </div>
+
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:20px;">
+      <div id="valDots" style="display:flex;gap:6px;"></div>
+    </div>
+
   </section>
 
   <!-- ════ SIGNAL TO DECISION ════ -->
-  <section id="signal-to-decision" class="section" style="padding:80px 0;overflow:hidden;">
+  <section id="signal-to-decision" class="section" style="padding:80px 0;overflow:hidden;position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(to bottom,var(--bg),transparent);pointer-events:none;z-index:0;"></div>
     <div class="container" style="max-width:900px;margin:0 auto;padding:0 52px;">
       <div class="section-eyebrow reveal">HOW SENTINEL WORKS</div>
       <h2 class="section-heading reveal reveal-delay-1">Nine signals.<br><em>One clear answer.</em></h2>
@@ -2718,6 +2900,49 @@
 
     window.addEventListener('scroll', updateNav, { passive: true });
     updateNav();
+  })();
+  </script>
+
+  <!-- ── Validation carousel ── -->
+  <script>
+  (function() {
+    const track = document.getElementById('validationTrack');
+    if (!track) return;
+
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function makeAutoScroll() {
+      return setInterval(() => {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        if (track.scrollLeft >= maxScroll - 10) {
+          track.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          track.scrollBy({ left: 1, behavior: 'auto' });
+        }
+      }, 30);
+    }
+
+    let autoScroll;
+    if (!mq.matches) autoScroll = makeAutoScroll();
+
+    track.addEventListener('mouseenter', () => clearInterval(autoScroll));
+    track.addEventListener('mouseleave', () => { if (!mq.matches) autoScroll = makeAutoScroll(); });
+
+    let isDragging = false, startX, scrollLeft;
+    track.addEventListener('mousedown', e => {
+      isDragging = true;
+      startX = e.pageX - track.offsetLeft;
+      scrollLeft = track.scrollLeft;
+      track.style.cursor = 'grabbing';
+    });
+    track.addEventListener('mouseleave', () => { isDragging = false; track.style.cursor = 'grab'; });
+    track.addEventListener('mouseup', () => { isDragging = false; track.style.cursor = 'grab'; });
+    track.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - track.offsetLeft;
+      track.scrollLeft = scrollLeft - (x - startX) * 2;
+    });
   })();
   </script>
 
