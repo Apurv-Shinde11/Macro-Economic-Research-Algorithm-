@@ -2223,7 +2223,15 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 f"({_garch['direction']})",
                 flush=True
             )
-        intel = eng["nlp"].get_regime_scores(news)
+        # Pass hard signal values for NLP validation
+        _hard_sigs = {
+            "vix_score": nse_snapshot.get("vix_score", 0.5),
+            "fii_score": nse_snapshot.get(
+                "fii_score",
+                nse_snapshot.get("flow_score", 0.5)
+            ),
+        }
+        intel = eng["nlp"].get_regime_scores_v2(news, hard_signals=_hard_sigs)
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
             "gdp_growth": macro.get("growth", {}).get("gdp", 7.2),

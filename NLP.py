@@ -146,6 +146,226 @@ Return ONLY this JSON structure, no other text:
   "reasoning": "2-3 sentence explanation of your analysis"
 }}"""
 
+    def _build_rbi_prompt(self, news_text: str) -> str:
+        return f"""You are analyzing central bank policy signals for Indian financial markets.
+
+NEWS TEXT:
+{news_text}
+
+Respond with ONLY valid JSON:
+{{
+  "rbi_stance": "HAWKISH" or "DOVISH" or "NEUTRAL",
+  "rate_direction": "HIKE" or "CUT" or "PAUSE" or "UNKNOWN",
+  "liquidity_signal": "TIGHT" or "ACCOMMODATIVE" or "NEUTRAL",
+  "confidence": <float 0.0-1.0>,
+  "key_phrase": "<most relevant phrase from text or empty>"
+}}
+
+Rules:
+- Base ONLY on provided text
+- If text contains no RBI/central bank content, return all NEUTRAL with confidence 0.3
+- Return ONLY JSON, no other text
+"""
+
+    def _build_fii_prompt(self, news_text: str) -> str:
+        return f"""You are analyzing foreign institutional investor sentiment for Indian markets.
+
+NEWS TEXT:
+{news_text}
+
+Respond with ONLY valid JSON:
+{{
+  "fii_sentiment": "BUYING" or "SELLING" or "NEUTRAL",
+  "em_risk_appetite": "RISK_ON" or "RISK_OFF" or "NEUTRAL",
+  "india_specific": true or false,
+  "confidence": <float 0.0-1.0>,
+  "key_phrase": "<most relevant phrase or empty>"
+}}
+
+Rules:
+- Base ONLY on provided text
+- If text has no FII content, return NEUTRAL with confidence 0.3
+- Return ONLY JSON, no other text
+"""
+
+    def _build_market_prompt(self, news_text: str) -> str:
+        return f"""You are analyzing Indian market sentiment from news.
+
+NEWS TEXT:
+{news_text}
+
+Respond with ONLY valid JSON:
+{{
+  "market_sentiment": "BULLISH" or "BEARISH" or "NEUTRAL",
+  "dominant_theme": "<2-4 words describing main theme>",
+  "equity_bias": "RISK_ON" or "RISK_OFF" or "NEUTRAL",
+  "volatility_signal": "HIGH" or "NORMAL" or "LOW",
+  "confidence": <float 0.0-1.0>
+}}
+
+Rules:
+- Base ONLY on provided text
+- Return ONLY JSON, no other text
+"""
+
+    def get_regime_scores_v2(
+        self, news_text: str, hard_signals: dict = None
+    ) -> dict:
+        """
+        Enhanced NLP scoring using three focused calls instead of one monolithic prompt.
+
+        Weights:
+          RBI/policy:    40%
+          Market news:   35%
+          FII narrative: 25%
+
+        Falls back to original get_regime_scores() if all three calls fail.
+        hard_signals: dict of signal values for validation (optional).
+        """
+        results = {}
+
+        # Call 1 — RBI/policy
+        try:
+            rbi_raw = self.generate_text(self._build_rbi_prompt(news_text))
+            if rbi_raw:
+                cleaned = re.sub(r'```json|```', '', rbi_raw.strip())
+                results['rbi'] = json.loads(cleaned)
+                print(f"[NLP_V2] RBI: {results['rbi']}", flush=True)
+        except Exception as e:
+            print(f"[NLP_V2] RBI call failed: {e}", flush=True)
+
+        # Call 2 — FII narrative
+        try:
+            fii_raw = self.generate_text(self._build_fii_prompt(news_text))
+            if fii_raw:
+                cleaned = re.sub(r'```json|```', '', fii_raw.strip())
+                results['fii'] = json.loads(cleaned)
+                print(f"[NLP_V2] FII: {results['fii']}", flush=True)
+        except Exception as e:
+            print(f"[NLP_V2] FII call failed: {e}", flush=True)
+
+        # Call 3 — Market sentiment
+        try:
+            mkt_raw = self.generate_text(self._build_market_prompt(news_text))
+            if mkt_raw:
+                cleaned = re.sub(r'```json|```', '', mkt_raw.strip())
+                results['market'] = json.loads(cleaned)
+                print(f"[NLP_V2] Market: {results['market']}", flush=True)
+        except Exception as e:
+            print(f"[NLP_V2] Market call failed: {e}", flush=True)
+
+        if not results:
+            print("[NLP_V2] All calls failed — falling back to v1", flush=True)
+            return self.get_regime_scores(news_text)
+
+        return self._aggregate_nlp(results, hard_signals)
+
+    def _aggregate_nlp(
+        self, results: dict, hard_signals: dict = None
+    ) -> dict:
+        """
+        Aggregates three NLP results into a single regime score dict
+        matching get_regime_scores() output format exactly.
+        """
+        weights = {'rbi': 0.40, 'market': 0.35, 'fii': 0.25}
+        total_weight = 0
+        weighted_conf = 0.0
+        for key, w in weights.items():
+            if key in results:
+                c = results[key].get('confidence', 0.5)
+                weighted_conf += c * w
+                total_weight += w
+
+        final_conf = (
+            round(weighted_conf / total_weight, 3)
+            if total_weight > 0 else 0.5
+        )
+
+        # Equity bias: market is primary, FII is secondary
+        equity_bias = 'NEUTRAL'
+        if 'market' in results:
+            equity_bias = results['market'].get('equity_bias', 'NEUTRAL')
+        elif 'fii' in results:
+            fii_sent = results['fii'].get('fii_sentiment', 'NEUTRAL')
+            if fii_sent == 'BUYING':
+                equity_bias = 'RISK_ON'
+            elif fii_sent == 'SELLING':
+                equity_bias = 'RISK_OFF'
+
+        # RBI policy implication
+        rbi_impl = 'PAUSE'
+        if 'rbi' in results:
+            rbi_impl = results['rbi'].get('rate_direction', 'PAUSE')
+
+        # Sentiment score: -1 to +1
+        sent_map = {
+            'BULLISH': 0.6, 'BEARISH': -0.6, 'NEUTRAL': 0.0,
+            'RISK_ON': 0.5, 'RISK_OFF': -0.5,
+        }
+        sentiment = 0.0
+        if 'market' in results:
+            ms = results['market'].get('market_sentiment', 'NEUTRAL')
+            sentiment = sent_map.get(ms, 0.0)
+
+        # Dominant theme
+        dominant = 'Mixed signals'
+        if 'market' in results:
+            dominant = results['market'].get('dominant_theme', 'Mixed signals')
+
+        # Validation against hard signals — reject obvious NLP/data conflicts
+        if hard_signals:
+            vix = hard_signals.get('vix_score', 0.5)
+            fii_score = hard_signals.get('fii_score', 0.5)
+            # VIX stressed but NLP says RISK_ON — neutralize
+            if vix < 0.2 and equity_bias == 'RISK_ON':
+                equity_bias = 'NEUTRAL'
+                final_conf = round(final_conf * 0.85, 3)
+                print(
+                    "[NLP_V2] Override: VIX stressed but NLP said RISK_ON — neutralized",
+                    flush=True
+                )
+            # FII strongly selling but NLP says RISK_ON — reduce confidence
+            if fii_score < 0.25 and equity_bias == 'RISK_ON':
+                final_conf = round(final_conf * 0.90, 3)
+                print(
+                    "[NLP_V2] Override: FII selling but NLP said RISK_ON — confidence reduced",
+                    flush=True
+                )
+
+        output = {
+            'dominant_theme':         dominant,
+            'sentiment_score':        sentiment,
+            'regime_type':            (
+                'BULLISH' if equity_bias == 'RISK_ON' else
+                'BEARISH' if equity_bias == 'RISK_OFF' else
+                'NEUTRAL'
+            ),
+            'growth_intensity':       3,
+            'rbi_policy_implication': rbi_impl,
+            'equity_bias':            equity_bias,
+            'confidence':             final_conf,
+            'key_signals':            [],
+            'india_specific_risks':   [],
+            'global_macro_factors':   [],
+            'reasoning':              '',
+            'source':                 'llm_v2',
+            'provider':               'multi',
+            'nlp_source':             'llm_v2',
+            'hard_data':              {},
+            'rbi_detail':             results.get('rbi', {}),
+            'fii_detail':             results.get('fii', {}),
+            'market_detail':          results.get('market', {}),
+        }
+
+        print(
+            f"[NLP_V2] Aggregated: "
+            f"conf={final_conf:.3f} "
+            f"bias={equity_bias} "
+            f"rbi={rbi_impl}",
+            flush=True
+        )
+        return output
+
     def _call_gemini(self, provider, prompt):
         import urllib.request
         last_error = None
