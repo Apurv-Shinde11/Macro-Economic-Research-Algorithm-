@@ -83,19 +83,19 @@ class IndianMacroNLP:
             flush=True
         )
 
-        if gemini_key:
-            providers.append({
-                "name":   "gemini",
-                "key":    gemini_key,
-                "models": GEMINI_MODELS,
-                "fn":     self._call_gemini
-            })
         if openrouter_key:
             providers.append({
                 "name":   "openrouter",
                 "key":    openrouter_key,
                 "models": OPENROUTER_MODELS,
                 "fn":     self._call_openrouter
+            })
+        if gemini_key:
+            providers.append({
+                "name":   "gemini",
+                "key":    gemini_key,
+                "models": GEMINI_MODELS,
+                "fn":     self._call_gemini
             })
         if groq_key:
             providers.append({
