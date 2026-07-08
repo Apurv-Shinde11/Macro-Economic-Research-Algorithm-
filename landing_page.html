@@ -87,6 +87,21 @@
     html.light .nav-logo {
       color: var(--text);
     }
+
+    /* Logo white over dark hero */
+    body:not(.scrolled) .nav-logo {
+      color: #ffffff !important;
+    }
+
+    /* Logo normal after scrolling past hero — respects light/dark mode */
+    body.scrolled .nav-logo {
+      color: var(--text) !important;
+    }
+
+    html.light body.scrolled .nav-logo {
+      color: var(--text) !important;
+    }
+
     html.light .btn-outline { color: var(--text-2); border-color: rgba(79,131,255,0.28); }
     html.light .btn-outline:hover { color: var(--blue); border-color: var(--blue); background: rgba(37,99,235,0.06); }
 
@@ -223,6 +238,7 @@
       letter-spacing: 0.14em;
       color: var(--text);
       text-decoration: none;
+      transition: color 0.3s ease;
     }
     .nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
     .nav-links a {
@@ -1474,7 +1490,7 @@
             <div class="terminal-live"><div class="live-dot"></div>LIVE</div>
           </div>
           <div class="terminal-body">
-            <div class="t-label">TODAY'S ECONOMIC ENVIRONMENT</div>
+            <div class="t-label">TODAY'S READ</div>
             <div class="t-regime" id="t-regime">Good time to invest — markets are supportive</div>
             <div class="t-conf-row">
               <div class="t-conf-bar-wrap"><div class="t-conf-bar" id="t-bar" style="transform:scaleX(0.72)"></div></div>
