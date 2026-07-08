@@ -1347,7 +1347,7 @@ class MacroRegimeEngine:
     # 🚦 MAIN ENTRY POINT
     # =========================
     def detect_regime(self, intel, liquidity_output=None,
-                      nse_snapshot=None):
+                      nse_snapshot=None, recent_runs=None):
         intel = intel if isinstance(intel, dict) else {}
 
         hard_data      = intel.get("hard_data",              {})
@@ -1557,11 +1557,24 @@ class MacroRegimeEngine:
         # both the persistence scorer and change detector.
         # Prevents two round-trips to Supabase per pipeline run.
         # -------------------------
-        recent_runs = []
-        if self._sb_url and self._sb_key:
-            recent_runs = _fetch_recent_runs(
-                self._sb_url, self._sb_key, limit=10
-            )
+        # Use pre-fetched recent_runs if provided (from main_api.py
+        # which has working Supabase). Fall back to own fetch only
+        # if not provided.
+        if recent_runs is None:
+            recent_runs = []
+            if self._sb_url and self._sb_key:
+                recent_runs = (
+                    _fetch_recent_runs(
+                        self._sb_url,
+                        self._sb_key,
+                        limit=10
+                    )
+                )
+        print(
+            f"[CONF_SMOOTH] recent_runs "
+            f"available: {len(recent_runs)}",
+            flush=True
+        )
 
         # ── Leading indicator score ──────────────
         leading_score   = 0.5

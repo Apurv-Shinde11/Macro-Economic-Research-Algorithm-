@@ -2349,8 +2349,42 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
+        # Fetch recent runs for confidence smoothing — pass to regime engine
+        # since its own Supabase credentials don't work on Render
+        _recent_runs_for_smooth = []
+        try:
+            _rr = _supabase.table("runs") \
+                .select(
+                    "regime,confidence,run_at"
+                ) \
+                .order(
+                    "run_at",
+                    desc=True
+                ) \
+                .limit(3) \
+                .execute()
+            _recent_runs_for_smooth = (
+                _rr.data or []
+            )
+            print(
+                f"[CONF_SMOOTH] Fetched "
+                f"{len(_recent_runs_for_smooth)}"
+                f" prior runs for smoothing",
+                flush=True
+            )
+        except Exception as _sm_err:
+            print(
+                f"[CONF_SMOOTH] Fetch failed:"
+                f" {_sm_err}",
+                flush=True
+            )
         regime = ensure_dict(
-            eng["regime"].detect_regime(intel, liq, nse_snapshot)
+            eng["regime"].detect_regime(
+                intel,
+                liq,
+                nse_snapshot,
+                recent_runs=_recent_runs_for_smooth
+            )
         )
         regime = rep.repair(regime, REGIME_SCHEMA)
 
