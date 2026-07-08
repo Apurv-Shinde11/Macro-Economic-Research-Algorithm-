@@ -4301,13 +4301,13 @@
 
       <!-- FEATURE 7: Decision Prompt Card -->
       <div class="decision-prompt" id="decisionPrompt">
-        <div class="decision-prompt-title">Today's Decision Signal</div>
+        <div class="decision-prompt-title">What To Do Today</div>
         <div class="decision-prompt-rows">
           <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
               id="dpAction">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Rationale</span><span class="dp-value"
+          <div class="decision-prompt-row"><span class="dp-label">Why</span><span class="dp-value"
               id="dpRationale">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Watchpoint</span><span class="dp-value"
+          <div class="decision-prompt-row"><span class="dp-label">Watch Out For</span><span class="dp-value"
               id="dpWatchpoint">—</span></div>
         </div>
       </div>
@@ -4316,14 +4316,14 @@
       <div class="delta-card" id="deltaCard" style="display:none;">
         <div class="delta-header">
           <div class="delta-header-left">
-            <span class="delta-eyebrow">What Changed</span>
+            <span class="delta-eyebrow">Since Yesterday</span>
             <span class="delta-headline" id="deltaHeadline">—</span>
           </div>
           <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
         </div>
         <div class="delta-changes" id="deltaChanges"></div>
         <div class="delta-watch" id="deltaWatch" style="display:none;">
-          <div class="delta-watch-title">Watch Next</div>
+          <div class="delta-watch-title">Coming Up</div>
           <div class="delta-watch-items" id="deltaWatchItems"></div>
         </div>
       </div>
@@ -4376,7 +4376,7 @@
         <div class="regime-hero-top">
           <div class="regime-hero-left">
             <div class="regime-label-row">
-              <span class="regime-eyebrow">Current Regime</span>
+              <span class="regime-eyebrow">Today's Economic Environment</span>
               <div class="regime-status-dot" id="regimeDot"></div>
             </div>
             <div class="regime-name" id="regimeName">
@@ -4450,12 +4450,13 @@
       <!-- India Activity Signals Strip -->
       <div class="activity-strip" id="activityStrip">
         <div class="activity-strip-header">
-          <span class="activity-strip-title">India Activity Signals</span>
+          <span class="activity-strip-title">How India's Real Economy Is Doing</span>
           <span class="activity-composite" id="activityComposite">—</span>
         </div>
         <div class="activity-cards">
           <div class="activity-card">
             <div class="activity-card-label">GST Collections</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Tax collections — higher = stronger economy</div>
             <div class="activity-card-period" id="actGstPeriod">—</div>
             <div class="activity-card-value" id="actGstValue">—</div>
             <div class="activity-card-yoy" id="actGstYoy">—</div>
