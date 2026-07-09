@@ -1675,11 +1675,16 @@ def _fetch_vol_term_structure() -> dict:
     CONTANGO (far > near) = calm; INVERTED (near > far) = fear.
     """
     try:
+        print("[VOL_TERM] Starting fetch...", flush=True)
         import yfinance as yf
         from datetime import datetime
 
         ticker  = yf.Ticker("^NSEI")
         expiries = ticker.options
+        print(
+            f"[VOL_TERM] Expiries: {len(expiries) if expiries else 0}",
+            flush=True
+        )
 
         if not expiries or len(expiries) < 2:
             return {}
@@ -1701,6 +1706,11 @@ def _fetch_vol_term_structure() -> dict:
             if 75 <= days <= 120:
                 far_exp = exp
                 break
+
+        print(
+            f"[VOL_TERM] near={near_exp} far={far_exp}",
+            flush=True
+        )
 
         if not near_exp or not far_exp:
             return {}
@@ -6075,56 +6085,64 @@ async def get_global_macro():
             f"[GLOBAL_MACRO] Cache check failed: {e}",
             flush=True
         )
-    try:
-        cutoff = (
-            datetime.now(timezone.utc)
-            .replace(hour=0, minute=0, second=0, microsecond=0)
-            .isoformat()
-        )
-        cached = (
-            _supabase.table("global_macro_cache")
-            .select("*").gte("last_updated", cutoff).execute()
-        )
-        if cached.data and len(cached.data) >= 50:
-            # Enrich cached rows with computed fields not stored in Supabase
-            economy_meta = {e["code"]: e for e in _ECONOMIES}
-            enriched = []
-            for row in cached.data:
-                code = row.get("economy")
-                meta = economy_meta.get(code, {})
-                enriched.append({
-                    **row,
-                    "code":                 code,
-                    "name":                 meta.get("name", code),
-                    "flag":                 meta.get("flag", ""),
-                    "currency_label":       meta.get("currency_label", ""),
-                    "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
-                    "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
-                    "gdp_nominal_trillion": (
-                        _nominal_gdp_mem_cache.get(code)
-                        or _NOMINAL_GDP_FALLBACK.get(code)
-                    ),
-                    "recent_development": (
-                        _get_country_news_cached(meta.get("wb_code", code)) or {
-                            "headline": None,
-                            "source": None,
-                            "published_at": None,
-                            "stale": True,
-                        }
-                    ),
-                })
-            result = {
-                "economies":       enriched,
-                "page_updated_at": max(e["last_updated"] for e in enriched),
-                "cached":          True,
-            }
-            _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-            return result
-        
-    except Exception as _e:
-        print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
+        _err_msg = str(e).lower()
+        if "does not exist" in _err_msg or "column" in _err_msg:
+            print(
+                "[GLOBAL_MACRO] Schema mismatch detected — "
+                "skipping per-row cache, forcing fresh fetch",
+                flush=True
+            )
+        else:
+            try:
+                cutoff = (
+                    datetime.now(timezone.utc)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
+                )
+                cached = (
+                    _supabase.table("global_macro_cache")
+                    .select("*").gte("last_updated", cutoff).execute()
+                )
+                if cached.data and len(cached.data) >= 50:
+                    # Enrich cached rows with computed fields not stored in Supabase
+                    economy_meta = {e["code"]: e for e in _ECONOMIES}
+                    enriched = []
+                    for row in cached.data:
+                        code = row.get("economy")
+                        meta = economy_meta.get(code, {})
+                        enriched.append({
+                            **row,
+                            "code":                 code,
+                            "name":                 meta.get("name", code),
+                            "flag":                 meta.get("flag", ""),
+                            "currency_label":       meta.get("currency_label", ""),
+                            "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
+                            "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
+                            "gdp_nominal_trillion": (
+                                _nominal_gdp_mem_cache.get(code)
+                                or _NOMINAL_GDP_FALLBACK.get(code)
+                            ),
+                            "recent_development": (
+                                _get_country_news_cached(meta.get("wb_code", code)) or {
+                                    "headline": None,
+                                    "source": None,
+                                    "published_at": None,
+                                    "stale": True,
+                                }
+                            ),
+                        })
+                    result = {
+                        "economies":       enriched,
+                        "page_updated_at": max(e["last_updated"] for e in enriched),
+                        "cached":          True,
+                    }
+                    _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+                    return result
 
-    print("[GLOBAL_MACRO] Fetching fresh data for 50 economies...", flush=True)
+            except Exception as _e:
+                print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
+
+    print("[GLOBAL_MACRO] Cache miss — fetching fresh data for 50 economies...", flush=True)
     try:
         currency_map, yield_map = _fetch_live_economy_data()
     except Exception as _e:
