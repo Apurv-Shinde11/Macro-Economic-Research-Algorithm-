@@ -3024,8 +3024,11 @@
     }
     .activity-cards {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 10px;
+    }
+    @media (max-width: 900px) {
+      .activity-cards { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
       .activity-cards { grid-template-columns: 1fr; }
@@ -4478,6 +4481,14 @@
             <div class="activity-card-yoy" id="actCreditYoy">—</div>
             <div class="activity-card-signal" id="actCreditSignal">—</div>
           </div>
+          <div class="activity-card" id="iipCard">
+            <div class="activity-card-label">Industrial Production (IIP)</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Monthly output — govt measure of industrial activity</div>
+            <div class="activity-card-period" id="actIipPeriod">—</div>
+            <div class="activity-card-value" id="actIipValue">—</div>
+            <div class="activity-card-yoy" id="actIipYoy"></div>
+            <div class="activity-card-signal" id="actIipSignal">—</div>
+          </div>
         </div>
       </div>
 
@@ -5189,6 +5200,17 @@
       const creditSig = document.getElementById('actCreditSignal');
       creditSig.textContent = credit.signal || '—';
       creditSig.style.color = sigColor(credit.signal);
+
+      // IIP
+      if (act.iip) {
+        const iip = act.iip;
+        document.getElementById('actIipPeriod').textContent = iip.period || '—';
+        document.getElementById('actIipValue').textContent  = iip.value != null ? iip.value.toFixed(1) + '% YoY' : '—';
+        document.getElementById('actIipYoy').textContent    = iip.source || '';
+        const iipSig = document.getElementById('actIipSignal');
+        iipSig.textContent = iip.signal || '—';
+        iipSig.style.color = sigColor(iip.signal);
+      }
 
       document.getElementById('activityStrip').style.display = 'block';
     }

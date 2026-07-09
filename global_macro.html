@@ -2313,6 +2313,17 @@
                 </span>
               </div>
             </div>
+            ${eco.forex_reserves_bn != null ? `
+            <div class="detail-card">
+              <div class="card-label">Forex Reserves</div>
+              <div class="card-value" style="color:var(--text)">$${eco.forex_reserves_bn}B</div>
+              <div class="card-sub" title="${eco.data_sources?.forex_reserves || ''}">
+                ${eco.code === 'IN'
+                  ? 'RBI · Weekly'
+                  : `World Bank · ${eco.forex_reserves_year || 'latest'} (latest available)`}
+              </div>
+            </div>
+            ` : ''}
           </div>
           <div class="detail-secondary">
             <div class="detail-card">

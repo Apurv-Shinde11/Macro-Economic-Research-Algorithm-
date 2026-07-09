@@ -631,6 +631,8 @@ class MacroRegimeEngine:
         credit_impulse_trend=None,
         fii_trend_score=None,
         fii_streak_dir=None,
+        credit_spread_score=None,
+        credit_spread_signal=None,
     ):
         signals = []
         score   = 0.5
@@ -810,6 +812,24 @@ class MacroRegimeEngine:
                 f"  [FII Trend Signal] "
                 f"streak_dir={fii_streak_dir} "
                 f"score={fii_trend_score}",
+                flush=True
+            )
+
+        # ── Credit spread signal (Signal 10) ────────────────────────────
+        # AAA corporate bond yield vs G-Sec 10Y — wider spread = stress
+        if credit_spread_score is not None:
+            signals.append({
+                "indicator": "Credit Spread (AAA-GSec)",
+                "value":     credit_spread_score,
+                "signal":    credit_spread_signal or "UNKNOWN",
+                "score":     float(credit_spread_score),
+                "weight":    0.10,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [Credit Spread Signal] "
+                f"signal={credit_spread_signal} "
+                f"score={credit_spread_score}",
                 flush=True
             )
 
@@ -1612,6 +1632,12 @@ class MacroRegimeEngine:
                     credit_impulse_trend = intel.get("credit_impulse_trend"),
                     fii_trend_score      = intel.get("fii_trend_score"),
                     fii_streak_dir       = intel.get("fii_streak_dir"),
+                    credit_spread_score  = intel.get("credit_spread", {}).get("score")
+                                          if isinstance(intel.get("credit_spread"), dict)
+                                          else None,
+                    credit_spread_signal = intel.get("credit_spread", {}).get("signal")
+                                          if isinstance(intel.get("credit_spread"), dict)
+                                          else None,
                 )
             leading_adj = round(
                 max(-0.05, min(0.05,

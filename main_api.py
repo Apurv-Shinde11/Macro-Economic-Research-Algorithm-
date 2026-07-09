@@ -1667,6 +1667,181 @@ def _fetch_nifty_pe() -> float | None:
     return FALLBACK_PE
 
 
+def _fetch_vol_term_structure() -> dict:
+    """
+    Fetches Nifty options implied volatility for near-term (~30d) and
+    far-term (~90d) expiries to compute the volatility term structure.
+    Returns shape (CONTANGO/FLAT/INVERTED), signal, and 0-1 score.
+    CONTANGO (far > near) = calm; INVERTED (near > far) = fear.
+    """
+    try:
+        import yfinance as yf
+        from datetime import datetime
+
+        ticker  = yf.Ticker("^NSEI")
+        expiries = ticker.options
+
+        if not expiries or len(expiries) < 2:
+            return {}
+
+        today = datetime.now()
+
+        near_exp = None
+        for exp in expiries:
+            exp_date = datetime.strptime(exp, "%Y-%m-%d")
+            days = (exp_date - today).days
+            if 15 <= days <= 45:
+                near_exp = exp
+                break
+
+        far_exp = None
+        for exp in expiries:
+            exp_date = datetime.strptime(exp, "%Y-%m-%d")
+            days = (exp_date - today).days
+            if 75 <= days <= 120:
+                far_exp = exp
+                break
+
+        if not near_exp or not far_exp:
+            return {}
+
+        near_chain = ticker.option_chain(near_exp)
+        far_chain  = ticker.option_chain(far_exp)
+
+        def _atm_iv(chain):
+            calls = chain.calls
+            calls = calls[calls["impliedVolatility"].between(0.05, 2.0)]
+            if calls.empty:
+                return None
+            nifty = ticker.info.get("regularMarketPrice", 24000)
+            calls = calls.copy()
+            calls["dist"] = abs(calls["strike"] - nifty)
+            atm = calls.nsmallest(3, "dist")
+            return round(float(atm["impliedVolatility"].mean()) * 100, 1)
+
+        near_iv = _atm_iv(near_chain)
+        far_iv  = _atm_iv(far_chain)
+
+        if near_iv is None or far_iv is None:
+            return {}
+
+        slope = round(far_iv - near_iv, 1)
+
+        if slope > 2:
+            shape, signal, score = "CONTANGO", "CALM",    0.8
+        elif slope > -2:
+            shape, signal, score = "FLAT",     "ANXIOUS", 0.5
+        else:
+            shape, signal, score = "INVERTED", "FEARFUL", 0.1
+
+        print(
+            f"[VOL_TERM] near={near_iv}% far={far_iv}% "
+            f"slope={slope} shape={shape}",
+            flush=True
+        )
+        return {
+            "near_iv": near_iv,
+            "far_iv":  far_iv,
+            "slope":   slope,
+            "shape":   shape,
+            "signal":  signal,
+            "score":   score,
+        }
+
+    except Exception as e:
+        print(f"[VOL_TERM] Failed: {e}", flush=True)
+        return {}
+
+
+def _fetch_india_credit_spread() -> dict:
+    """
+    Computes India credit spread: AAA corporate bond yield vs G-Sec 10Y.
+    AAA_YIELD_10Y is hardcoded from FIMMDA — update monthly on FIMMDA
+    release day (usually first week of each month at fimmda.org).
+    G-Sec 10Y is fetched live via yfinance.
+    Spread <50bps = tight/supportive; 50-80 = normal; >80 = stress.
+    """
+    # FIMMDA AAA 10Y corporate benchmark yield — update monthly
+    # Current: July 2026
+    AAA_YIELD_10Y = 7.45
+    AAA_SOURCE    = "FIMMDA · Jul 2026"
+
+    try:
+        import yfinance as yf
+        hist = yf.Ticker("IN10Y=X").history(period="1d")
+        gsec_10y = round(float(hist["Close"].iloc[-1]), 2) if not hist.empty else 6.85
+    except Exception:
+        gsec_10y = 6.85
+
+    spread_bps = round((AAA_YIELD_10Y - gsec_10y) * 100, 1)
+
+    if spread_bps < 50:
+        signal, score = "TIGHT",     0.9
+    elif spread_bps < 80:
+        signal, score = "NORMAL",    0.6
+    elif spread_bps < 120:
+        signal, score = "WIDE",      0.3
+    else:
+        signal, score = "VERY_WIDE", 0.0
+
+    print(
+        f"[CREDIT_SPREAD] AAA={AAA_YIELD_10Y}% "
+        f"GSec={gsec_10y}% spread={spread_bps}bps signal={signal}",
+        flush=True
+    )
+    return {
+        "aaa_yield":  AAA_YIELD_10Y,
+        "gsec_10y":   gsec_10y,
+        "spread_bps": spread_bps,
+        "signal":     signal,
+        "score":      score,
+        "source":     AAA_SOURCE,
+    }
+
+
+def _fetch_india_iip() -> dict:
+    """
+    Fetches India IIP (Index of Industrial Production) from MOSPI.
+    Falls back to hardcoded value updated monthly on MOSPI release day
+    (~28th of the following month). IIP measures monthly industrial output —
+    a real economy leading indicator complementing PMI.
+    """
+    # Hardcoded fallback — update monthly on MOSPI release
+    # Current: April 2026 IIP (released June 2026)
+    IIP_FALLBACK = {
+        "value":  3.4,
+        "period": "April 2026",
+        "source": "MOSPI · Jun 2026",
+        "signal": "MODERATE",
+    }
+
+    try:
+        import requests as _req
+        url = (
+            "https://www.mospi.gov.in"
+            "/sites/default/files/iip/iip_data.json"
+        )
+        resp = _req.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            latest = data[-1] if isinstance(data, list) and data else None
+            if latest:
+                val    = float(latest.get("value", IIP_FALLBACK["value"]))
+                period = latest.get("period", IIP_FALLBACK["period"])
+                signal = "STRONG" if val > 6 else "MODERATE" if val >= 2 else "WEAK"
+                print(f"[IIP] Live: {val}% ({period})", flush=True)
+                return {
+                    "value":  val,
+                    "period": period,
+                    "source": f"MOSPI · {period}",
+                    "signal": signal,
+                }
+    except Exception as e:
+        print(f"[IIP] Fetch failed: {e} — using fallback", flush=True)
+
+    return IIP_FALLBACK
+
+
 # 24-hour cache for GARCH forecast
 _garch_cache: dict = {
     "forecast_vol": None,
@@ -2232,6 +2407,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 f"({_garch['direction']})",
                 flush=True
             )
+        # ── Volatility term structure ────────────────────────────────────────────
+        _vol_term = _fetch_vol_term_structure()
+        if _vol_term:
+            nse_snapshot["vol_term_structure"] = _vol_term
+            print(
+                f"[VOL_TERM] Added to snapshot: {_vol_term}",
+                flush=True
+            )
+        # ── Credit spread (AAA vs G-Sec 10Y) ────────────────────────────────────
+        _credit_spread = _fetch_india_credit_spread()
+        if _credit_spread:
+            nse_snapshot["credit_spread"] = _credit_spread
         # Enrich news with structured context from nse_snapshot
         # (nse_snapshot is fully populated at this point — crude, FII, VIX)
         _fii_context = []
@@ -2335,6 +2522,9 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             intel["credit_impulse"]       = _credit_impulse["impulse"]
             intel["credit_impulse_trend"] = _credit_impulse["trend"]
             intel["credit_impulse_score"] = _credit_impulse["score"]
+        # ── Credit spread → intel ─────────────────────────────────────────────
+        if nse_snapshot.get("credit_spread"):
+            intel["credit_spread"] = nse_snapshot["credit_spread"]
         # ── FII trend momentum ────────────────────────────────────────────────
         _fii_trend = _compute_fii_trend(
             sb_url=_config.get("supabase_url", ""),
@@ -5046,86 +5236,100 @@ GEOPOLITICAL_THEMES = {
 
 def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
     """
-    Fetches recent news headlines for a geopolitical theme via NewsData.io
-    using a free-text query. Returns list of {"title","source","published_at"}
-    or empty list on failure.
+    Fetches geopolitical theme news via GDELT Document API v2.
+    Free, no API key, global coverage, last 2 weeks of articles.
+    Falls back to NewsData.io category fetch if GDELT fails.
+    72h cache on callers means GDELT is called at most once per theme
+    per 3 days — well within GDELT rate limits.
     """
+    try:
+        import requests as _req
+        import urllib.parse as _up
+
+        encoded = _up.quote(search_query)
+        url = (
+            f"https://api.gdeltproject.org/api/v2/doc/doc"
+            f"?query={encoded}"
+            f"&mode=artlist"
+            f"&maxrecords={limit}"
+            f"&format=json"
+            f"&timespan=2weeks"
+            f"&sort=DateDesc"
+        )
+        resp = _req.get(url, timeout=15)
+        print(
+            f"[GEOWATCH] GDELT response: {resp.status_code}",
+            flush=True
+        )
+        if resp.status_code != 200:
+            raise Exception(f"GDELT HTTP {resp.status_code}")
+
+        data     = resp.json()
+        articles = data.get("articles", [])
+
+        if not articles:
+            raise Exception("GDELT returned 0 articles")
+
+        results = []
+        for a in articles[:limit]:
+            title = a.get("title", "")
+            if title:
+                results.append({
+                    "title":        title,
+                    "source":       a.get("domain", ""),
+                    "published_at": a.get("seendate", ""),
+                })
+
+        print(
+            f"[GEOWATCH] GDELT returned {len(results)} articles "
+            f"for: {search_query[:40]}",
+            flush=True
+        )
+        return results
+
+    except Exception as e:
+        print(
+            f"[GEOWATCH] GDELT failed: {e} — trying NewsData fallback",
+            flush=True
+        )
+
+    # Fallback to NewsData.io
     news_api_key = os.environ.get("NEWSDATA_API_KEY", "")
     if not news_api_key:
         return []
-    print(
-        f"[GEOWATCH] Fetching news with category filter...",
-        flush=True,
-    )
     try:
         import requests as _req
         resp = _req.get(
             "https://newsdata.io/api/1/news",
             params={
                 "apikey":   news_api_key,
-                "category": "world,politics,business",
+                "category": "world,politics",
                 "language": "en",
+                "size":     limit,
             },
             timeout=10,
         )
-        print(
-            f"[GEOWATCH] NewsData response: status={resp.status_code} body={resp.text[:300]}",
-            flush=True,
-        )
-        if resp.status_code != 200:
-            print(
-                f"[GEOWATCH] News fetch failed {resp.status_code} for: {search_query}",
-                flush=True,
+        data    = resp.json()
+        results = data.get("results", [])
+        keywords = [w.lower() for w in search_query.split() if len(w) >= 3]
+        matched  = [
+            r for r in results
+            if any(
+                kw in (
+                    (r.get("title") or "") + " " + (r.get("description") or "")
+                ).lower()
+                for kw in keywords
             )
-            return []
-        data = resp.json()
-        all_results = data.get("results", [])
-
-        # Use title + description for keyword matching. Description
-        # is often null on free tier — handle gracefully.
-        # Lower min keyword length to 3 so short but specific terms
-        # like "Iran", "NATO", "Quad" are included.
-        keywords = [
-            w.lower() for w in search_query.split()
-            if len(w) >= 3
         ]
-        print(
-            f"[GEOWATCH] Got {len(all_results)} articles, keywords={keywords}",
-            flush=True,
-        )
-
-        def _score(article):
-            text = (
-                (article.get("title") or "")
-                + " "
-                + (article.get("description") or "")
-                + " "
-                + " ".join(article.get("keywords") or [])
-            ).lower()
-            return sum(1 for kw in keywords if kw in text)
-
-        # Score all articles and sort by keyword overlap
-        scored = sorted(all_results, key=_score, reverse=True)
-
-        # Use top results with at least 1 keyword match —
-        # fall back to all results if none match
-        matched = [r for r in scored if _score(r) >= 1]
-        print(
-            f"[GEOWATCH] Matched {len(matched)} after filter",
-            flush=True,
-        )
-        final_results = matched if matched else all_results
-
         return [
             {
                 "title":        r.get("title", ""),
                 "source":       r.get("source_id", ""),
                 "published_at": r.get("pubDate", ""),
             }
-            for r in final_results[:limit]
+            for r in (matched or results)[:limit]
         ]
-    except Exception as e:
-        print(f"[GEOWATCH] News fetch error: {e}", flush=True)
+    except Exception:
         return []
 
 
@@ -5278,6 +5482,12 @@ _INDIA_OVERRIDES = {
         "value":  7.2,
         "source": "MoSPI GDP Advance · FY26",
         "year":   2026,
+    },
+    "forex_reserves": {
+        "value":  698.7,
+        "source": "RBI Weekly · Jul 2026",
+        "year":   2026,
+        "unit":   "USD billion",
     },
     # Unemployment: leave as World Bank until PLFS 2025-26 is published
 }
@@ -5743,6 +5953,8 @@ def _build_economy_record(
     gdp_year=None,
     inf_year=None,
     une_year=None,
+    reserves_bn=None,
+    reserves_year=None,
 ):
     # ── Apply India domestic overrides (more current than World Bank data) ──
     if eco.get("code") == "IN":
@@ -5753,6 +5965,9 @@ def _build_economy_record(
         if "gdp_growth" in _ov:
             gdp      = _ov["gdp_growth"]["value"]
             gdp_year = _ov["gdp_growth"]["year"]
+        if "forex_reserves" in _ov:
+            reserves_bn   = _ov["forex_reserves"]["value"]
+            reserves_year = _ov["forex_reserves"]["year"]
 
     code = eco["code"]
     raw_fx = currency_map.get(code)
@@ -5791,6 +6006,8 @@ def _build_economy_record(
                 eco["wb_code"], code
             )
         ),
+        "forex_reserves_bn":   reserves_bn,
+        "forex_reserves_year": reserves_year,
         "data_sources": {
             "gdp": (
                 _INDIA_OVERRIDES["gdp_growth"]["source"]
@@ -5807,6 +6024,11 @@ def _build_economy_record(
             "pmi":          "S&P Global — hardcoded May 2026",
             "currency":     "yfinance live",
             "yield":        "yfinance live / hardcoded fallback",
+            "forex_reserves": (
+                _INDIA_OVERRIDES["forex_reserves"]["source"]
+                if eco.get("code") == "IN" and "forex_reserves" in _INDIA_OVERRIDES
+                else f"World Bank FI.RES.TOTL.CD ({reserves_year or 'latest'})"
+            ),
         },
         "last_updated":         datetime.now(timezone.utc).isoformat(),
         "recent_development": (
@@ -5921,7 +6143,7 @@ async def get_global_macro():
         wb   = eco["wb_code"]
         code = eco["code"]
 
-        _gdp_r, _inf_r, _une_r, _nom_r = (
+        _gdp_r, _inf_r, _une_r, _nom_r, _res_r = (
             await asyncio.gather(
                 loop.run_in_executor(
                     None, _wb_fetch, wb,
@@ -5935,6 +6157,9 @@ async def get_global_macro():
                 loop.run_in_executor(
                     None, _wb_fetch, wb,
                     "NY.GDP.MKTP.CD"),
+                loop.run_in_executor(
+                    None, _wb_fetch, wb,
+                    "FI.RES.TOTL.CD"),
             )
         )
 
@@ -5945,6 +6170,12 @@ async def get_global_macro():
         unemployment = _une_r[0] if _une_r else None
         une_year     = _une_r[1] if _une_r else None
         nominal_usd  = _nom_r[0] if _nom_r else None
+        reserves_usd = _res_r[0] if _res_r else None
+        reserves_year = _res_r[1] if _res_r else None
+        reserves_bn  = (
+            round(reserves_usd / 1_000_000_000, 1)
+            if reserves_usd else None
+        )
 
         nominal_trillion = None
         if nominal_usd is not None:
@@ -5972,14 +6203,16 @@ async def get_global_macro():
             nominal_trillion = _get_nominal_gdp_trillion(wb, code)
 
         return (eco, gdp, gdp_year, inflation, inf_year,
-                unemployment, une_year, nominal_trillion)
+                unemployment, une_year, nominal_trillion,
+                reserves_bn, reserves_year)
 
     print("[GLOBAL_MACRO] Parallel World Bank fetch for all 50 economies...", flush=True)
     wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
 
     economies = []
     for (eco, gdp, gdp_year, inflation, inf_year,
-         unemployment, une_year, nominal_trillion) in wb_results:
+         unemployment, une_year, nominal_trillion,
+         reserves_bn, reserves_year) in wb_results:
         record = _build_economy_record(
             eco, gdp, inflation, unemployment,
             currency_map, yield_map,
@@ -5988,6 +6221,8 @@ async def get_global_macro():
             gdp_year=gdp_year,
             inf_year=inf_year,
             une_year=une_year,
+            reserves_bn=reserves_bn,
+            reserves_year=reserves_year,
         )
         economies.append(record)
         try:
@@ -6559,6 +6794,13 @@ async def get_india_activity():
                     "summary": "GST STRONG · Auto Sales MODERATE · Credit STRONG",
                 },
             }
+        iip = _fetch_india_iip()
+        data["iip"] = {
+            "value":  iip["value"],
+            "period": iip["period"],
+            "signal": iip["signal"],
+            "source": iip["source"],
+        }
         return {"activity": data}
     except Exception as e:
         return {"activity": None, "error": str(e)}
