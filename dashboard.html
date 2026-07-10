@@ -4533,6 +4533,37 @@
               <span class="signal-trend-label">OVERALL DIRECTION</span>
               <span class="signal-trend-value" id="signalTrendValue">—</span>
             </div>
+
+            <!-- Signal Entropy Indicator -->
+            <div id="entropyIndicator"
+                 style="
+                   display:none;
+                   margin-top:8px;
+                   padding:6px 10px;
+                   border-radius:6px;
+                   background:var(--bg-3);
+                   border:1px solid var(--border);
+                   font-family:var(--font-mono);
+                   font-size:9px;
+                   letter-spacing:0.1em;">
+              <span id="entropyLabel"
+                    style="font-weight:700;">
+              </span>
+              <span id="entropyValue"
+                    style="
+                      color:var(--text-3);
+                      margin-left:6px;">
+              </span>
+              <div id="entropyInterp"
+                   style="
+                     color:var(--text-2);
+                     font-size:9px;
+                     margin-top:3px;
+                     font-family:
+                       var(--font-sans);
+                     letter-spacing:0;">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -7589,6 +7620,54 @@
           trend === 'IMPROVING'    ? 'var(--green)' :
           trend === 'DETERIORATING'? 'var(--red)'   :
           'var(--amber)';
+      }
+
+      // Render signal entropy
+      const entropy = result
+        .signal_entropy
+        || result.leading
+            ?.signal_entropy;
+      if (entropy && entropy.label) {
+        const ei = document
+          .getElementById(
+            'entropyIndicator'
+          );
+        const el = document
+          .getElementById(
+            'entropyLabel'
+          );
+        const ev = document
+          .getElementById(
+            'entropyValue'
+          );
+        const eInterp = document
+          .getElementById(
+            'entropyInterp'
+          );
+
+        if (ei && el && ev) {
+          const colors = {
+            'ALIGNED':   'var(--green)',
+            'MODERATE':  'var(--blue)',
+            'DISPERSED': 'var(--amber)',
+            'UNCERTAIN': 'var(--red)',
+          };
+          el.textContent =
+            entropy.label;
+          el.style.color =
+            colors[entropy.label]
+            || 'var(--text)';
+          ev.textContent =
+            `entropy ${(
+              entropy.entropy * 100
+            ).toFixed(0)}%`;
+          if (eInterp) {
+            eInterp.textContent =
+              entropy.interpretation
+              || '';
+          }
+          ei.style.display = 'block';
+        }
       }
     }
 

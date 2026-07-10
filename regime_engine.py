@@ -608,10 +608,119 @@ class MacroRegimeEngine:
         )
         return alignment, details
 
+    def _compute_signal_entropy(
+        self,
+        signals: list
+    ) -> dict:
+        """
+        Computes Shannon entropy across
+        the nine signal scores to
+        measure how aligned or
+        contradictory the signals are.
+
+        Low entropy = signals aligned
+        → high conviction
+        High entropy = signals
+        contradictory → genuine
+        uncertainty
+
+        Returns:
+        {
+          "entropy": float (0.0-1.0),
+          "label": str,
+          "confidence_adj": float,
+          "interpretation": str
+        }
+        """
+        import math
+
+        if not signals:
+            return {
+                "entropy": 1.0,
+                "label": "UNCERTAIN",
+                "confidence_adj": -0.05,
+                "interpretation":
+                    "No signals available"
+            }
+
+        # Extract scores
+        scores = [
+            max(0.001, float(
+                s.get("score", 0.5)
+            ))
+            for s in signals
+        ]
+
+        # Normalize to sum to 1
+        total = sum(scores)
+        probs = [s / total for s in scores]
+
+        # Shannon entropy
+        raw_entropy = -sum(
+            p * math.log2(p)
+            for p in probs
+            if p > 0
+        )
+
+        # Normalize by max possible
+        # entropy (log2 of n signals)
+        max_entropy = math.log2(
+            len(scores)
+        )
+        normalized = round(
+            raw_entropy / max_entropy, 3
+        ) if max_entropy > 0 else 1.0
+
+        # Classify and adjust
+        if normalized < 0.40:
+            label = "ALIGNED"
+            adj   = +0.02
+            interpretation = (
+                "Signals strongly aligned"
+                " — high conviction read"
+            )
+        elif normalized < 0.65:
+            label = "MODERATE"
+            adj   = 0.0
+            interpretation = (
+                "Mixed signals — moderate"
+                " conviction"
+            )
+        elif normalized < 0.80:
+            label = "DISPERSED"
+            adj   = -0.02
+            interpretation = (
+                "Signals contradictory"
+                " — treat with caution"
+            )
+        else:
+            label = "UNCERTAIN"
+            adj   = -0.05
+            interpretation = (
+                "High signal dispersion"
+                " — possible regime"
+                " transition"
+            )
+
+        print(
+            f"  [ENTROPY] normalized="
+            f"{normalized:.3f} "
+            f"label={label} "
+            f"adj={adj:+.2f}",
+            flush=True
+        )
+
+        return {
+            "entropy":          normalized,
+            "label":            label,
+            "confidence_adj":   adj,
+            "interpretation":   interpretation,
+        }
+
     # =========================
     # ✅ LEADING INDICATOR SCORER
     # Fast-moving signals scored independently of lagging regime data.
-    # Returns (score: float [0,1], signals: list[dict], trend: str)
+    # Returns (score: float [0,1], signals: list[dict], trend: str, entropy: dict)
     # =========================
     def _compute_leading_score(
         self,
@@ -833,11 +942,27 @@ class MacroRegimeEngine:
                 flush=True
             )
 
+        # Compute signal entropy
+        _entropy = self._compute_signal_entropy(
+            signals
+        )
+        _entropy_adj = _entropy[
+            "confidence_adj"
+        ]
+
         # ── Weighted score ─────────────────────────────────────────────
         if signals:
             total_w = sum(s["weight"] for s in signals)
             score   = sum(s["score"] * s["weight"] for s in signals) / total_w
             score   = round(max(0.0, min(1.0, score)), 3)
+
+        # Apply entropy adjustment
+        # Entropy penalizes contradictory signals, rewards alignment
+        score = round(
+            max(0.0, min(1.0,
+                score + _entropy_adj
+            )), 3
+        )
 
         # ── Trend from recent run confidence ───────────────────────────
         trend = "STABLE"
@@ -853,11 +978,13 @@ class MacroRegimeEngine:
 
         print(
             f"  [Leading] Score: {score:.3f} "
+            f"entropy={_entropy['entropy']:.3f} "
+            f"({_entropy['label']}) "
             f"signals: {len(signals)} "
             f"trend: {trend}",
             flush=True
         )
-        return score, signals, trend
+        return score, signals, trend, _entropy
 
     # =========================
     # ✅ ANTICIPATORY SIGNAL DETECTOR
@@ -1600,6 +1727,12 @@ class MacroRegimeEngine:
         leading_score   = 0.5
         leading_signals = []
         leading_trend   = "STABLE"
+        leading_entropy = {
+            "entropy":        1.0,
+            "label":          "UNCERTAIN",
+            "confidence_adj": -0.05,
+            "interpretation": "No signals available",
+        }
         anticipatory    = {
             "type":               "STABLE",
             "message":            "Leading signals unavailable.",
@@ -1614,7 +1747,7 @@ class MacroRegimeEngine:
             _pmi = float(
                 hard_data.get("pmi", 0) or 0
             )
-            leading_score, leading_signals, leading_trend = \
+            leading_score, leading_signals, leading_trend, leading_entropy = \
                 self._compute_leading_score(
                     regime               = regime,
                     crude_live           = crude_live,
@@ -1869,6 +2002,10 @@ class MacroRegimeEngine:
                 "signals": leading_signals,
                 "trend":   leading_trend,
             },
+
+            # ✅ Signal entropy — Shannon entropy across leading signals,
+            # measures alignment quality (used as a confidence modifier)
+            "signal_entropy": leading_entropy,
 
             # ✅ Anticipatory signal — proactive pattern detection
             "anticipatory": anticipatory,
