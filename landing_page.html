@@ -105,7 +105,7 @@
     html.light .btn-outline { color: var(--text-2); border-color: rgba(79,131,255,0.28); }
     html.light .btn-outline:hover { color: var(--blue); border-color: var(--blue); background: rgba(37,99,235,0.06); }
 
-    html.light .ticker-band { background: #04060f; border-bottom: 1px solid rgba(79,131,255,0.15); }
+    html.light .ticker-band { background: #eaf0fb; }
     html.light .ticker-item { border-right-color: rgba(79,131,255,0.12); }
 
     html.light .terminal { box-shadow: 0 24px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(79,131,255,0.12); }
@@ -705,8 +705,13 @@
 
     /* ══ TICKER BAND ══ */
     .ticker-band {
-      background: #04060f !important; border-top: none; border-bottom: 1px solid rgba(79,131,255,0.15);
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
       overflow: hidden; padding: 10px 0;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    body:not(.scrolled) .ticker-band {
+      background: #04060f !important;
+      border-bottom: 1px solid rgba(79,131,255,0.15) !important;
     }
     .ticker-track {
       display: flex; gap: 0;
@@ -723,8 +728,10 @@
       font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
       border-right: 1px solid var(--border); white-space: nowrap;
     }
-    .ticker-name { color: rgba(232,238,255,0.55); }
-    .ticker-val  { color: rgba(232,238,255,0.90); }
+    .ticker-name { color: var(--text-2); }
+    .ticker-val  { color: var(--text-2); }
+    body:not(.scrolled) .ticker-name { color: rgba(232,238,255,0.55) !important; }
+    body:not(.scrolled) .ticker-val  { color: rgba(232,238,255,0.90) !important; }
     .ticker-chg.up   { color: var(--green); }
     .ticker-chg.down { color: var(--red); }
 
