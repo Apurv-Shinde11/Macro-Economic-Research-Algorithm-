@@ -1669,86 +1669,47 @@ def _fetch_nifty_pe() -> float | None:
 
 def _fetch_vol_term_structure() -> dict:
     """
-    Fetches Nifty options implied volatility for near-term (~30d) and
-    far-term (~90d) expiries to compute the volatility term structure.
-    Returns shape (CONTANGO/FLAT/INVERTED), signal, and 0-1 score.
-    CONTANGO (far > near) = calm; INVERTED (near > far) = fear.
+    Fetches volatility term structure using US VIX (30-day) vs VIX3M
+    (93-day) as a global risk proxy.
+
+    NSE options chain is blocked on Render's IP — US VIX term structure
+    is used as a reliable global risk sentiment proxy that correlates
+    strongly with India VIX direction.
+
+    Shape interpretation:
+      CONTANGO (VIX < VIX3M): near-term calmer than future → CALM
+      FLAT (VIX ≈ VIX3M): uncertainty about direction → ANXIOUS
+      INVERTED (VIX > VIX3M): near-term fear > long-term → FEARFUL
     """
     try:
-        print("[VOL_TERM] Starting fetch...", flush=True)
         import yfinance as yf
-        from datetime import datetime
 
-        ticker  = yf.Ticker("^NSEI")
-        expiries = ticker.options
-        print(
-            f"[VOL_TERM] Expiries: {len(expiries) if expiries else 0}",
-            flush=True
-        )
+        print("[VOL_TERM] Starting fetch — VIX/VIX3M...", flush=True)
 
-        if not expiries or len(expiries) < 2:
+        vix_hist  = yf.Ticker("^VIX").history(period="2d")
+        vix3m_hist = yf.Ticker("^VIX3M").history(period="2d")
+
+        if vix_hist.empty or vix3m_hist.empty:
+            print("[VOL_TERM] VIX or VIX3M returned empty", flush=True)
             return {}
 
-        today = datetime.now()
+        near_iv = round(float(vix_hist["Close"].iloc[-1]), 2)
+        far_iv  = round(float(vix3m_hist["Close"].iloc[-1]), 2)
+        slope   = round(far_iv - near_iv, 2)
 
-        near_exp = None
-        for exp in expiries:
-            exp_date = datetime.strptime(exp, "%Y-%m-%d")
-            days = (exp_date - today).days
-            if 15 <= days <= 45:
-                near_exp = exp
-                break
-
-        far_exp = None
-        for exp in expiries:
-            exp_date = datetime.strptime(exp, "%Y-%m-%d")
-            days = (exp_date - today).days
-            if 75 <= days <= 120:
-                far_exp = exp
-                break
-
-        print(
-            f"[VOL_TERM] near={near_exp} far={far_exp}",
-            flush=True
-        )
-
-        if not near_exp or not far_exp:
-            return {}
-
-        near_chain = ticker.option_chain(near_exp)
-        far_chain  = ticker.option_chain(far_exp)
-
-        def _atm_iv(chain):
-            calls = chain.calls
-            calls = calls[calls["impliedVolatility"].between(0.05, 2.0)]
-            if calls.empty:
-                return None
-            nifty = ticker.info.get("regularMarketPrice", 24000)
-            calls = calls.copy()
-            calls["dist"] = abs(calls["strike"] - nifty)
-            atm = calls.nsmallest(3, "dist")
-            return round(float(atm["impliedVolatility"].mean()) * 100, 1)
-
-        near_iv = _atm_iv(near_chain)
-        far_iv  = _atm_iv(far_chain)
-
-        if near_iv is None or far_iv is None:
-            return {}
-
-        slope = round(far_iv - near_iv, 1)
-
-        if slope > 2:
-            shape, signal, score = "CONTANGO", "CALM",    0.8
-        elif slope > -2:
-            shape, signal, score = "FLAT",     "ANXIOUS", 0.5
+        if slope > 1.5:
+            shape, signal, score = "CONTANGO", "CALM",    0.85
+        elif slope > -1.5:
+            shape, signal, score = "FLAT",     "ANXIOUS", 0.50
         else:
-            shape, signal, score = "INVERTED", "FEARFUL", 0.1
+            shape, signal, score = "INVERTED", "FEARFUL", 0.10
 
         print(
-            f"[VOL_TERM] near={near_iv}% far={far_iv}% "
-            f"slope={slope} shape={shape}",
+            f"[VOL_TERM] VIX={near_iv} VIX3M={far_iv} "
+            f"slope={slope:+.2f} shape={shape} signal={signal}",
             flush=True
         )
+
         return {
             "near_iv": near_iv,
             "far_iv":  far_iv,
@@ -1756,6 +1717,7 @@ def _fetch_vol_term_structure() -> dict:
             "shape":   shape,
             "signal":  signal,
             "score":   score,
+            "source":  "CBOE VIX/VIX3M · Global proxy",
         }
 
     except Exception as e:
