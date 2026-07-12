@@ -1814,6 +1814,144 @@ def _fetch_india_iip() -> dict:
     return IIP_FALLBACK
 
 
+# 24-hour cache for the RBI MPC statement text — press releases don't
+# change between meetings (~every 2 months), so redundant fetches are
+# wasted work.
+_RBI_DOC_CACHE: dict = {
+    "data":       None,
+    "fetched_at": None,
+}
+
+
+def _fetch_rbi_mpc_text() -> dict:
+    """
+    Fetches the latest RBI MPC monetary policy press release text
+    from rbi.org.in.
+
+    RBI press releases follow a consistent URL pattern and are
+    publicly accessible.
+
+    Returns:
+    {
+      "text": str,    # statement text
+      "date": str,    # meeting date
+      "prid": str,    # press release ID
+      "source": str,  # citation
+      "fetched": bool
+    }
+    """
+    # Return cache if fresh (24 hr)
+    if (
+        _RBI_DOC_CACHE["data"] is not None
+        and _RBI_DOC_CACHE["fetched_at"] is not None
+        and datetime.utcnow() - _RBI_DOC_CACHE["fetched_at"]
+            < timedelta(hours=24)
+    ):
+        return _RBI_DOC_CACHE["data"]
+
+    # Known MPC press release IDs — UPDATE AFTER EACH MPC
+    # (~every 2 months)
+    # Format: prid=XXXXX on
+    # rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx
+    MPC_PRESS_RELEASES = [
+        {
+            "prid": "62863",
+            "date": "June 3-5, 2026",
+            "rate": "5.25%",
+        },
+        {
+            "prid": "62169",
+            "date": "Feb 4-6, 2026",
+            "rate": "6.25%",
+        },
+    ]
+
+    # Try most recent first
+    for release in MPC_PRESS_RELEASES:
+        try:
+            from bs4 import BeautifulSoup as BS
+
+            url = (
+                "https://www.rbi.org.in"
+                "/Scripts/BS_PressReleaseDisplay.aspx"
+                f"?prid={release['prid']}"
+            )
+            resp = requests.get(
+                url, timeout=15,
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+
+            if resp.status_code != 200:
+                continue
+
+            soup = BS(resp.text, "html.parser")
+
+            # Extract main content. RBI's actual press-release body lives
+            # in <div class="text1"> — verified against the live page;
+            # the other selectors are defensive fallbacks in case RBI
+            # changes markup on a future release.
+            content = soup.find("div", class_="text1")
+            if not content:
+                content = soup.find("div", class_="tabData")
+            if not content:
+                content = soup.find(
+                    "div",
+                    {"id": "ctl00_m_g_e0f2e44c_0d91_4e7d_"
+                           "888b_7cc9da5d6219_ctl00_pnlMain"}
+                )
+            if not content:
+                content = soup
+
+            text = content.get_text(separator=" ", strip=True)
+
+            # Limit to 3000 chars for NLP efficiency
+            text = text[:3000]
+
+            if len(text) > 200:
+                print(
+                    f"[RBI_NLP] Fetched MPC statement "
+                    f"{release['date']}: {len(text)} chars",
+                    flush=True
+                )
+                result = {
+                    "text":    text,
+                    "date":    release["date"],
+                    "prid":    release["prid"],
+                    "source":  f"RBI MPC {release['date']}",
+                    "fetched": True,
+                }
+                _RBI_DOC_CACHE["data"]       = result
+                _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
+                return result
+
+        except Exception as e:
+            print(
+                f"[RBI_NLP] Fetch failed prid={release['prid']}: {e}",
+                flush=True
+            )
+            continue
+
+    # Fallback text if fetch fails
+    print(
+        "[RBI_NLP] All fetches failed — using fallback context",
+        flush=True
+    )
+    fallback = {
+        "text": (
+            "RBI held repo rate at 5.25% in June 2026. MPC stance "
+            "neutral. Inflation trending toward 4% target. Growth "
+            "projection 6.6% for FY27. Next meeting August 2026."
+        ),
+        "date":    "June 2026",
+        "prid":    "fallback",
+        "source":  "RBI MPC fallback",
+        "fetched": False,
+    }
+    _RBI_DOC_CACHE["data"]       = fallback
+    _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
+    return fallback
+
+
 # 24-hour cache for GARCH forecast
 _garch_cache: dict = {
     "forecast_vol": None,
@@ -2415,6 +2553,10 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 f"Crude oil at ${crude_val:.1f}"
             )
 
+        # Fetch RBI MPC statement for dedicated policy NLP analysis
+        _rbi_doc  = _fetch_rbi_mpc_text()
+        _rbi_text = _rbi_doc["text"]
+
         news = " | ".join(
             _headlines
             + _fii_context
@@ -2442,7 +2584,16 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 nse_snapshot.get("flow_score", 0.5)
             ),
         }
-        intel = eng["nlp"].get_regime_scores_v2(news, hard_signals=_hard_sigs)
+        intel = eng["nlp"].get_regime_scores_v2(
+            news,
+            hard_signals=_hard_sigs,
+            rbi_text=_rbi_text,
+        )
+        intel["rbi_document"] = {
+            "date":    _rbi_doc["date"],
+            "source":  _rbi_doc["source"],
+            "fetched": _rbi_doc["fetched"],
+        }
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
             "gdp_growth": macro.get("growth", {}).get("gdp", 7.2),

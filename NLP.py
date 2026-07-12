@@ -146,24 +146,32 @@ Return ONLY this JSON structure, no other text:
   "reasoning": "2-3 sentence explanation of your analysis"
 }}"""
 
-    def _build_rbi_prompt(self, news_text: str) -> str:
-        return f"""You are analyzing central bank policy signals for Indian financial markets.
+    def _build_rbi_prompt(
+        self,
+        rbi_text: str
+    ) -> str:
+        return f"""You are analyzing an RBI Monetary Policy Committee statement for Indian financial markets.
 
-NEWS TEXT:
-{news_text}
+RBI MPC STATEMENT TEXT:
+{rbi_text[:2000]}
 
 Respond with ONLY valid JSON:
 {{
-  "rbi_stance": "HAWKISH" or "DOVISH" or "NEUTRAL",
-  "rate_direction": "HIKE" or "CUT" or "PAUSE" or "UNKNOWN",
+  "stance": "HAWKISH" or "DOVISH" or "NEUTRAL",
+  "rate_direction": "HIKE" or "CUT" or "PAUSE",
+  "rate_change_bps": <integer, 0 if PAUSE, positive for hike, negative for cut>,
   "liquidity_signal": "TIGHT" or "ACCOMMODATIVE" or "NEUTRAL",
+  "inflation_concern": "HIGH" or "MODERATE" or "LOW",
+  "growth_concern": "HIGH" or "MODERATE" or "LOW",
+  "forward_guidance": "HAWKISH_LEAN" or "DOVISH_LEAN" or "NEUTRAL",
   "confidence": <float 0.0-1.0>,
-  "key_phrase": "<most relevant phrase from text or empty>"
+  "key_phrase": "<most significant phrase from the statement>"
 }}
 
 Rules:
-- Base ONLY on provided text
-- If text contains no RBI/central bank content, return all NEUTRAL with confidence 0.3
+- Base ONLY on the provided text
+- If text is a fallback summary not a full statement, set confidence to 0.5 and note in key_phrase
+- PAUSE means rate unchanged
 - Return ONLY JSON, no other text
 """
 
@@ -209,7 +217,10 @@ Rules:
 """
 
     def get_regime_scores_v2(
-        self, news_text: str, hard_signals: dict = None
+        self,
+        news_text: str,
+        hard_signals: dict = None,
+        rbi_text: str = None,
     ) -> dict:
         """
         Enhanced NLP scoring using three focused calls instead of one monolithic prompt.
@@ -221,12 +232,25 @@ Rules:
 
         Falls back to original get_regime_scores() if all three calls fail.
         hard_signals: dict of signal values for validation (optional).
+        rbi_text: the actual RBI MPC statement text, if available — used
+          for the RBI call instead of news_text. Falls back to news_text
+          when not provided (backward compatible).
         """
         results = {}
 
         # Call 1 — RBI/policy
         try:
-            rbi_raw = self.generate_text(self._build_rbi_prompt(news_text))
+            rbi_input = (
+                rbi_text
+                if rbi_text
+                else news_text
+            )
+            rbi_prompt = (
+                self._build_rbi_prompt(
+                    rbi_input
+                )
+            )
+            rbi_raw = self.generate_text(rbi_prompt)
             if rbi_raw:
                 cleaned = re.sub(r'```json|```', '', rbi_raw.strip())
                 results['rbi'] = json.loads(cleaned)

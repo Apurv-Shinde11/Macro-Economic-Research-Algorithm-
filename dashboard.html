@@ -4420,7 +4420,17 @@
           <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
           <div class="regime-pill" id="vixPillGroup"><span class="regime-pill-label">India VIX</span><span class="regime-pill-value" id="vixChip">—</span></div>
           <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
-              id="pillRBI">—</span></div>
+              id="pillRBI">—</span>
+            <div id="rbiDocSource"
+                 style="
+                   font-family:var(--font-mono);
+                   font-size:7px;
+                   color:var(--text-3);
+                   letter-spacing:0.08em;
+                   margin-top:3px;
+                   display:none;">
+            </div>
+          </div>
           <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
               id="pillLiquidity">—</span></div>
           <div class="regime-pill" style="align-items:center;justify-content:center;">
@@ -5342,6 +5352,27 @@
           sc.title = stabData.explanation || '';
         }
         document.getElementById('pillRBI').textContent = comp.rbi_signal || regime?.rbi_data?.policy_direction || '—';
+        const rbiDoc = data
+          .rbi_document
+          || data.intel
+              ?.rbi_document;
+        if (rbiDoc) {
+          const rbiSrc = document
+            .getElementById(
+              'rbiDocSource'
+            );
+          if (rbiSrc) {
+            rbiSrc.textContent =
+              rbiDoc.fetched
+                ? `Source: ${rbiDoc.source}`
+                : `Fallback: ${rbiDoc.source}`;
+            rbiSrc.style.display = 'block';
+            rbiSrc.style.color = rbiDoc
+              .fetched
+              ? 'var(--text-3)'
+              : 'var(--amber)';
+          }
+        }
         document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime ? displayRegime(liquidity.liquidity_regime) : '—';
       } else { document.getElementById('pillConviction').textContent = conviction; }
       if (!fromHistory && regime?.challenger) {
