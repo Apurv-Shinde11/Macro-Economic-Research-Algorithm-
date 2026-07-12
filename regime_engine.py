@@ -651,42 +651,77 @@ class MacroRegimeEngine:
             for s in signals
         ]
 
-        # Normalize to sum to 1
-        total = sum(scores)
-        probs = [s / total for s in scores]
+        import math
 
-        # Shannon entropy
-        raw_entropy = -sum(
-            p * math.log2(p)
-            for p in probs
-            if p > 0
+        n = len(scores)
+        if n == 0:
+            return {
+                "entropy": 1.0,
+                "label": "UNCERTAIN",
+                "confidence_adj": -0.05,
+                "interpretation":
+                    "No signals available"
+            }
+
+        # Mean score — how bullish/bearish
+        mean_score = sum(scores) / n
+
+        # Variance around the mean —
+        # low variance = signals agree
+        # high variance = signals disagree
+        variance = sum(
+            (s - mean_score) ** 2
+            for s in scores
+        ) / n
+        std_dev = math.sqrt(variance)
+
+        # Normalize std_dev to 0-1 range
+        # Max possible std_dev with scores
+        # in [0,1] is 0.5
+        normalized_dispersion = round(
+            min(1.0, std_dev / 0.5), 3
         )
 
-        # Normalize by max possible
-        # entropy (log2 of n signals)
-        max_entropy = math.log2(
-            len(scores)
+        # Also compute directional
+        # conviction — how far mean is
+        # from neutral (0.5)
+        # High conviction = mean far
+        # from 0.5 (bullish or bearish)
+        directional_conviction = round(
+            abs(mean_score - 0.5) * 2, 3
         )
-        normalized = round(
-            raw_entropy / max_entropy, 3
-        ) if max_entropy > 0 else 1.0
 
-        # Classify and adjust
-        if normalized < 0.40:
+        # Combined alignment score:
+        # High when signals agree AND
+        # have directional conviction
+        # Low when signals scattered
+        # or all near neutral 0.5
+        alignment = round(
+            (1 - normalized_dispersion)
+            * directional_conviction, 3
+        )
+
+        # Classify alignment
+        if alignment > 0.55:
             label = "ALIGNED"
             adj   = +0.02
-            interpretation = (
-                "Signals strongly aligned"
-                " — high conviction read"
+            direction = (
+                "BULLISH"
+                if mean_score > 0.5
+                else "BEARISH"
             )
-        elif normalized < 0.65:
+            interpretation = (
+                f"Signals strongly aligned"
+                f" — {direction} conviction"
+            )
+        elif alignment > 0.30:
             label = "MODERATE"
             adj   = 0.0
             interpretation = (
-                "Mixed signals — moderate"
-                " conviction"
+                "Moderate signal alignment"
+                " — directional but mixed"
             )
-        elif normalized < 0.80:
+        elif alignment > 0.15:
             label = "DISPERSED"
             adj   = -0.02
             interpretation = (
@@ -697,21 +732,25 @@ class MacroRegimeEngine:
             label = "UNCERTAIN"
             adj   = -0.05
             interpretation = (
-                "High signal dispersion"
+                "Signals near neutral"
+                " with high dispersion"
                 " — possible regime"
                 " transition"
             )
 
         print(
-            f"  [ENTROPY] normalized="
-            f"{normalized:.3f} "
-            f"label={label} "
-            f"adj={adj:+.2f}",
+            f"  [ENTROPY] mean={mean_score:.3f}"
+            f" std={std_dev:.3f}"
+            f" alignment={alignment:.3f}"
+            f" label={label}"
+            f" adj={adj:+.2f}",
             flush=True
         )
 
         return {
-            "entropy":          normalized,
+            "entropy":          normalized_dispersion,
+            "alignment":        alignment,
+            "mean_score":       mean_score,
             "label":            label,
             "confidence_adj":   adj,
             "interpretation":   interpretation,
