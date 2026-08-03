@@ -48,6 +48,35 @@ from schemas import (
 from economic_calendar      import get_events_by_window, days_until_label
 from pdf_report_generator   import PDFReportGenerator
 
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+import httpx
+import pdfplumber
+import io
+
+# Standard retry for external HTTP calls — 3 attempts with
+# exponential backoff 2s→4s→8s. Only wraps functions/helpers that
+# RAISE on failure; functions with internal try/except fallbacks
+# call a decorated "_raw" helper instead (see per-function comments).
+_HTTP_RETRY = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(
+        multiplier=1,
+        min=2,
+        max=8
+    ),
+    retry=retry_if_exception_type(
+        (
+            Exception,
+        )
+    ),
+    reraise=True,
+)
+
 try:
     from jugaad_data.nse import NSELive, NSEDailyReports
     JUGAAD_AVAILABLE = True
@@ -1667,6 +1696,23 @@ def _fetch_nifty_pe() -> float | None:
     return FALLBACK_PE
 
 
+@_HTTP_RETRY
+def _fetch_vix_term_raw() -> tuple:
+    """
+    Fetches VIX and VIX3M close prices via yfinance. Raises on
+    failure/empty history so @_HTTP_RETRY can retry transient
+    errors; the caller falls back to {} on final failure.
+    """
+    import yfinance as yf
+    vix_hist   = yf.Ticker("^VIX").history(period="2d")
+    vix3m_hist = yf.Ticker("^VIX3M").history(period="2d")
+    if vix_hist.empty or vix3m_hist.empty:
+        raise ValueError("VIX or VIX3M returned empty history")
+    near_iv = round(float(vix_hist["Close"].iloc[-1]), 2)
+    far_iv  = round(float(vix3m_hist["Close"].iloc[-1]), 2)
+    return near_iv, far_iv
+
+
 def _fetch_vol_term_structure() -> dict:
     """
     Fetches volatility term structure using US VIX (30-day) vs VIX3M
@@ -1682,20 +1728,10 @@ def _fetch_vol_term_structure() -> dict:
       INVERTED (VIX > VIX3M): near-term fear > long-term → FEARFUL
     """
     try:
-        import yfinance as yf
-
         print("[VOL_TERM] Starting fetch — VIX/VIX3M...", flush=True)
 
-        vix_hist  = yf.Ticker("^VIX").history(period="2d")
-        vix3m_hist = yf.Ticker("^VIX3M").history(period="2d")
-
-        if vix_hist.empty or vix3m_hist.empty:
-            print("[VOL_TERM] VIX or VIX3M returned empty", flush=True)
-            return {}
-
-        near_iv = round(float(vix_hist["Close"].iloc[-1]), 2)
-        far_iv  = round(float(vix3m_hist["Close"].iloc[-1]), 2)
-        slope   = round(far_iv - near_iv, 2)
+        near_iv, far_iv = _fetch_vix_term_raw()
+        slope = round(far_iv - near_iv, 2)
 
         if slope > 1.5:
             shape, signal, score = "CONTANGO", "CALM",    0.85
@@ -1725,23 +1761,123 @@ def _fetch_vol_term_structure() -> dict:
         return {}
 
 
+@_HTTP_RETRY
+def _fetch_fimmda_pdf_bytes() -> bytes:
+    """
+    Fetches the raw FIMMDA daily benchmark PDF bytes. Raises on
+    failure so @_HTTP_RETRY can retry transient network errors —
+    the caller falls back to the hardcoded yield on final failure.
+    """
+    pdf_url = (
+        "https://www.fimmda.org"
+        "/modules/reporting"
+        "/files/reports"
+        "/Daily_Reports"
+        "/Benchmark.pdf"
+    )
+    resp = requests.get(
+        pdf_url,
+        timeout=12,
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
+    resp.raise_for_status()
+    return resp.content
+
+
+def _fetch_fimmda_aaa_yield() -> tuple:
+    """
+    Attempts to fetch AAA 10Y corporate bond yield from FIMMDA's
+    daily benchmark PDF. Falls back to a hardcoded value if the PDF
+    fetch (after retries) or the parse fails.
+
+    Returns (yield_pct, source_str).
+
+    UPDATE FALLBACK MONTHLY if PDF fetch consistently fails.
+    """
+    # Hardcoded fallback — update monthly from fimmda.org
+    # Last updated: July 2026
+    FALLBACK_AAA = 7.45
+    FALLBACK_SRC = "FIMMDA · Jul 2026 (hardcoded fallback)"
+
+    try:
+        pdf_bytes = _fetch_fimmda_pdf_bytes()
+    except Exception as e:
+        print(
+            f"[FIMMDA] PDF fetch failed: {e} — using fallback",
+            flush=True
+        )
+        return (FALLBACK_AAA, FALLBACK_SRC)
+
+    try:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            # FIMMDA benchmark PDF has AAA yields in a table on
+            # page 1 or 2
+            for page_num in range(min(3, len(pdf.pages))):
+                page = pdf.pages[page_num]
+                text = page.extract_text()
+                if not text:
+                    continue
+
+                # Look for AAA 10Y yield in text
+                # Pattern: "AAA" near "10" with a yield value like "7.45"
+                lines = text.split("\n")
+                for line in lines:
+                    line_up = line.upper()
+                    if (
+                        "AAA" in line_up
+                        and ("10" in line or "TEN" in line_up)
+                    ):
+                        nums = re.findall(r'\d+\.\d+', line)
+                        for n in nums:
+                            val = float(n)
+                            # Yield should be between 6.0-10.0%
+                            if 6.0 <= val <= 10.0:
+                                print(
+                                    f"[FIMMDA] Live AAA 10Y: {val}%",
+                                    flush=True
+                                )
+                                return (val, "FIMMDA · Live")
+
+        print(
+            "[FIMMDA] Could not parse AAA 10Y from "
+            "PDF — using fallback",
+            flush=True
+        )
+        return (FALLBACK_AAA, FALLBACK_SRC)
+
+    except Exception as e:
+        print(
+            f"[FIMMDA] PDF error: {e} — using fallback",
+            flush=True
+        )
+        return (FALLBACK_AAA, FALLBACK_SRC)
+
+
+@_HTTP_RETRY
+def _fetch_gsec_10y_raw() -> float:
+    """
+    Fetches India G-Sec 10Y yield via yfinance. Raises on failure/
+    empty history so @_HTTP_RETRY can retry transient errors.
+    """
+    import yfinance as yf
+    hist = yf.Ticker("IN10Y=X").history(period="1d")
+    if hist.empty:
+        raise ValueError("yfinance IN10Y=X returned empty history")
+    return round(float(hist["Close"].iloc[-1]), 2)
+
+
 def _fetch_india_credit_spread() -> dict:
     """
     Computes India credit spread: AAA corporate bond yield vs G-Sec 10Y.
-    AAA_YIELD_10Y is hardcoded from FIMMDA — update monthly on FIMMDA
-    release day (usually first week of each month at fimmda.org).
-    G-Sec 10Y is fetched live via yfinance.
+    AAA_YIELD_10Y is fetched live from the FIMMDA daily benchmark PDF,
+    falling back to a hardcoded value updated monthly (see
+    _fetch_fimmda_aaa_yield). G-Sec 10Y is fetched live via yfinance.
     Spread <50bps = tight/supportive; 50-80 = normal; >80 = stress.
     """
-    # FIMMDA AAA 10Y corporate benchmark yield — update monthly
-    # Current: July 2026
-    AAA_YIELD_10Y = 7.45
-    AAA_SOURCE    = "FIMMDA · Jul 2026"
+    AAA_YIELD_10Y, AAA_SOURCE = _fetch_fimmda_aaa_yield()
 
     try:
-        import yfinance as yf
-        hist = yf.Ticker("IN10Y=X").history(period="1d")
-        gsec_10y = round(float(hist["Close"].iloc[-1]), 2) if not hist.empty else 6.85
+        gsec_10y = _fetch_gsec_10y_raw()
     except Exception:
         gsec_10y = 6.85
 
@@ -1771,6 +1907,34 @@ def _fetch_india_credit_spread() -> dict:
     }
 
 
+@_HTTP_RETRY
+def _fetch_india_iip_raw() -> dict:
+    """
+    Fetches India IIP JSON from MOSPI. Raises on failure/empty
+    response so @_HTTP_RETRY can retry transient errors; the
+    caller falls back to the hardcoded value on final failure.
+    """
+    url = (
+        "https://www.mospi.gov.in"
+        "/sites/default/files/iip/iip_data.json"
+    )
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    data   = resp.json()
+    latest = data[-1] if isinstance(data, list) and data else None
+    if not latest:
+        raise ValueError("MOSPI IIP response had no records")
+    val    = float(latest.get("value", 0))
+    period = latest.get("period", "Unknown")
+    signal = "STRONG" if val > 6 else "MODERATE" if val >= 2 else "WEAK"
+    return {
+        "value":  val,
+        "period": period,
+        "source": f"MOSPI · {period}",
+        "signal": signal,
+    }
+
+
 def _fetch_india_iip() -> dict:
     """
     Fetches India IIP (Index of Industrial Production) from MOSPI.
@@ -1788,26 +1952,12 @@ def _fetch_india_iip() -> dict:
     }
 
     try:
-        import requests as _req
-        url = (
-            "https://www.mospi.gov.in"
-            "/sites/default/files/iip/iip_data.json"
+        result = _fetch_india_iip_raw()
+        print(
+            f"[IIP] Live: {result['value']}% ({result['period']})",
+            flush=True
         )
-        resp = _req.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            latest = data[-1] if isinstance(data, list) and data else None
-            if latest:
-                val    = float(latest.get("value", IIP_FALLBACK["value"]))
-                period = latest.get("period", IIP_FALLBACK["period"])
-                signal = "STRONG" if val > 6 else "MODERATE" if val >= 2 else "WEAK"
-                print(f"[IIP] Live: {val}% ({period})", flush=True)
-                return {
-                    "value":  val,
-                    "period": period,
-                    "source": f"MOSPI · {period}",
-                    "signal": signal,
-                }
+        return result
     except Exception as e:
         print(f"[IIP] Fetch failed: {e} — using fallback", flush=True)
 
@@ -1821,6 +1971,66 @@ _RBI_DOC_CACHE: dict = {
     "data":       None,
     "fetched_at": None,
 }
+
+
+@_HTTP_RETRY
+def _fetch_rbi_release_raw(release: dict) -> dict:
+    """
+    Fetches and parses a single RBI MPC press release. Raises on
+    failure (HTTP error or text too short to be real content) so
+    @_HTTP_RETRY can retry transient network errors; the caller
+    catches the final failure and moves to the next release / the
+    hardcoded fallback.
+    """
+    from bs4 import BeautifulSoup as BS
+
+    url = (
+        "https://www.rbi.org.in"
+        "/Scripts/BS_PressReleaseDisplay.aspx"
+        f"?prid={release['prid']}"
+    )
+    resp = requests.get(
+        url, timeout=15,
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
+    resp.raise_for_status()
+
+    soup = BS(resp.text, "lxml")
+
+    # Extract main content. RBI's actual press-release body lives
+    # in <div class="text1"> — verified against the live page;
+    # the other selectors are defensive fallbacks in case RBI
+    # changes markup on a future release.
+    content = soup.find("div", class_="text1")
+    if not content:
+        content = soup.find("div", class_="tabData")
+    if not content:
+        content = soup.find(
+            "div",
+            {"id": "ctl00_m_g_e0f2e44c_0d91_4e7d_"
+                   "888b_7cc9da5d6219_ctl00_pnlMain"}
+        )
+    if not content:
+        content = soup
+
+    text = content.get_text(separator=" ", strip=True)
+
+    # Limit to 3000 chars for NLP efficiency
+    text = text[:3000]
+
+    if len(text) <= 200:
+        raise ValueError(
+            f"Extracted text too short ({len(text)} chars) — "
+            "parse likely failed"
+        )
+
+    return {
+        "text":    text,
+        "date":    release["date"],
+        "prid":    release["prid"],
+        "source":  f"RBI MPC {release['date']}",
+        "fetched": True,
+    }
 
 
 def _fetch_rbi_mpc_text() -> dict:
@@ -1869,60 +2079,15 @@ def _fetch_rbi_mpc_text() -> dict:
     # Try most recent first
     for release in MPC_PRESS_RELEASES:
         try:
-            from bs4 import BeautifulSoup as BS
-
-            url = (
-                "https://www.rbi.org.in"
-                "/Scripts/BS_PressReleaseDisplay.aspx"
-                f"?prid={release['prid']}"
+            result = _fetch_rbi_release_raw(release)
+            print(
+                f"[RBI_NLP] Fetched MPC statement "
+                f"{release['date']}: {len(result['text'])} chars",
+                flush=True
             )
-            resp = requests.get(
-                url, timeout=15,
-                headers={"User-Agent": "Mozilla/5.0"}
-            )
-
-            if resp.status_code != 200:
-                continue
-
-            soup = BS(resp.text, "html.parser")
-
-            # Extract main content. RBI's actual press-release body lives
-            # in <div class="text1"> — verified against the live page;
-            # the other selectors are defensive fallbacks in case RBI
-            # changes markup on a future release.
-            content = soup.find("div", class_="text1")
-            if not content:
-                content = soup.find("div", class_="tabData")
-            if not content:
-                content = soup.find(
-                    "div",
-                    {"id": "ctl00_m_g_e0f2e44c_0d91_4e7d_"
-                           "888b_7cc9da5d6219_ctl00_pnlMain"}
-                )
-            if not content:
-                content = soup
-
-            text = content.get_text(separator=" ", strip=True)
-
-            # Limit to 3000 chars for NLP efficiency
-            text = text[:3000]
-
-            if len(text) > 200:
-                print(
-                    f"[RBI_NLP] Fetched MPC statement "
-                    f"{release['date']}: {len(text)} chars",
-                    flush=True
-                )
-                result = {
-                    "text":    text,
-                    "date":    release["date"],
-                    "prid":    release["prid"],
-                    "source":  f"RBI MPC {release['date']}",
-                    "fetched": True,
-                }
-                _RBI_DOC_CACHE["data"]       = result
-                _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
-                return result
+            _RBI_DOC_CACHE["data"]       = result
+            _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
+            return result
 
         except Exception as e:
             print(
@@ -5137,6 +5302,18 @@ _FRED_RATE_SERIES = {
 _fred_rate_cache: dict = {"data": {}, "fetched_at": 0}
 
 
+@_HTTP_RETRY
+def _fetch_fred_series_raw(base_url: str, params: dict) -> dict:
+    """
+    Fetches one FRED series observation. Raises on failure so
+    @_HTTP_RETRY can retry transient network errors; the caller
+    skips that series (and keeps the others) on final failure.
+    """
+    r = requests.get(base_url, params=params, timeout=8)
+    r.raise_for_status()
+    return r.json()
+
+
 def _fetch_fred_rates() -> dict:
     """
     Fetches major central bank policy rates from FRED API.
@@ -5150,8 +5327,6 @@ def _fetch_fred_rates() -> dict:
     if (time.time() - _fred_rate_cache["fetched_at"] < 86400
             and _fred_rate_cache["data"]):
         return _fred_rate_cache["data"]
-
-    import requests as _req
 
     fred_key = os.environ.get("FRED_API_KEY", "")
     base_url = "https://api.stlouisfed.org/fred/series/observations"
@@ -5168,11 +5343,7 @@ def _fetch_fred_rates() -> dict:
                 "observation_start": "2024-01-01",
                 "limit":             1,
             }
-            r = _req.get(base_url, params=params, timeout=8)
-            if r.status_code != 200:
-                continue
-
-            data = r.json()
+            data = _fetch_fred_series_raw(base_url, params)
             obs  = data.get("observations", [])
             if obs and obs[0].get("value") != ".":
                 val           = float(obs[0]["value"])
@@ -5198,6 +5369,38 @@ def _fetch_fred_rates() -> dict:
     return result
 
 
+@_HTTP_RETRY
+def _fetch_country_news_raw(wb_code: str, news_api_key: str) -> dict:
+    """
+    Fetches the most recent business/economy headline for a country
+    from NewsData.io. Raises on failure/empty results so
+    @_HTTP_RETRY can retry transient errors; the caller returns
+    None on final failure.
+    """
+    url = "https://newsdata.io/api/1/news"
+    params = {
+        "apikey":   news_api_key,
+        "country":  wb_code.lower(),
+        "category": "business",
+        "language": "en",
+        "size":     1,
+    }
+    resp = requests.get(url, params=params, timeout=10)
+    resp.raise_for_status()
+
+    data    = resp.json()
+    results = data.get("results", [])
+    if not results:
+        raise ValueError(f"NewsData.io returned 0 results for {wb_code}")
+
+    item = results[0]
+    return {
+        "headline":     item.get("title", "")[:160],
+        "source":       item.get("source_id", "unknown"),
+        "published_at": item.get("pubDate"),
+    }
+
+
 def _fetch_country_news(wb_code: str) -> dict | None:
     """
     Fetch the most recent business/economy headline for a country
@@ -5209,34 +5412,7 @@ def _fetch_country_news(wb_code: str) -> dict | None:
         return None
 
     try:
-        import requests as _req
-        url = "https://newsdata.io/api/1/news"
-        params = {
-            "apikey":   news_api_key,
-            "country":  wb_code.lower(),
-            "category": "business",
-            "language": "en",
-            "size":     1,
-        }
-        resp = _req.get(url, params=params, timeout=10)
-        if resp.status_code != 200:
-            print(
-                f"[NEWS] {wb_code} returned HTTP {resp.status_code}",
-                flush=True
-            )
-            return None
-
-        data    = resp.json()
-        results = data.get("results", [])
-        if not results:
-            return None
-
-        item = results[0]
-        return {
-            "headline":     item.get("title", "")[:160],
-            "source":       item.get("source_id", "unknown"),
-            "published_at": item.get("pubDate"),
-        }
+        return _fetch_country_news_raw(wb_code, news_api_key)
     except Exception as e:
         print(f"[NEWS] fetch failed for {wb_code}: {e}", flush=True)
         return None
@@ -5357,6 +5533,100 @@ GEOPOLITICAL_THEMES = {
 }
 
 
+@_HTTP_RETRY
+def _fetch_gdelt_theme_raw(search_query: str, limit: int) -> list[dict]:
+    """
+    Fetches geopolitical theme news via GDELT Document API v2.
+    Raises on failure/empty results so @_HTTP_RETRY can retry
+    transient errors; the caller falls back to NewsData.io on
+    final failure.
+    """
+    import urllib.parse as _up
+
+    encoded = _up.quote(search_query)
+    url = (
+        f"https://api.gdeltproject.org/api/v2/doc/doc"
+        f"?query={encoded}"
+        f"&mode=artlist"
+        f"&maxrecords={limit}"
+        f"&format=json"
+        f"&timespan=2weeks"
+        f"&sort=DateDesc"
+    )
+    resp = requests.get(url, timeout=15)
+    print(
+        f"[GEOWATCH] GDELT response: {resp.status_code}",
+        flush=True
+    )
+    if resp.status_code != 200:
+        raise Exception(f"GDELT HTTP {resp.status_code}")
+
+    data     = resp.json()
+    articles = data.get("articles", [])
+
+    if not articles:
+        raise Exception("GDELT returned 0 articles")
+
+    results = []
+    for a in articles[:limit]:
+        title = a.get("title", "")
+        if title:
+            results.append({
+                "title":        title,
+                "source":       a.get("domain", ""),
+                "published_at": a.get("seendate", ""),
+            })
+
+    print(
+        f"[GEOWATCH] GDELT returned {len(results)} articles "
+        f"for: {search_query[:40]}",
+        flush=True
+    )
+    return results
+
+
+@_HTTP_RETRY
+def _fetch_newsdata_theme_raw(
+    search_query: str, limit: int, news_api_key: str
+) -> list[dict]:
+    """
+    Fetches world/politics headlines from NewsData.io as the theme-
+    news fallback. Raises on failure so @_HTTP_RETRY can retry
+    transient errors; the caller returns [] on final failure.
+    """
+    resp = requests.get(
+        "https://newsdata.io/api/1/news",
+        params={
+            "apikey":   news_api_key,
+            "category": "world,politics",
+            "language": "en",
+            "size":     limit,
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data    = resp.json()
+    results = data.get("results", [])
+    keywords = [w.lower() for w in search_query.split() if len(w) >= 3]
+    matched  = [
+        r for r in results
+        if any(
+            kw in (
+                (r.get("title") or "") + " " + (r.get("description") or "")
+            ).lower()
+            for kw in keywords
+        )
+    ]
+    return [
+        {
+            "title":        r.get("title", ""),
+            "source":       r.get("source_id", ""),
+            "published_at": r.get("pubDate", ""),
+        }
+        for r in (matched or results)[:limit]
+    ]
+
+
 def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
     """
     Fetches geopolitical theme news via GDELT Document API v2.
@@ -5366,50 +5636,7 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
     per 3 days — well within GDELT rate limits.
     """
     try:
-        import requests as _req
-        import urllib.parse as _up
-
-        encoded = _up.quote(search_query)
-        url = (
-            f"https://api.gdeltproject.org/api/v2/doc/doc"
-            f"?query={encoded}"
-            f"&mode=artlist"
-            f"&maxrecords={limit}"
-            f"&format=json"
-            f"&timespan=2weeks"
-            f"&sort=DateDesc"
-        )
-        resp = _req.get(url, timeout=15)
-        print(
-            f"[GEOWATCH] GDELT response: {resp.status_code}",
-            flush=True
-        )
-        if resp.status_code != 200:
-            raise Exception(f"GDELT HTTP {resp.status_code}")
-
-        data     = resp.json()
-        articles = data.get("articles", [])
-
-        if not articles:
-            raise Exception("GDELT returned 0 articles")
-
-        results = []
-        for a in articles[:limit]:
-            title = a.get("title", "")
-            if title:
-                results.append({
-                    "title":        title,
-                    "source":       a.get("domain", ""),
-                    "published_at": a.get("seendate", ""),
-                })
-
-        print(
-            f"[GEOWATCH] GDELT returned {len(results)} articles "
-            f"for: {search_query[:40]}",
-            flush=True
-        )
-        return results
-
+        return _fetch_gdelt_theme_raw(search_query, limit)
     except Exception as e:
         print(
             f"[GEOWATCH] GDELT failed: {e} — trying NewsData fallback",
@@ -5421,37 +5648,7 @@ def _fetch_theme_news(search_query: str, limit: int = 5) -> list[dict]:
     if not news_api_key:
         return []
     try:
-        import requests as _req
-        resp = _req.get(
-            "https://newsdata.io/api/1/news",
-            params={
-                "apikey":   news_api_key,
-                "category": "world,politics",
-                "language": "en",
-                "size":     limit,
-            },
-            timeout=10,
-        )
-        data    = resp.json()
-        results = data.get("results", [])
-        keywords = [w.lower() for w in search_query.split() if len(w) >= 3]
-        matched  = [
-            r for r in results
-            if any(
-                kw in (
-                    (r.get("title") or "") + " " + (r.get("description") or "")
-                ).lower()
-                for kw in keywords
-            )
-        ]
-        return [
-            {
-                "title":        r.get("title", ""),
-                "source":       r.get("source_id", ""),
-                "published_at": r.get("pubDate", ""),
-            }
-            for r in (matched or results)[:limit]
-        ]
+        return _fetch_newsdata_theme_raw(search_query, limit, news_api_key)
     except Exception:
         return []
 
@@ -5997,31 +6194,86 @@ _PEGGED_CURRENCIES = {
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
 
 
+@_HTTP_RETRY
+def _wb_fetch_raw(wb_code: str, indicator: str) -> tuple[float, int]:
+    """
+    Fetches one World Bank indicator. Raises on failure/empty
+    records so @_HTTP_RETRY can retry transient network errors;
+    the caller returns None on final failure.
+    """
+    url = (
+        f"https://api.worldbank.org/v2/country/{wb_code}"
+        f"/indicator/{indicator}?format=json&mrv=1"
+    )
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    records = data[1] if isinstance(data, list) and len(data) > 1 else []
+    for rec in records:
+        val  = rec.get("value")
+        year = rec.get("date")
+        if val is not None:
+            return (
+                round(float(val), 2),
+                int(year) if year else None,
+            )
+    raise ValueError(f"No records with value for {wb_code}/{indicator}")
+
+
 def _wb_fetch(wb_code: str, indicator: str) -> tuple[float, int] | None:
     """Returns (value, year) tuple or None. Year is the WB data vintage."""
     try:
-        import requests as _req
-        url = (
-            f"https://api.worldbank.org/v2/country/{wb_code}"
-            f"/indicator/{indicator}?format=json&mrv=1"
+        return _wb_fetch_raw(wb_code, indicator)
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] WB fetch failed {wb_code}/{indicator}: {_e}", flush=True)
+        return None
+
+
+async def _wb_fetch_async(
+    client: "httpx.AsyncClient", wb_code: str, indicator: str
+) -> tuple[float, int] | None:
+    """
+    Async World Bank indicator fetch — mirrors _wb_fetch_raw but uses
+    the shared httpx.AsyncClient for genuine concurrency instead of
+    blocking the event loop via run_in_executor. Never raises —
+    returns None on failure, matching _wb_fetch's contract.
+    """
+    url = (
+        f"https://api.worldbank.org"
+        f"/v2/country/{wb_code}"
+        f"/indicator/{indicator}"
+        f"?format=json&mrv=1"
+    )
+    try:
+        r = await client.get(
+            url, timeout=10.0
         )
-        r = _req.get(url, timeout=10)
         if r.status_code != 200:
             return None
         data = r.json()
-        records = data[1] if isinstance(data, list) and len(data) > 1 else []
+        records = (
+            data[1]
+            if isinstance(data, list)
+            and len(data) > 1
+            else []
+        )
         for rec in records:
-            val  = rec.get("value")
+            val = rec.get("value")
             year = rec.get("date")
             if val is not None:
                 return (
                     round(float(val), 2),
-                    int(year) if year else None,
+                    int(year)
+                    if year else None,
                 )
-        return None
-    except Exception as _e:
-        print(f"[GLOBAL_MACRO] WB fetch failed {wb_code}/{indicator}: {_e}", flush=True)
-        return None
+    except Exception as e:
+        print(
+            f"[WB_ASYNC] Failed "
+            f"{wb_code}/{indicator}"
+            f": {e}",
+            flush=True
+        )
+    return None
 
 
 def _derive_macro_signal(gdp: float | None, inflation: float | None) -> str:
@@ -6269,27 +6521,26 @@ async def get_global_macro():
         print(f"[GLOBAL_MACRO] FRED rate fetch failed: {_e}", flush=True)
         live_rates = {}
 
-    async def _fetch_one(eco):
-        loop = asyncio.get_event_loop()
+    async def _fetch_one(eco, client):
         wb   = eco["wb_code"]
         code = eco["code"]
 
         _gdp_r, _inf_r, _une_r, _nom_r, _res_r = (
             await asyncio.gather(
-                loop.run_in_executor(
-                    None, _wb_fetch, wb,
+                _wb_fetch_async(
+                    client, wb,
                     "NY.GDP.MKTP.KD.ZG"),
-                loop.run_in_executor(
-                    None, _wb_fetch, wb,
+                _wb_fetch_async(
+                    client, wb,
                     "FP.CPI.TOTL.ZG"),
-                loop.run_in_executor(
-                    None, _wb_fetch, wb,
+                _wb_fetch_async(
+                    client, wb,
                     "SL.UEM.TOTL.ZS"),
-                loop.run_in_executor(
-                    None, _wb_fetch, wb,
+                _wb_fetch_async(
+                    client, wb,
                     "NY.GDP.MKTP.CD"),
-                loop.run_in_executor(
-                    None, _wb_fetch, wb,
+                _wb_fetch_async(
+                    client, wb,
                     "FI.RES.TOTL.CD"),
             )
         )
@@ -6338,7 +6589,16 @@ async def get_global_macro():
                 reserves_bn, reserves_year)
 
     print("[GLOBAL_MACRO] Parallel World Bank fetch for all 50 economies...", flush=True)
-    wb_results = await asyncio.gather(*[_fetch_one(eco) for eco in _ECONOMIES])
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(10.0),
+        follow_redirects=True,
+        headers={
+            "User-Agent": "Mozilla/5.0"
+        }
+    ) as client:
+        wb_results = await asyncio.gather(
+            *[_fetch_one(eco, client) for eco in _ECONOMIES]
+        )
 
     economies = []
     for (eco, gdp, gdp_year, inflation, inf_year,

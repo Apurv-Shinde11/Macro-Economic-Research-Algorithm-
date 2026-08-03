@@ -5,6 +5,32 @@ import feedparser
 from datetime import datetime, timezone
 from functools import lru_cache
 
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+
+# Standard retry for external HTTP calls — 3 attempts with
+# exponential backoff 2s→4s→8s. Only wraps functions/helpers that
+# RAISE on failure; functions with internal try/except fallbacks
+# call a decorated "_raw" helper instead (see per-method comments).
+_HTTP_RETRY = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(
+        multiplier=1,
+        min=2,
+        max=8
+    ),
+    retry=retry_if_exception_type(
+        (
+            Exception,
+        )
+    ),
+    reraise=True,
+)
+
 
 class DataIngestor:
     def __init__(self):
@@ -33,17 +59,27 @@ class DataIngestor:
     # =========================
     # 🧰 SAFE REQUEST
     # =========================
+    @_HTTP_RETRY
+    def _safe_request_raw(self, url, params=None, headers=None, session=None):
+        """
+        Performs the actual HTTP GET. Raises on failure so
+        @_HTTP_RETRY can retry transient network errors; the caller
+        (_safe_request) catches the final failure and returns {}.
+        """
+        _headers = {"User-Agent": "Mozilla/5.0"}
+        if headers:
+            _headers.update(headers)
+        caller = session if session else requests
+        res = caller.get(url, params=params, headers=_headers, timeout=8)
+        res.raise_for_status()
+        data = res.json()
+        return data if isinstance(data, (dict, list)) else {}
+
     def _safe_request(self, url, params=None, headers=None, session=None):
         try:
-            _headers = {"User-Agent": "Mozilla/5.0"}
-            if headers:
-                _headers.update(headers)
-            caller = session if session else requests
-            res = caller.get(url, params=params, headers=_headers, timeout=8)
-            if res.status_code != 200:
-                return {}
-            data = res.json()
-            return data if isinstance(data, (dict, list)) else {}
+            return self._safe_request_raw(
+                url, params=params, headers=headers, session=session
+            )
         except Exception:
             return {}
 
@@ -333,26 +369,33 @@ class DataIngestor:
     # URL: https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx
     # Table: Date | FII Buy | FII Sell | FII Net | DII Buy | DII Sell | DII Net  (Rs. Cr)
     # =========================
+    @_HTTP_RETRY
+    def _bse_fii_dii_raw(self):
+        """
+        Fetches the raw BSE FII/DII activity page HTML. Raises on
+        failure so @_HTTP_RETRY can retry transient network errors;
+        the caller falls back to the next source on final failure.
+        """
+        headers = {
+            "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                               "AppleWebKit/537.36 (KHTML, like Gecko) "
+                               "Chrome/124.0.0.0 Safari/537.36",
+            "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-IN,en-US;q=0.9",
+            "Referer":         "https://www.bseindia.com/",
+        }
+        res = requests.get(
+            "https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx",
+            headers=headers, timeout=15, allow_redirects=True,
+        )
+        res.raise_for_status()
+        return res.text
+
     def _try_bse_fii_dii(self):
         """Scrape BSE India FII/DII activity page. Returns partial dict or None."""
         try:
-            headers = {
-                "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                   "Chrome/124.0.0.0 Safari/537.36",
-                "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-IN,en-US;q=0.9",
-                "Referer":         "https://www.bseindia.com/",
-            }
-            res = requests.get(
-                "https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx",
-                headers=headers, timeout=15, allow_redirects=True,
-            )
-            if res.status_code != 200:
-                print(f"[FII] BSE returned HTTP {res.status_code}", flush=True)
-                return None
-
-            cols = self._parse_html_table_row(res.text, min_cols=7)
+            html = self._bse_fii_dii_raw()
+            cols = self._parse_html_table_row(html, min_cols=7)
             if not cols:
                 print("[FII] BSE: no parseable data row found", flush=True)
                 return None
@@ -395,25 +438,32 @@ class DataIngestor:
     # =========================
     # 🏦 NSDL — SECONDARY FII/DII SOURCE
     # =========================
+    @_HTTP_RETRY
+    def _nsdl_fii_dii_raw(self):
+        """
+        Fetches the raw NSDL FII activity page HTML. Raises on
+        failure so @_HTTP_RETRY can retry transient network errors;
+        the caller falls back to the next source on final failure.
+        """
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0.0.0 Safari/537.36",
+            "Accept":     "text/html,application/xhtml+xml,*/*;q=0.8",
+            "Referer":    "https://nsdl.co.in/",
+        }
+        res = requests.get(
+            "https://nsdl.co.in/publications/fii_data.php",
+            headers=headers, timeout=12,
+        )
+        res.raise_for_status()
+        return res.text
+
     def _try_nsdl_fii_dii(self):
         """Scrape NSDL FII activity data. Returns partial dict or None."""
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                              "AppleWebKit/537.36 (KHTML, like Gecko) "
-                              "Chrome/124.0.0.0 Safari/537.36",
-                "Accept":     "text/html,application/xhtml+xml,*/*;q=0.8",
-                "Referer":    "https://nsdl.co.in/",
-            }
-            res = requests.get(
-                "https://nsdl.co.in/publications/fii_data.php",
-                headers=headers, timeout=12,
-            )
-            if res.status_code != 200:
-                print(f"[FII] NSDL returned HTTP {res.status_code}", flush=True)
-                return None
-
-            cols = self._parse_html_table_row(res.text, min_cols=4)
+            html = self._nsdl_fii_dii_raw()
+            cols = self._parse_html_table_row(html, min_cols=4)
             if not cols:
                 print("[FII] NSDL: no parseable data row found", flush=True)
                 return None
@@ -493,39 +543,60 @@ class DataIngestor:
     # 📰 NEWS SENTIMENT
     # Three sources: ET RSS + Moneycontrol RSS + Alpha Vantage
     # =========================
+    @_HTTP_RETRY
+    def _fetch_et_headlines_raw(self):
+        """
+        Fetches Economic Times Markets RSS headlines. Raises on
+        failure/empty feed so @_HTTP_RETRY can retry transient
+        network errors; the caller skips this source on final
+        failure.
+        """
+        feed = feedparser.parse(
+            "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+        )
+        entries = [
+            entry.get("title", "")
+            for entry in feed.entries[:6]
+            if entry.get("title")
+        ]
+        if not entries:
+            raise ValueError("ET RSS returned no entries")
+        return entries
+
+    @_HTTP_RETRY
+    def _fetch_mc_headlines_raw(self):
+        """
+        Fetches Moneycontrol RSS headlines. Raises on failure/empty
+        feed so @_HTTP_RETRY can retry transient network errors;
+        the caller skips this source on final failure.
+        """
+        feed = feedparser.parse(
+            "https://www.moneycontrol.com/rss/latestnews.xml"
+        )
+        entries = [
+            entry.get("title", "")
+            for entry in feed.entries[:6]
+            if entry.get("title")
+        ]
+        if not entries:
+            raise ValueError("Moneycontrol RSS returned no entries")
+        return entries
+
     def fetch_news_sentiment(self):
         headlines = []
         sources_used = []
 
         # --- Source 1: Economic Times Markets RSS (free, no key) ---
         try:
-            feed = feedparser.parse(
-                "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
-            )
-            et_headlines = [
-                entry.get("title", "")
-                for entry in feed.entries[:6]
-                if entry.get("title")
-            ]
-            if et_headlines:
-                headlines.extend(et_headlines)
-                sources_used.append("economic_times")
+            headlines.extend(self._fetch_et_headlines_raw())
+            sources_used.append("economic_times")
         except Exception:
             pass
 
         # --- Source 2: Moneycontrol RSS (free, no key) ---
         try:
-            feed = feedparser.parse(
-                "https://www.moneycontrol.com/rss/latestnews.xml"
-            )
-            mc_headlines = [
-                entry.get("title", "")
-                for entry in feed.entries[:6]
-                if entry.get("title")
-            ]
-            if mc_headlines:
-                headlines.extend(mc_headlines)
-                sources_used.append("moneycontrol")
+            headlines.extend(self._fetch_mc_headlines_raw())
+            sources_used.append("moneycontrol")
         except Exception:
             pass
 
@@ -762,6 +833,43 @@ class DataIngestor:
     # =========================
     # 🏦 DBIE CREDIT GROWTH FETCHER
     # =========================
+    @_HTTP_RETRY
+    def _dbie_credit_growth_raw(self) -> dict:
+        """
+        Performs the actual DBIE HTTP request and logs diagnostics
+        (status, content-type, body preview) so we can finally see
+        whether DBIE returns an HTML error page, empty JSON, or
+        something else. Raises on non-200 so @_HTTP_RETRY can retry
+        transient errors; the caller falls back to hardcoded values
+        on final failure.
+        """
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        url = (
+            "https://dbie.rbi.org.in/DBIE/dbie.rbi"
+            "?site=api&seriesId=RBIBS3MSCBY"
+            "&noOfPeriods=2"
+        )
+        r = requests.get(
+            url, timeout=10, verify=False,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept":     "application/json",
+                "Referer":    "https://dbie.rbi.org.in/",
+            }
+        )
+        print(
+            f"[DBIE_DIAG] url={url[-40:]} "
+            f"status={r.status_code} "
+            f"content_type="
+            f"{r.headers.get('content-type','?')} "
+            f"body_preview="
+            f"{r.text[:150]!r}",
+            flush=True
+        )
+        r.raise_for_status()
+        return r.json()
+
     def _fetch_dbie_credit_growth(self) -> dict | None:
         """
         Fetches bank credit growth from RBI DBIE API.
@@ -769,25 +877,7 @@ class DataIngestor:
         Returns dict with yoy_growth_pct and signal, or None on failure.
         """
         try:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            url = (
-                "https://dbie.rbi.org.in/DBIE/dbie.rbi"
-                "?site=api&seriesId=RBIBS3MSCBY"
-                "&noOfPeriods=2"
-            )
-            r = requests.get(
-                url, timeout=10, verify=False,
-                headers={
-                    "User-Agent": "Mozilla/5.0",
-                    "Accept":     "application/json",
-                    "Referer":    "https://dbie.rbi.org.in/",
-                }
-            )
-            if r.status_code != 200:
-                return None
-
-            data   = r.json()
+            data = self._dbie_credit_growth_raw()
             # DBIE returns nested structure — handle both key variants
             series = data.get("seriesData", data.get("data", []))
             if not series:
