@@ -58,21 +58,22 @@ import httpx
 import pdfplumber
 import io
 
-# Standard retry for external HTTP calls — 3 attempts with
-# exponential backoff 2s→4s→8s. Only wraps functions/helpers that
+# Standard retry for external HTTP calls — 2 attempts with fast
+# exponential backoff 1s→3s. Only wraps functions/helpers that
 # RAISE on failure; functions with internal try/except fallbacks
 # call a decorated "_raw" helper instead (see per-function comments).
+# Kept short: retrying endpoints that are reliably blocked (e.g. NSE
+# 403 on Render) for too long/too many attempts stalls the whole
+# pipeline instead of falling through to existing fallback logic.
 _HTTP_RETRY = retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     wait=wait_exponential(
         multiplier=1,
-        min=2,
-        max=8
+        min=1,
+        max=3
     ),
     retry=retry_if_exception_type(
-        (
-            Exception,
-        )
+        (Exception,)
     ),
     reraise=True,
 )
@@ -1696,12 +1697,12 @@ def _fetch_nifty_pe() -> float | None:
     return FALLBACK_PE
 
 
-@_HTTP_RETRY
 def _fetch_vix_term_raw() -> tuple:
     """
     Fetches VIX and VIX3M close prices via yfinance. Raises on
-    failure/empty history so @_HTTP_RETRY can retry transient
-    errors; the caller falls back to {} on final failure.
+    failure/empty history; the caller falls back to {} on failure.
+    No @_HTTP_RETRY here — yfinance already handles its own
+    retries internally, so an outer retry just doubles the wait.
     """
     import yfinance as yf
     vix_hist   = yf.Ticker("^VIX").history(period="2d")
@@ -1973,14 +1974,13 @@ _RBI_DOC_CACHE: dict = {
 }
 
 
-@_HTTP_RETRY
 def _fetch_rbi_release_raw(release: dict) -> dict:
     """
     Fetches and parses a single RBI MPC press release. Raises on
-    failure (HTTP error or text too short to be real content) so
-    @_HTTP_RETRY can retry transient network errors; the caller
-    catches the final failure and moves to the next release / the
-    hardcoded fallback.
+    failure (HTTP error or text too short to be real content); the
+    caller catches the failure and moves to the next release / the
+    hardcoded fallback. No @_HTTP_RETRY here — the caller already
+    loops over multiple press releases, which is its own retry.
     """
     from bs4 import BeautifulSoup as BS
 

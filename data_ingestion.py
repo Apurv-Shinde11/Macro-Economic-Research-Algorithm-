@@ -12,21 +12,22 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-# Standard retry for external HTTP calls — 3 attempts with
-# exponential backoff 2s→4s→8s. Only wraps functions/helpers that
+# Standard retry for external HTTP calls — 2 attempts with fast
+# exponential backoff 1s→3s. Only wraps functions/helpers that
 # RAISE on failure; functions with internal try/except fallbacks
 # call a decorated "_raw" helper instead (see per-method comments).
+# Kept short: retrying endpoints that are reliably blocked (e.g. NSE
+# 403 on Render) for too long/too many attempts stalls the whole
+# pipeline instead of falling through to existing fallback logic.
 _HTTP_RETRY = retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     wait=wait_exponential(
         multiplier=1,
-        min=2,
-        max=8
+        min=1,
+        max=3
     ),
     retry=retry_if_exception_type(
-        (
-            Exception,
-        )
+        (Exception,)
     ),
     reraise=True,
 )
@@ -80,6 +81,26 @@ class DataIngestor:
             return self._safe_request_raw(
                 url, params=params, headers=headers, session=session
             )
+        except Exception:
+            return {}
+
+    def _safe_request_fast(self, url, params=None, headers=None, session=None):
+        """
+        Single-attempt HTTP GET, no retry. Used for endpoints that
+        are reliably blocked or slow on Render (NSE 403, Yahoo
+        Finance) — retrying them only adds latency before the
+        existing fallback logic kicks in anyway.
+        """
+        try:
+            _headers = {"User-Agent": "Mozilla/5.0"}
+            if headers:
+                _headers.update(headers)
+            caller = session if session else requests
+            res = caller.get(url, params=params, headers=_headers, timeout=8)
+            if res.status_code != 200:
+                return {}
+            data = res.json()
+            return data if isinstance(data, (dict, list)) else {}
         except Exception:
             return {}
 
@@ -261,7 +282,10 @@ class DataIngestor:
             if not session:
                 return None
 
-            data = self._safe_request(
+            # NSE reliably returns 403 on Render — use the no-retry
+            # path so a blocked endpoint fails fast into the next
+            # source instead of stalling on retries.
+            data = self._safe_request_fast(
                 "https://www.nseindia.com/api/fiidiiTradeReact",
                 headers={"Referer": "https://www.nseindia.com/market-data/fii-dii-activity"},
                 session=session
@@ -369,12 +393,13 @@ class DataIngestor:
     # URL: https://www.bseindia.com/markets/marketinfo/fiiactivity.aspx
     # Table: Date | FII Buy | FII Sell | FII Net | DII Buy | DII Sell | DII Net  (Rs. Cr)
     # =========================
-    @_HTTP_RETRY
     def _bse_fii_dii_raw(self):
         """
         Fetches the raw BSE FII/DII activity page HTML. Raises on
-        failure so @_HTTP_RETRY can retry transient network errors;
-        the caller falls back to the next source on final failure.
+        failure; the caller falls back to the next source. No
+        @_HTTP_RETRY — fetch_fii_dii() already waterfalls across
+        BSE → NSDL → NSE → Supabase cache, so retrying each rung
+        individually just stalls the whole chain.
         """
         headers = {
             "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -438,12 +463,13 @@ class DataIngestor:
     # =========================
     # 🏦 NSDL — SECONDARY FII/DII SOURCE
     # =========================
-    @_HTTP_RETRY
     def _nsdl_fii_dii_raw(self):
         """
         Fetches the raw NSDL FII activity page HTML. Raises on
-        failure so @_HTTP_RETRY can retry transient network errors;
-        the caller falls back to the next source on final failure.
+        failure; the caller falls back to the next source. No
+        @_HTTP_RETRY — fetch_fii_dii() already waterfalls across
+        BSE → NSDL → NSE → Supabase cache, so retrying each rung
+        individually just stalls the whole chain.
         """
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -769,7 +795,10 @@ class DataIngestor:
 
         try:
             all_syms = ",".join(symbols.values())
-            resp     = self._safe_request(
+            # No-retry path — this endpoint is slow/blocked often
+            # enough on Render that retrying just delays the
+            # existing "source": "partial" fallback below.
+            resp     = self._safe_request_fast(
                 f"https://query1.finance.yahoo.com/v7/finance/quote"
                 f"?symbols={all_syms}"
             )
