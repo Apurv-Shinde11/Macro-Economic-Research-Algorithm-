@@ -3116,6 +3116,13 @@ async def health():
 
 @app.api_route("/api/ping", methods=["GET", "HEAD"])
 async def ping():
+    try:
+        _supabase.table("runs") \
+            .select("id") \
+            .limit(1) \
+            .execute()
+    except Exception:
+        pass
     return {"status": "ok", "ts": time.time()}
 
 @app.get("/api/test-jugaad")
