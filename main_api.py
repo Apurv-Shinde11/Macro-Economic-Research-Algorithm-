@@ -2065,6 +2065,16 @@ def _fetch_rbi_mpc_text() -> dict:
     # rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx
     MPC_PRESS_RELEASES = [
         {
+            "prid": "63287",
+            "date": "August 3-5, 2026",
+            "rate": "5.25%",
+        },
+        {
+            "prid": "63288",
+            "date": "August 5, 2026",
+            "rate": "5.25%",
+        },
+        {
             "prid": "62863",
             "date": "June 3-5, 2026",
             "rate": "5.25%",
