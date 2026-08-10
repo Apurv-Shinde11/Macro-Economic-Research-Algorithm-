@@ -2902,6 +2902,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         # dii_net_crore defaults to None, never 0 — 0 is indistinguishable from missing data
         try:
             _fii = eng["ingestor"].fetch_fii_dii()
+            if not _fii.get("fii_net_crore"):
+                _cf = _fetch_nse_fii_curlcffi()
+                if _cf and _cf.get(
+                    "fii_net_crore"
+                ) is not None:
+                    _fii.update(_cf)
             if _fii.get("fii_net_crore") is not None and _fii.get("fii_net_crore") != 0:
                 nse_snapshot.update({
                     "fii_net_crore":     _fii["fii_net_crore"],
@@ -3168,6 +3174,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             liq = ensure_dict(eng["liquidity"].analyze(intel, market, nse_snapshot))
         except TypeError:
             liq = ensure_dict(eng["liquidity"].analyze(intel, market))
+        # ── IS-LM composite ──────────────────────────────────────────────────
+        _islm = _compute_islm_composite(
+            growth          = intel["hard_data"].get("gdp_growth", 7.2),
+            repo_rate       = intel["hard_data"].get("repo_rate", 6.5),
+            liquidity_score = liq.get("liquidity_score", 0),
+        )
+        intel["islm_composite"] = _islm
         # Fetch recent runs for confidence smoothing — pass to regime engine
         # since its own Supabase credentials don't work on Render
         _recent_runs_for_smooth = []

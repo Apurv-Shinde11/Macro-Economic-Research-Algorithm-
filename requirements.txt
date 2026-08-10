@@ -28,3 +28,5 @@ arch
 tenacity
 pdfplumber
 curl-cffi
+
+curl-cffi
