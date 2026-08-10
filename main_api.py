@@ -1765,24 +1765,60 @@ def _fetch_vol_term_structure() -> dict:
 @_HTTP_RETRY
 def _fetch_fimmda_pdf_bytes() -> bytes:
     """
-    Fetches the raw FIMMDA daily benchmark PDF bytes. Raises on
-    failure so @_HTTP_RETRY can retry transient network errors —
-    the caller falls back to the hardcoded yield on final failure.
+    Fetches the raw FIMMDA daily benchmark PDF bytes, trying
+    several known FIMMDA URL patterns and logging a diagnostic for
+    each. Raises on failure so @_HTTP_RETRY can retry transient
+    network errors — the caller falls back to the hardcoded yield
+    on final failure.
     """
-    pdf_url = (
-        "https://www.fimmda.org"
-        "/modules/reporting"
-        "/files/reports"
-        "/Daily_Reports"
-        "/Benchmark.pdf"
+    FIMMDA_URLS = [
+        (
+            "https://www.fimmda.org"
+            "/modules/reporting/files"
+            "/reports/Daily_Reports"
+            "/Benchmark.pdf"
+        ),
+        (
+            "https://www.fimmda.org"
+            "/includes/media/pdf"
+            "/benchmark.pdf"
+        ),
+        (
+            "https://www.fimmda.org"
+            "/modules/reporting"
+            "/benchmark"
+        ),
+    ]
+
+    last_error = None
+    for pdf_url in FIMMDA_URLS:
+        try:
+            resp = requests.get(
+                pdf_url,
+                timeout=12,
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            print(
+                f"[FIMMDA_TRY] "
+                f"url={pdf_url[-40:]} "
+                f"status="
+                f"{resp.status_code}",
+                flush=True
+            )
+            if resp.status_code == 200:
+                return resp.content
+        except Exception as e:
+            print(
+                f"[FIMMDA_TRY] "
+                f"error: {e}",
+                flush=True
+            )
+            last_error = e
+            continue
+
+    raise last_error or ValueError(
+        "All FIMMDA URL patterns returned non-200"
     )
-    resp = requests.get(
-        pdf_url,
-        timeout=12,
-        headers={"User-Agent": "Mozilla/5.0"}
-    )
-    resp.raise_for_status()
-    return resp.content
 
 
 def _fetch_fimmda_aaa_yield() -> tuple:
@@ -1915,11 +1951,17 @@ def _fetch_india_iip_raw() -> dict:
     response so @_HTTP_RETRY can retry transient errors; the
     caller falls back to the hardcoded value on final failure.
     """
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     url = (
         "https://www.mospi.gov.in"
         "/sites/default/files/iip/iip_data.json"
     )
-    resp = requests.get(url, timeout=10)
+    resp = requests.get(
+        url,
+        timeout=10,
+        verify=False  # MOSPI uses self-signed cert
+    )
     resp.raise_for_status()
     data   = resp.json()
     latest = data[-1] if isinstance(data, list) and data else None
