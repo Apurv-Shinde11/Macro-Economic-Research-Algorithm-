@@ -27,3 +27,4 @@ jugaad-data
 arch
 tenacity
 pdfplumber
+curl-cffi

@@ -781,6 +781,8 @@ class MacroRegimeEngine:
         fii_streak_dir=None,
         credit_spread_score=None,
         credit_spread_signal=None,
+        islm_score=None,
+        islm_regime=None,
     ):
         signals = []
         score   = 0.5
@@ -978,6 +980,26 @@ class MacroRegimeEngine:
                 f"  [Credit Spread Signal] "
                 f"signal={credit_spread_signal} "
                 f"score={credit_spread_score}",
+                flush=True
+            )
+
+        # ── IS-LM composite signal ───────────────────────────────────────
+        # Reads whether the real economy (IS/goods market) and monetary
+        # conditions (LM/money market) are pulling the same direction —
+        # see _compute_islm_composite() in main_api.py for the score.
+        if islm_score is not None:
+            signals.append({
+                "indicator": "IS-LM Composite",
+                "value":     islm_score,
+                "signal":    islm_regime or "NEUTRAL",
+                "score":     float(islm_score),
+                "weight":    0.10,
+                "type":      "LEADING",
+            })
+            print(
+                f"  [ISLM Signal] "
+                f"regime={islm_regime} "
+                f"score={islm_score}",
                 flush=True
             )
 

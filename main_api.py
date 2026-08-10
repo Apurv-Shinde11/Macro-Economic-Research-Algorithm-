@@ -1603,6 +1603,133 @@ def _fetch_nse_snapshot_yf() -> dict:
         }
 
 
+def _fetch_nse_fii_curlcffi() -> dict | None:
+    """
+    Fetches NSE FII/DII flows using curl_cffi, which impersonates a
+    real browser's TLS/JA3 fingerprint via libcurl. NSE's anti-bot
+    layer blocks plain `requests` sessions (403) on most cloud IPs,
+    including Render, by fingerprinting the TLS handshake itself —
+    not just headers — so a normal User-Agent spoof doesn't help.
+    curl_cffi is the standard workaround for exactly this.
+
+    Returns a partial dict matching data_ingestion.py's FII/DII
+    source shape (fii_net_crore, dii_net_crore, fii_buy, fii_sell,
+    dii_buy, dii_sell, trade_date, source), or None on failure.
+
+    Note: NSE returns numeric fields as JSON strings (e.g.
+    "buyValue": "15868.51"), not JSON numbers — values are cast
+    with float() rather than gated on isinstance(..., (int, float)).
+    """
+    try:
+        from curl_cffi import requests as cf_requests
+    except ImportError:
+        print(
+            "[NSE_CURLCFFI] curl_cffi not installed — skipping",
+            flush=True
+        )
+        return None
+
+    try:
+        session = cf_requests.Session(impersonate="chrome124")
+
+        # Warm up — NSE requires cookies from the site root before
+        # the API responds, same requirement as the plain-requests
+        # session path in data_ingestion.py's _get_nse_session().
+        session.get("https://www.nseindia.com", timeout=10)
+
+        resp = session.get(
+            "https://www.nseindia.com/api/fiidiiTradeReact",
+            headers={
+                "Referer": "https://www.nseindia.com/market-data/fii-dii-activity",
+                "Accept":  "application/json",
+            },
+            timeout=10,
+        )
+
+        print(
+            f"[NSE_CURLCFFI] status={resp.status_code} "
+            f"ct={resp.headers.get('content-type', '?')} "
+            f"preview={resp.text[:100]!r}",
+            flush=True
+        )
+
+        if resp.status_code != 200:
+            return None
+
+        data = resp.json()
+        if not isinstance(data, list) or not data:
+            return None
+
+        fii_row = next(
+            (r for r in data if "FII" in str(r.get("category", "")).upper()),
+            None
+        )
+        dii_row = next(
+            (r for r in data if "DII" in str(r.get("category", "")).upper()),
+            None
+        )
+        if not fii_row and not dii_row:
+            return None
+
+        def _num(val):
+            try:
+                return round(float(val), 2)
+            except (TypeError, ValueError):
+                return None
+
+        def _net(row):
+            if not row:
+                return 0.0
+            for key in ("netValue", "netPurchaseSales", "net"):
+                n = _num(row.get(key))
+                if n is not None:
+                    return n
+            buy  = _num(row.get("buyValue")  or row.get("grossPurchase"))
+            sell = _num(row.get("sellValue") or row.get("grossSales"))
+            if buy is not None and sell is not None:
+                return round(buy - sell, 2)
+            return 0.0
+
+        def _val(row, *keys):
+            if not row:
+                return None
+            for k in keys:
+                n = _num(row.get(k))
+                if n is not None:
+                    return n
+            return None
+
+        trade_date = (
+            data[0].get("date")
+            or data[0].get("tradeDate")
+            or datetime.now(timezone.utc).strftime("%d-%b-%Y")
+        )
+
+        result = {
+            "fii_net_crore": _net(fii_row),
+            "dii_net_crore": _net(dii_row),
+            "fii_buy":  _val(fii_row, "buyValue",  "grossPurchase"),
+            "fii_sell": _val(fii_row, "sellValue", "grossSales"),
+            "dii_buy":  _val(dii_row, "buyValue",  "grossPurchase"),
+            "dii_sell": _val(dii_row, "sellValue", "grossSales"),
+            "trade_date": trade_date,
+            "source": "nse_curlcffi",
+        }
+
+        print(
+            f"[NSE_CURLCFFI] Success — "
+            f"fii={result['fii_net_crore']} "
+            f"dii={result['dii_net_crore']} "
+            f"date={trade_date}",
+            flush=True
+        )
+        return result
+
+    except Exception as e:
+        print(f"[NSE_CURLCFFI] Failed: {e}", flush=True)
+        return None
+
+
 # 24-hour cache for PE ratio
 _pe_cache: dict = {"value": None, "fetched_at": None}
 
@@ -2414,6 +2541,113 @@ def _compute_credit_impulse() -> dict:
     except Exception as e:
         print(f"[CREDIT_IMPULSE] Failed: {e}", flush=True)
         return empty
+
+
+def _compute_islm_composite(
+    growth: float,
+    repo_rate: float,
+    liquidity_score: float,
+    repo_neutral: float = 6.0,
+) -> dict:
+    """
+    Computes a composite IS-LM equilibrium read for the leading
+    indicator pipeline.
+
+    IS side (goods market): real economy momentum — GDP growth
+    relative to India's long-run trend rate (~6.5%). Above trend
+    pushes the IS curve/output up; below trend means IS slack.
+
+    LM side (money market): monetary/liquidity conditions — system
+    liquidity_score (abundant/tight, already computed elsewhere in
+    the pipeline) blended with how far the repo rate sits below or
+    above its neutral level. Accommodative LM = liquidity abundant
+    AND rate below neutral.
+
+    The composite score is HIGH when both sides point the same
+    direction — coordinated expansion or coordinated tightening,
+    a clean macro regime that's easier to position for — and gets
+    pulled toward neutral (0.5) when the two sides disagree (e.g.
+    liquidity abundant but growth weak, or growth strong but policy
+    actively tightening) — an IS-LM tension regime that has
+    historically been choppier and harder to trade.
+
+    Returns:
+    {
+      "islm_score": float (0.0-1.0),   # composite for _compute_leading_score()
+      "is_side":    float (0.0-1.0),   # goods-market reading
+      "lm_side":    float (0.0-1.0),   # money-market reading
+      "alignment":  float (0.0-1.0),   # how much IS and LM agree
+      "regime":     str,               # EXPANSIONARY / TIGHTENING / TENSION / NEUTRAL
+    }
+    """
+    GDP_TREND = 6.5  # India long-run trend growth, %
+
+    try:
+        # IS side: growth vs trend, mapped onto [0, 1] — 0.5 at trend
+        is_side = 0.5 + max(
+            -0.5, min(0.5, (growth - GDP_TREND) / 4.0)
+        )
+        is_side = round(max(0.0, min(1.0, is_side)), 3)
+
+        # LM side: liquidity_score [-1,1] blended with the repo-vs-
+        # neutral gap (positive gap = accommodative)
+        rate_gap = repo_neutral - repo_rate
+        lm_side = 0.5 + max(
+            -0.5,
+            min(
+                0.5,
+                (liquidity_score * 0.5) + (rate_gap / 4.0) * 0.5
+            )
+        )
+        lm_side = round(max(0.0, min(1.0, lm_side)), 3)
+
+        # Alignment: 1.0 when IS and LM agree, drops toward 0 the
+        # further apart they sit
+        alignment = round(1.0 - abs(is_side - lm_side), 3)
+
+        # Composite: average of both sides, pulled toward neutral
+        # (0.5) in proportion to how much they disagree
+        raw_composite = (is_side + lm_side) / 2.0
+        composite = round(
+            max(
+                0.0,
+                min(1.0, 0.5 + (raw_composite - 0.5) * alignment)
+            ),
+            3
+        )
+
+        if is_side > 0.55 and lm_side > 0.55:
+            regime = "EXPANSIONARY"
+        elif is_side < 0.45 and lm_side < 0.45:
+            regime = "TIGHTENING"
+        elif alignment < 0.6:
+            regime = "TENSION"
+        else:
+            regime = "NEUTRAL"
+
+        print(
+            f"[ISLM] IS={is_side:.3f} LM={lm_side:.3f} "
+            f"alignment={alignment:.3f} regime={regime} "
+            f"composite={composite:.3f}",
+            flush=True
+        )
+
+        return {
+            "islm_score": composite,
+            "is_side":    is_side,
+            "lm_side":    lm_side,
+            "alignment":  alignment,
+            "regime":     regime,
+        }
+    except Exception as e:
+        print(f"[ISLM] Failed: {e}", flush=True)
+        return {
+            "islm_score": 0.5,
+            "is_side":    0.5,
+            "lm_side":    0.5,
+            "alignment":  1.0,
+            "regime":     "NEUTRAL",
+        }
 
 
 # In-memory FII trend cache (refreshed each run)
