@@ -2472,6 +2472,61 @@ def _compute_fii_trend(sb_url: str, sb_key: str) -> dict:
             3
         )
 
+        # Nash stability — is the streak
+        # accelerating or decelerating?
+        # Accelerating = more Nash-stable
+        # (harder for one player to break)
+        # Decelerating = Nash-unstable
+        # (streak likely near end)
+
+        nash_adj   = 0.0
+        nash_label = "STABLE"
+
+        if len(flows) >= 3:
+            # Get last 3 days of flows
+            # in direction of streak
+            last3 = [
+                abs(float(f))
+                for f in flows[-3:]
+                if f is not None
+            ]
+
+            if len(last3) == 3:
+                # Accelerating: each day
+                # larger than previous
+                if (last3[2] > last3[1]
+                        > last3[0]):
+                    nash_adj   = +0.05
+                    nash_label = (
+                        "ACCELERATING"
+                    )
+                # Decelerating: each day
+                # smaller than previous
+                elif (last3[2] < last3[1]
+                          < last3[0]):
+                    nash_adj   = -0.03
+                    nash_label = (
+                        "DECELERATING"
+                    )
+                # Mixed — no adjustment
+                else:
+                    nash_label = "MIXED"
+
+        # Apply Nash adjustment to score
+        score = round(
+            max(0.0, min(1.0,
+                score + nash_adj
+            )), 2
+        )
+
+        print(
+            f"[NASH_FII] streak={streak}d "
+            f"nash={nash_label} "
+            f"adj={nash_adj:+.2f} "
+            f"final_score={score}",
+            flush=True
+        )
+
         print(
             f"[FII_TREND] momentum_7d="
             f"₹{momentum_7d:.0f}Cr "
