@@ -3201,6 +3201,119 @@
       transition: transform 0.6s ease;
     }
 
+    /* Signal dot grid — Pass 3 */
+    .signal-dot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .signal-dot-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 8px 4px;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .signal-dot-cell:hover {
+      background: var(--bg-3);
+      border-color: var(--border);
+    }
+
+    .signal-dot-cell.expanded {
+      background: var(--bg-3);
+      border-color: var(--border);
+      grid-column: 1 / -1;
+    }
+
+    .signal-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .signal-dot-cell:hover .signal-dot {
+      transform: scale(1.08);
+    }
+
+    .signal-dot-name {
+      font-family: var(--font-mono);
+      font-size: 7px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      text-align: center;
+      line-height: 1.3;
+      max-width: 60px;
+    }
+
+    .signal-dot-label {
+      font-family: var(--font-sans);
+      font-size: 8px;
+      color: var(--text-2);
+      text-align: center;
+      line-height: 1.2;
+      max-width: 64px;
+    }
+
+    .signal-dot-expand {
+      display: none;
+      grid-column: 1 / -1;
+      padding: 10px 12px;
+      background: var(--bg-2);
+      border-radius: 8px;
+      margin-top: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .signal-dot-expand.visible {
+      display: block;
+    }
+
+    .signal-dot-expand-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--text-3);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .signal-dot-expand-value {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .signal-dot-expand-sub {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      .signal-dot-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
     .signal-intel-footer {
       font-family: var(--font-mono);
       font-size: 9px;
@@ -7648,19 +7761,6 @@
         `${neutral} neutral · ` +
         `trend ${trend}`;
 
-      function scoreColor(s) {
-        if (s >= 0.75) return 'var(--green)';
-        if (s >= 0.55) return 'var(--blue)';
-        if (s >= 0.35) return 'var(--amber)';
-        return 'var(--red)';
-      }
-
-      function barColor(s) {
-        if (s >= 0.65) return 'var(--green)';
-        if (s >= 0.45) return 'var(--amber)';
-        return 'var(--red)';
-      }
-
       const _SIG_SUBTITLES = {
         'INDIA VIX': 'Market fear level',
         'CRUDE OIL': 'Oil price signal',
@@ -7672,28 +7772,152 @@
         'CREDIT IMPULSE': 'Credit flow',
         'FII TREND (7D)': '7-day foreign investor trend',
       };
-      grid.innerHTML = signals.map(sig => {
+
+      // Color helpers — Pass 3 dot grid
+      function dotColor(score) {
+        if (score >= 0.70) return {
+          bg: 'rgba(34,197,94,0.15)',
+          text: 'var(--green)',
+          border: 'rgba(34,197,94,0.3)'
+        };
+        if (score >= 0.40) return {
+          bg: 'rgba(251,191,36,0.12)',
+          text: 'var(--amber)',
+          border: 'rgba(251,191,36,0.25)'
+        };
+        return {
+          bg: 'rgba(239,68,68,0.12)',
+          text: 'var(--red)',
+          border: 'rgba(239,68,68,0.25)'
+        };
+      }
+
+      // Short 2-word label for dot
+      function shortLabel(label) {
+        const map = {
+          'CALM':             'CALM',
+          'NORMAL':           'NORMAL',
+          'ELEVATED':         'ELEVATED',
+          'STRESSED':         'STRESSED',
+          'SUPPORTIVE':       'SUPPORT',
+          'NEUTRAL':          'NEUTRAL',
+          'NEGATIVE':         'NEGATIVE',
+          'FLAT_LATE_CYCLE':  'FLAT',
+          'STRONG_EXPANSION': 'STRONG',
+          'EXPANSION':        'EXPAND',
+          'MODERATE':         'MODERATE',
+          'WEAK':             'WEAK',
+          'FAIR_VALUE':       'FAIR',
+          'STRETCHED':        'STRETCH',
+          'UNDERVALUED':      'CHEAP',
+          'LOW_FALLING':      'LOW↓',
+          'LOW_STABLE':       'LOW→',
+          'LOW_RISING':       'LOW↑',
+          'MODERATE_FALLING': 'MOD↓',
+          'HIGH_RISING':      'HIGH↑',
+          'BUILDING':         'BUILD',
+          'STABLE':           'STABLE',
+          'CONTRACTING':      'CONTRA',
+          'BUYING':           'BUYING',
+          'SELLING':          'SELLING',
+          'TIGHT':            'TIGHT',
+          'WIDE':             'WIDE',
+          'VERY_WIDE':        'V.WIDE',
+          'EXPANSIONARY':     'EXPAND',
+          'MODERATE_GROWTH':  'MOD GR',
+          'CONTRACTION':      'CONTRA',
+          'SLOWDOWN':         'SLOW',
+        };
+        return map[label] || label.slice(0, 7);
+      }
+
+      // Short signal name (2 words max)
+      function shortName(name) {
+        const map = {
+          'INDIA VIX':            'VIX',
+          'CRUDE OIL':            'CRUDE',
+          'FII FLOWS':            'FII',
+          'INDIA YIELD CURVE':    'YIELD',
+          'MANUFACTURING PMI':    'PMI',
+          'NIFTY P/E RATIO':      'P/E',
+          'VOL FORECAST (GARCH)': 'GARCH',
+          'CREDIT IMPULSE':       'CREDIT',
+          'FII TREND (7D)':       'FII TREND',
+          'CREDIT SPREAD':        'SPREAD',
+          'IS_LM_COMPOSITE':      'IS-LM',
+          'CREDIT_SPREAD':        'SPREAD',
+        };
+        return map[name.toUpperCase()]
+          || name.split(' ').slice(0, 2).join(' ');
+      }
+
+      // Track expanded cell (reset on every render)
+      let expandedIdx = null;
+      grid.innerHTML = '';
+      grid.className = 'signal-dot-grid';
+
+      const expandDiv = document.createElement('div');
+      expandDiv.className = 'signal-dot-expand';
+      expandDiv.id = 'signalDotExpand';
+
+      signals.forEach((sig, idx) => {
         const pct    = Math.round((sig.score || 0) * 100);
-        const color  = scoreColor(sig.score || 0);
-        const bColor = barColor(sig.score || 0);
-        const label  = (sig.signal || '').replace(/_/g, ' ');
-        const indKey = (sig.indicator || '').toUpperCase();
+        const colors = dotColor(sig.score || 0);
+        const label  = sig.signal || '';
+        const name   = sig.indicator || '';
+        const indKey = name.toUpperCase();
         const sub    = _SIG_SUBTITLES[indKey] || '';
-        return `
-          <div class="signal-item">
-            <div class="signal-item-left">
-              <div class="signal-item-name">${sig.indicator || ''}</div>
-              ${sub ? `<div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">${sub}</div>` : ''}
-              <div class="signal-item-label" style="color:${color}">${label}</div>
+
+        const cell = document.createElement('div');
+        cell.className = 'signal-dot-cell';
+        cell.dataset.idx = idx;
+
+        cell.innerHTML = `
+          <div class="signal-dot" style="background:${colors.bg};color:${colors.text};border:1.5px solid ${colors.border};">
+            ${pct}
+          </div>
+          <div class="signal-dot-name">${shortName(name)}</div>
+          <div class="signal-dot-label" style="color:${colors.text}">${shortLabel(label)}</div>
+        `;
+
+        cell.addEventListener('click', () => {
+          if (expandedIdx === idx) {
+            expandDiv.classList.remove('visible');
+            expandedIdx = null;
+            cell.classList.remove('expanded');
+            return;
+          }
+
+          if (expandedIdx !== null) {
+            const prev = grid.querySelector('.signal-dot-cell.expanded');
+            if (prev) prev.classList.remove('expanded');
+          }
+
+          expandedIdx = idx;
+          cell.classList.add('expanded');
+
+          const cellsPerRow = window.innerWidth < 600 ? 3 : 4;
+          const rowEnd = Math.ceil((idx + 1) / cellsPerRow) * cellsPerRow;
+          const insertAfter = grid.children[Math.min(rowEnd - 1, signals.length - 1)];
+
+          if (insertAfter && insertAfter.nextSibling) {
+            grid.insertBefore(expandDiv, insertAfter.nextSibling);
+          } else {
+            grid.appendChild(expandDiv);
+          }
+
+          expandDiv.innerHTML = `
+            <div class="signal-dot-expand-title">${name}</div>
+            <div class="signal-dot-expand-value" style="color:${colors.text}">
+              ${label.replace(/_/g, ' ')} &nbsp;·&nbsp; ${pct}%
             </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div class="signal-item-bar-wrap">
-                <div class="signal-item-bar" style="transform:scaleX(${pct/100});background:${bColor}"></div>
-              </div>
-              <div style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:${color};min-width:28px;text-align:right;">${pct}%</div>
-            </div>
-          </div>`;
-      }).join('');
+            <div class="signal-dot-expand-sub">${sub}</div>
+          `;
+          expandDiv.classList.add('visible');
+        });
+
+        grid.appendChild(cell);
+      });
 
       card.style.display = 'block';
     }
