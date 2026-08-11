@@ -4424,7 +4424,7 @@
           </div>
           <div class="guide-section">
             <div class="guide-section-title">Reading the Archive</div>
-            <div class="guide-section-body">The Historical Archive logs every regime call with its Implied Action and
+            <div class="guide-section-body">The Historical Archive logs every regime call with its Suggested Action and
               Outcome. Compare action columns across rows. Three consecutive LOW-conviction HOLD signals means macro
               conditions are genuinely unclear. Use it to calibrate your confidence in the current read.</div>
           </div>
@@ -4531,9 +4531,9 @@
           </div>
         </div>
         <div class="regime-pills">
-          <div class="regime-pill"><span class="regime-pill-label">Equity Bias<span class="tip-icon"
+          <div class="regime-pill"><span class="regime-pill-label">Portfolio Direction<span class="tip-icon"
                 data-tip="equity-bias">ⓘ</span></span><span class="regime-pill-value" id="pillEquity">—</span></div>
-          <div class="regime-pill"><span class="regime-pill-label">Conviction<span class="tip-icon"
+          <div class="regime-pill"><span class="regime-pill-label">How Sure We Are<span class="tip-icon"
                 data-tip="conviction">ⓘ</span></span><span class="regime-pill-value" id="pillConviction">—</span></div>
           <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
           <div class="regime-pill" id="vixPillGroup"><span class="regime-pill-label">India VIX</span><span class="regime-pill-value" id="vixChip">—</span></div>
@@ -4557,14 +4557,14 @@
           </div>
         </div>
         <div class="challenger-banner" id="challengerBanner" style="display:none">
-          <div>⚠️ Challenger regime:<span class="tip-icon" data-tip="challenger">ⓘ</span> <strong
+          <div>⚠️ Alternative read:<span class="tip-icon" data-tip="challenger">ⓘ</span> <strong
               id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
             45%</div>
           <div style="font-size:11px;">🔔 WhatsApp + email alert will fire automatically if this regime is confirmed
           </div>
         </div>
         <div class="transition-indicator" id="transitionIndicator" style="display:none;">
-          <span class="transition-label">Transition Risk</span>
+          <span class="transition-label">Chance of change</span>
           <div class="transition-bar-container">
             <div class="transition-bar" id="transitionBar"></div>
           </div>
@@ -4995,9 +4995,9 @@
               <th>Date</th>
               <th>Regime</th>
               <th>Confidence</th>
-              <th>Conviction</th>
-              <th>Equity Bias</th>
-              <th>Implied Action<span class="tip-icon" data-tip="implied">ⓘ</span></th>
+              <th>How Sure We Are</th>
+              <th>Direction</th>
+              <th>Suggested Action<span class="tip-icon" data-tip="implied">ⓘ</span></th>
               <th>Outcome<span class="tip-icon" data-tip="outcome">ⓘ</span></th>
               <th></th>
             </tr>
@@ -5135,12 +5135,29 @@
       'STAGFLATIONARY_RISK':        'Severe inflation stress — maximum caution',
       'EARLY_CYCLE_RECOVERY':       'Recovery beginning — selective opportunity',
       'GROWTH_SLOWDOWN_SUPPORT':    'Growth slowing — reduce risk gradually',
+      'LIQUIDITY_EXPANSION':        'Ample — supportive',
     };
 
     function displayRegime(key) {
       if (!key) return key;
       const clean = key.trim().toUpperCase().replace(/ /g, '_');
       return REGIME_DISPLAY[clean] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Plain-English display helpers — CA/IFA readable. These translate
+    // display TEXT only; the raw values (RISK_ON/RISK_OFF, LOW/MEDIUM/HIGH)
+    // still drive CSS classes, filtering, and backend logic untouched.
+    function equityBiasLabel(bias) {
+      if (bias === 'RISK_ON')  return 'Favour Equity';
+      if (bias === 'RISK_OFF') return 'Reduce Equity';
+      return bias || '—';
+    }
+
+    function convictionLabel(conviction) {
+      if (conviction === 'LOW')    return 'Not yet — wait';
+      if (conviction === 'MEDIUM') return 'Reasonably sure';
+      if (conviction === 'HIGH')   return 'Highly confident';
+      return conviction || '—';
     }
 
     function setLoadingState() {
@@ -5580,8 +5597,8 @@
       renderRegimeBridge(regimeName, conviction);
       if (!fromHistory) {
         const comp = regime?.components || {};
-        document.getElementById('pillEquity').textContent = comp.equity_bias || '—';
-        document.getElementById('pillConviction').textContent = conviction;
+        document.getElementById('pillEquity').textContent = equityBiasLabel(comp.equity_bias);
+        document.getElementById('pillConviction').textContent = convictionLabel(conviction);
         const stabData = data.regime_stability;
         const sg = document.getElementById('stabilityPillGroup');
         const sc = document.getElementById('stabilityChip');
@@ -5618,12 +5635,12 @@
           }
         }
         document.getElementById('pillLiquidity').textContent = liquidity?.liquidity_regime ? displayRegime(liquidity.liquidity_regime) : '—';
-      } else { document.getElementById('pillConviction').textContent = conviction; }
+      } else { document.getElementById('pillConviction').textContent = convictionLabel(conviction); }
       if (!fromHistory && regime?.challenger) {
         document.getElementById('challengerName').textContent = displayRegime(regime.challenger);
         document.getElementById('challengerBanner').style.display = 'flex';
       }
-      document.getElementById('convictionMeta').textContent = conviction + ' conviction';
+      document.getElementById('convictionMeta').textContent = convictionLabel(conviction);
       const runDate = new Date(runAt); const hoursAgo = Math.round((Date.now() - runDate.getTime()) / 3600000);
       document.getElementById('lastRunMeta').textContent = runDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' · ' + runDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const dot = document.getElementById('freshnessDot'); const txt = document.getElementById('freshnessText');
@@ -5956,16 +5973,16 @@
       }
       if (mandate === 'balanced') {
         if (conviction === 'HIGH') return [
-          'Equity sleeve: Tilt toward cyclicals and rate-sensitives per regime; deployment warranted',
-          'Debt sleeve: Short-to-medium corporate credit for yield pickup alongside equities'
+          'Equity portion: Tilt toward cyclicals and rate-sensitives per regime; deployment warranted',
+          'Fixed income: Short-to-medium corporate credit for yield pickup alongside equities'
         ];
         if (conviction === 'MEDIUM') return [
-          'Equity sleeve: Maintain at mandate midpoint; no aggressive additions at MEDIUM conviction',
-          'Debt sleeve: Neutral duration; quality credit over yield-chasing'
+          'Equity portion: Maintain at mandate midpoint; no aggressive additions at MEDIUM conviction',
+          'Fixed income: Neutral duration; quality credit over yield-chasing'
         ];
         return [
-          'Equity sleeve: Reduce to below mandate midpoint; build cash buffer first',
-          'Debt sleeve: Shorten duration; avoid credit risk in LOW conviction environment'
+          'Equity portion: Reduce to below mandate midpoint; build cash buffer first',
+          'Fixed income: Shorten duration; avoid credit risk in LOW conviction environment'
         ];
       }
       if (mandate === 'multi_asset') {
@@ -6321,8 +6338,8 @@
               <span style="font-family:var(--font-mono);font-size:11px;color:${confColor};min-width:32px;">${conf}%</span>
             </div>
           </td>
-          <td><span class="archive-tag conviction-tag-${conviction}">${conviction}</span></td>
-          <td><span class="archive-tag bias-tag-${bias}">${bias}</span></td>
+          <td><span class="archive-tag conviction-tag-${conviction}">${convictionLabel(conviction)}</span></td>
+          <td><span class="archive-tag bias-tag-${bias}">${equityBiasLabel(bias)}</span></td>
           <td style="font-size:11px;color:var(--text-2);">${impliedAction}</td>
           <td><span class="archive-outcome-tag" style="${outcomeCls}">${outcome}</span></td>
           <td style="text-align:center;width:28px;">
@@ -6342,15 +6359,15 @@
                   <div class="archive-detail-value" style="color:${confColor}">${conf}%</div>
                 </div>
                 <div class="archive-detail-item">
-                  <div class="archive-detail-label">EQUITY BIAS</div>
-                  <div class="archive-detail-value">${bias}</div>
+                  <div class="archive-detail-label">DIRECTION</div>
+                  <div class="archive-detail-value">${equityBiasLabel(bias)}</div>
                 </div>
                 <div class="archive-detail-item">
-                  <div class="archive-detail-label">CONVICTION</div>
-                  <div class="archive-detail-value">${conviction}</div>
+                  <div class="archive-detail-label">HOW SURE WE ARE</div>
+                  <div class="archive-detail-value">${convictionLabel(conviction)}</div>
                 </div>
                 <div class="archive-detail-item">
-                  <div class="archive-detail-label">IMPLIED ACTION</div>
+                  <div class="archive-detail-label">SUGGESTED ACTION</div>
                   <div class="archive-detail-value">${impliedAction}</div>
                 </div>
                 <div class="archive-detail-item">
@@ -7235,7 +7252,7 @@
         actions.push(`Duration: ${durationAction}.`);
         actions.push(`Credit: ${creditAction}.`);
         if (fiiNet !== null && fiiNet < -500) actions.push('FII equity outflows may pressure INR; watch import cost on credit portfolios.');
-        actions.push(`Conviction is ${conviction}. ${conviction === 'HIGH' ? 'Deploy duration extension decisively.' : 'Add only on confirmed spread opportunities.'}`);
+        actions.push(`How sure we are: ${convictionLabel(conviction)}. ${conviction === 'HIGH' ? 'Deploy duration extension decisively.' : 'Add only on confirmed spread opportunities.'}`);
         return actions.slice(0, 4);
       }
 
@@ -7244,7 +7261,7 @@
           : signal === 'WAIT' ? 'Maintain equity sleeve at neutral weight'
             : 'Reduce equity to below benchmark weight';
         const regimeLbl = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        actions.push(`Equity sleeve: ${equityAction}. ${conviction} conviction, ${isPro ? 'regime favourable' : 'defensive posture'}.`);
+        actions.push(`Equity portion: ${equityAction}. ${convictionLabel(conviction)}, ${isPro ? 'regime favourable' : 'defensive posture'}.`);
         if (favour1) actions.push(`Sector tilt: Favour ${favour1}${favour2 ? ` and ${favour2}` : ''} within equity sleeve.`);
         actions.push(`Gold: ${isDefen ? 'Add 5–8%; defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'}`);
         if (fiiLine) actions.push(fiiLine);
@@ -7609,9 +7626,9 @@
     /* ── LAYER 2: Inline Contextual Tooltips ── */
     const TIP_DATA = {
       conf: 'Confidence measures how strongly macro data supports the current regime, not a prediction of future returns. 65% means signals are aligned, not that returns are 65% certain.',
-      conviction: 'Conviction reflects how actionable the signal is. HIGH = clear alignment, deploy with full sizing. MEDIUM = directional but wait for confirmation. LOW = too noisy, hold positions.',
-      challenger: 'A challenger regime is an alternative macro state the data partially supports. If it crosses 45% confidence, Sentinel alerts you; the dominant regime may be shifting.',
-      'equity-bias': 'RISK_ON means equities have macro tailwinds; cyclicals and growth assets are favoured. RISK_OFF signals a defensive posture: reduce net equity, favour defensives.',
+      conviction: 'How Sure We Are reflects how actionable the signal is. Highly confident = clear alignment, deploy with full sizing. Reasonably sure = directional but wait for confirmation. Not yet — wait = too noisy, hold positions.',
+      challenger: 'An alternative read is an alternative macro state the data partially supports. If it crosses 45% confidence, Sentinel alerts you; the dominant regime may be shifting.',
+      'equity-bias': 'Favour Equity means equities have macro tailwinds; cyclicals and growth assets are favoured. Reduce Equity signals a defensive posture: reduce net equity, favour defensives.',
       carry: 'Carry Signal measures the yield gap between Indian and US 10-year bonds. A wide positive spread attracts FII inflows; narrowing or reversal tends to trigger FII outflows.',
       'act-signal': 'One-word decision prompt derived from regime and conviction. ACT = deploy capital now. WAIT = directional but hold for confirmation. HOLD = avoid new positions.',
       implied: 'The recommended portfolio action at the time of each analysis run. Compare across rows to see how the signal has shifted; three consecutive HOLD signals indicate genuine macro uncertainty.',
@@ -7802,30 +7819,30 @@
           'SUPPORTIVE':       'SUPPORT',
           'NEUTRAL':          'NEUTRAL',
           'NEGATIVE':         'NEGATIVE',
-          'FLAT_LATE_CYCLE':  'FLAT',
-          'STRONG_EXPANSION': 'STRONG',
+          'FLAT_LATE_CYCLE':  'Flat Rate Curve',
+          'STRONG_EXPANSION': 'Strong Growth',
           'EXPANSION':        'EXPAND',
           'MODERATE':         'MODERATE',
           'WEAK':             'WEAK',
           'FAIR_VALUE':       'FAIR',
-          'STRETCHED':        'STRETCH',
+          'STRETCHED':        'PRICY',
           'UNDERVALUED':      'CHEAP',
-          'LOW_FALLING':      'LOW↓',
-          'LOW_STABLE':       'LOW→',
-          'LOW_RISING':       'LOW↑',
+          'LOW_FALLING':      'Low, Falling',
+          'LOW_STABLE':       'Low, Stable',
+          'LOW_RISING':       'Low, Rising',
           'MODERATE_FALLING': 'MOD↓',
           'HIGH_RISING':      'HIGH↑',
-          'BUILDING':         'BUILD',
+          'BUILDING':         'GROWING',
           'STABLE':           'STABLE',
-          'CONTRACTING':      'CONTRA',
+          'CONTRACTING':      'SHRINK',
           'BUYING':           'BUYING',
           'SELLING':          'SELLING',
           'TIGHT':            'TIGHT',
           'WIDE':             'WIDE',
           'VERY_WIDE':        'V.WIDE',
-          'EXPANSIONARY':     'EXPAND',
-          'MODERATE_GROWTH':  'MOD GR',
-          'CONTRACTION':      'CONTRA',
+          'EXPANSIONARY':     'HEALTHY',
+          'MODERATE_GROWTH':  'MODERATE',
+          'CONTRACTION':      'SHRINK',
           'SLOWDOWN':         'SLOW',
         };
         return map[label] || label.slice(0, 7);
@@ -7844,11 +7861,28 @@
           'CREDIT IMPULSE':       'CREDIT',
           'FII TREND (7D)':       'FII TREND',
           'CREDIT SPREAD':        'SPREAD',
-          'IS_LM_COMPOSITE':      'IS-LM',
+          'IS-LM COMPOSITE':      'Economy Health',
           'CREDIT_SPREAD':        'SPREAD',
         };
         return map[name.toUpperCase()]
           || name.split(' ').slice(0, 2).join(' ');
+      }
+
+      // Full-length display name for the expand panel title — plain
+      // English for indicators whose real name is still technical.
+      function displayIndicatorName(name) {
+        if (name.toUpperCase() === 'IS-LM COMPOSITE') return 'Economy Health';
+        return name;
+      }
+
+      // Plain-English translation for the raw signal value shown in
+      // the expand panel (separate from the short dot label above).
+      function displaySignalValue(label) {
+        const map = {
+          'EXPANSIONARY':    'EXPANDING',
+          'MODERATE_GROWTH': 'MODERATE',
+        };
+        return map[label] || label.replace(/_/g, ' ');
       }
 
       // Track expanded cell (reset on every render)
@@ -7912,9 +7946,9 @@
           }
 
           expandDiv.innerHTML = `
-            <div class="signal-dot-expand-title">${name}</div>
+            <div class="signal-dot-expand-title">${displayIndicatorName(name)}</div>
             <div class="signal-dot-expand-value" style="color:${colors.text}">
-              ${label.replace(/_/g, ' ')} &nbsp;·&nbsp; ${pct}%
+              ${displaySignalValue(label)} &nbsp;·&nbsp; ${pct}%
             </div>
             <div class="signal-dot-expand-sub">${sub}</div>
           `;
