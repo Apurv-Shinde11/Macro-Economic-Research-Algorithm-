@@ -4066,6 +4066,43 @@
         <div class="freshness-dot fresh" id="freshnessDot"></div>
         <span id="freshnessText">No runs yet</span>
       </div>
+      <div class="sentinel-greeting"
+           id="sentinelGreeting"
+           style="
+             margin-bottom: 16px;
+             padding: 12px 16px;
+             border-radius: 10px;
+             background: var(--bg-2);
+             border: 1px solid
+               var(--border);
+           ">
+        <div style="
+          font-family: var(--font-sans);
+          font-size: 13px;
+          color: var(--text-2);
+          margin-bottom: 4px;
+          letter-spacing: 0.01em;
+        " id="greetingText">
+          Good morning.
+        </div>
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        ">
+          <span style="
+            font-size: 16px;
+          " id="streakIcon">🔥</span>
+          <span style="
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-3);
+            letter-spacing: 0.08em;
+          " id="streakText">
+            Loading...
+          </span>
+        </div>
+      </div>
       <button class="run-btn" id="runBtn"><span>▶</span> Run Intelligence Engine</button>
 
       <div class="sidebar-section">
@@ -5054,6 +5091,7 @@
       _session = session; _token = session.access_token;
       initOnboarding();
       await loadProfile(); await loadDashboard(); loadFiiHistory(); await loadTicker(); await loadYieldCurve(); await loadCalendar();
+      initGreeting();
       loadActivitySignals();
       initFiiDiiChart();
       const _tickerInterval = setInterval(() => { if (!document.hidden) loadTicker(); }, 300000);
@@ -5115,6 +5153,100 @@
       } catch (e) { console.error('Dashboard load failed:', e); }
     }
 
+    function initGreeting() {
+      // Time-aware greeting
+      const hour = new Date().getHours();
+      let greeting;
+      if (hour >= 5 && hour < 12) {
+        greeting = "Good morning.";
+      } else if (hour >= 12 && hour < 17) {
+        greeting = "Good afternoon.";
+      } else if (hour >= 17 && hour < 21) {
+        greeting = "Good evening.";
+      } else {
+        greeting = "Working late.";
+      }
+
+      const greetingEl = document.getElementById('greetingText');
+      if (greetingEl) {
+        greetingEl.textContent = greeting;
+      }
+
+      computeStreak();
+    }
+
+    function computeStreak() {
+      // Streak is derived from _lastHistory (already fetched by
+      // loadDashboard() on page load, and refreshed by pollJob()
+      // after each run) rather than issuing a separate query.
+      try {
+        if (!_lastHistory || _lastHistory.length === 0) {
+          setStreakDisplay(0);
+          return;
+        }
+
+        // Group runs by calendar date
+        const runDates = new Set(
+          _lastHistory
+            .filter(r => r.run_at)
+            .map(r => new Date(r.run_at).toISOString().slice(0, 10))
+        );
+
+        // Count consecutive days ending today or yesterday
+        let streak = 0;
+        const today = new Date();
+
+        for (let i = 0; i < 60; i++) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().slice(0, 10);
+
+          if (runDates.has(dateStr)) {
+            streak++;
+          } else if (i === 0) {
+            // Haven't run today yet — check if ran yesterday
+            continue;
+          } else {
+            // Gap found — streak ends
+            break;
+          }
+        }
+
+        setStreakDisplay(streak);
+
+      } catch (e) {
+        console.error('Streak error:', e);
+        setStreakDisplay(0);
+      }
+    }
+
+    function setStreakDisplay(streak) {
+      const streakEl = document.getElementById('streakText');
+      const iconEl = document.getElementById('streakIcon');
+
+      if (!streakEl) return;
+
+      if (streak === 0) {
+        streakEl.textContent = 'Run Sentinel to start your streak';
+        if (iconEl) iconEl.textContent = '⚡';
+      } else if (streak === 1) {
+        streakEl.textContent = '1 day streak — come back tomorrow';
+        if (iconEl) iconEl.textContent = '🔥';
+      } else if (streak < 5) {
+        streakEl.textContent = `${streak} day streak — building momentum`;
+        if (iconEl) iconEl.textContent = '🔥';
+      } else if (streak < 10) {
+        streakEl.textContent = `${streak} day streak — strong habit`;
+        if (iconEl) iconEl.textContent = '🔥';
+      } else if (streak < 20) {
+        streakEl.textContent = `${streak} day streak — impressive consistency`;
+        if (iconEl) iconEl.textContent = '🔥';
+      } else {
+        streakEl.textContent = `${streak} day streak — exceptional`;
+        if (iconEl) iconEl.textContent = '🏆';
+      }
+    }
+
     async function api(path, options = {}) {
       const res = await fetch(RAILWAY_URL + path, {
         ...options,
@@ -5164,6 +5296,9 @@
             renderHistoryTable(freshArr);
             renderConfidenceSparkline(freshArr);
             renderConfArrow(freshArr);
+            // Refresh streak after run — uses the just-refreshed
+            // _lastHistory so today's run counts immediately
+            computeStreak();
           } else if (res.status === 'failed') {
             clearInterval(_pollTimer); showToast('Analysis error: ' + (res.error || 'Try running again.'), 'error');
             resetRunBtn(); document.getElementById('runStatus').classList.remove('visible');
