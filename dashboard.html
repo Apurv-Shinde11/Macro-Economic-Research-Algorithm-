@@ -4339,38 +4339,6 @@
         </div>
       </div>
 
-      <!-- FEATURE 7: Decision Prompt Card -->
-      <div class="decision-prompt" id="decisionPrompt">
-        <div class="decision-prompt-title">What To Do Today</div>
-        <div class="decision-prompt-rows">
-          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
-              id="dpAction">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Why</span><span class="dp-value"
-              id="dpRationale">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Watch Out For</span><span class="dp-value"
-              id="dpWatchpoint">—</span></div>
-        </div>
-      </div>
-
-      <!-- What Changed Delta Card -->
-      <div class="delta-card" id="deltaCard" style="display:none;">
-        <div class="delta-header">
-          <div class="delta-header-left">
-            <span class="delta-eyebrow">Since Yesterday</span>
-            <span class="delta-headline" id="deltaHeadline">—</span>
-          </div>
-          <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
-        </div>
-        <div class="delta-changes" id="deltaChanges"></div>
-        <div class="delta-watch" id="deltaWatch" style="display:none;">
-          <div class="delta-watch-title">Coming Up</div>
-          <div class="delta-watch-items" id="deltaWatchItems"></div>
-        </div>
-      </div>
-
-      <!-- Anticipatory Signal Card -->
-      <div class="anticipatory-card" id="anticipatoryCard" style="display:none;"></div>
-
       <!-- LAYER 1: First-run onboarding card -->
       <div class="onboarding-card" id="onboardingCard">
         <div class="onboarding-icon">📡</div>
@@ -4497,46 +4465,122 @@
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Loading market data...</span>
       </div>
 
-      <!-- India Activity Signals Strip -->
-      <div class="activity-strip" id="activityStrip">
-        <div class="activity-strip-header">
-          <span class="activity-strip-title">How India's Real Economy Is Doing</span>
-          <span class="activity-composite" id="activityComposite">—</span>
+      <!-- FEATURE 7: Decision Prompt Card -->
+      <div class="decision-prompt" id="decisionPrompt">
+        <div class="decision-prompt-title">What To Do Today</div>
+        <div class="decision-prompt-rows">
+          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
+              id="dpAction">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Why</span><span class="dp-value"
+              id="dpRationale">—</span></div>
+          <div class="decision-prompt-row"><span class="dp-label">Watch Out For</span><span class="dp-value"
+              id="dpWatchpoint">—</span></div>
         </div>
-        <div class="activity-cards">
-          <div class="activity-card">
-            <div class="activity-card-label">GST Collections</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Tax collections — higher = stronger economy</div>
-            <div class="activity-card-period" id="actGstPeriod">—</div>
-            <div class="activity-card-value" id="actGstValue">—</div>
-            <div class="activity-card-yoy" id="actGstYoy">—</div>
-            <div class="activity-card-signal" id="actGstSignal">—</div>
-          </div>
-          <div class="activity-card">
-            <div class="activity-card-label">Auto Sales</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Vehicle sales — a real economy indicator</div>
-            <div class="activity-card-period" id="actAutoPeriod">—</div>
-            <div class="activity-card-value" id="actAutoValue">—</div>
-            <div class="activity-card-yoy" id="actAutoYoy">—</div>
-            <div class="activity-card-signal" id="actAutoSignal">—</div>
-          </div>
-          <div class="activity-card">
-            <div class="activity-card-label">Bank Credit</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">How much banks are lending — higher = more economic activity</div>
-            <div class="activity-card-period" id="actCreditPeriod">—</div>
-            <div class="activity-card-value" id="actCreditValue">—</div>
-            <div class="activity-card-yoy" id="actCreditYoy">—</div>
-            <div class="activity-card-signal" id="actCreditSignal">—</div>
-          </div>
-          <div class="activity-card" id="iipCard">
-            <div class="activity-card-label">Industrial Production (IIP)</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Monthly output — govt measure of industrial activity</div>
-            <div class="activity-card-period" id="actIipPeriod">—</div>
-            <div class="activity-card-value" id="actIipValue">—</div>
-            <div class="activity-card-yoy" id="actIipYoy"></div>
-            <div class="activity-card-signal" id="actIipSignal">—</div>
+      </div>
+
+      <div class="section-header">
+        <span class="section-title">Today's Playbook</span>
+        <span class="section-meta" id="convictionMeta">—</span>
+      </div>
+      <div class="playbook-card">
+        <div class="playbook-items" id="playbookItems">
+          <div class="empty-state">
+            <div class="empty-state-icon">🎯</div>
+            <div class="empty-state-title">No intelligence yet</div>
+            <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio
+              playbook.</div>
           </div>
         </div>
+      </div>
+
+      <!-- FEATURE 11: What This Means For You -->
+      <div class="wtmfy-card" id="wtmfyCard">
+        <div class="wtmfy-header">
+          <span class="wtmfy-title" id="wtmfyTitle">What This Means For You</span>
+          <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
+        </div>
+        <div class="wtmfy-body" id="wtmfyBody">—</div>
+        <div class="wtmfy-divider" id="wtmfyDivider" style="display:none"></div>
+        <div class="wtmfy-actions" id="wtmfyActions"></div>
+      </div>
+
+      <!-- What Changed Delta Card -->
+      <div class="delta-card" id="deltaCard" style="display:none;">
+        <div class="delta-header">
+          <div class="delta-header-left">
+            <span class="delta-eyebrow">Since Yesterday</span>
+            <span class="delta-headline" id="deltaHeadline">—</span>
+          </div>
+          <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
+        </div>
+        <div class="delta-changes" id="deltaChanges"></div>
+        <div class="delta-watch" id="deltaWatch" style="display:none;">
+          <div class="delta-watch-title">Coming Up</div>
+          <div class="delta-watch-items" id="deltaWatchItems"></div>
+        </div>
+      </div>
+
+      <!-- Anticipatory Signal Card -->
+      <div class="anticipatory-card" id="anticipatoryCard" style="display:none;"></div>
+
+      <div class="divider"></div>
+
+      <div class="section-header"><span class="section-title">What Could Happen Next</span></div>
+
+      <div class="scenario-visual" id="scenarioVisual">
+        <div class="scenario-prob-bars">
+          <div class="scenario-prob-bar-row" id="scenarioProbBase">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-baseline"></span>
+              <span>Base Case</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBase">—</div>
+          </div>
+          <div class="scenario-prob-bar-row" id="scenarioProbBull">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-bullish"></span>
+              <span>Growth Upside</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBull">—</div>
+          </div>
+          <div class="scenario-prob-bar-row" id="scenarioProbBear">
+            <div class="scenario-prob-bar-label">
+              <span class="scenario-prob-dot dot-bearish"></span>
+              <span>External Shock</span>
+            </div>
+            <div class="scenario-prob-bar-track">
+              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear"></div>
+            </div>
+            <div class="scenario-prob-bar-pct" id="pctBear">—</div>
+          </div>
+        </div>
+        <div class="scenario-dominant" id="scenarioDominant">
+          <div class="scenario-dominant-label">MOST LIKELY SCENARIO</div>
+          <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
+          <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
+        </div>
+      </div>
+
+      <div class="scenario-grid" id="scenarioGrid">
+        <div class="scenario-card base" data-expanded="false" onclick="toggleScenarioCard(this)">
+          <div class="scenario-card-header">
+            <div class="scenario-name">Awaiting Run</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="scenario-prob" style="font-size:11px;color:var(--text-3)">—%</span>
+              <span class="scenario-card-toggle">›</span>
+            </div>
+          </div>
+          <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
+        </div>
+      </div>
+      <div class="scenario-ca-note">
+        For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
       </div>
 
       <!-- Signal Intelligence Card -->
@@ -4624,94 +4668,6 @@
       <div class="divider"></div>
 
       <div class="section-header">
-        <span class="section-title">Today's Playbook</span>
-        <span class="section-meta" id="convictionMeta">—</span>
-      </div>
-      <div class="playbook-card">
-        <div class="playbook-items" id="playbookItems">
-          <div class="empty-state">
-            <div class="empty-state-icon">🎯</div>
-            <div class="empty-state-title">No intelligence yet</div>
-            <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio
-              playbook.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- FEATURE 11: What This Means For You -->
-      <div class="wtmfy-card" id="wtmfyCard">
-        <div class="wtmfy-header">
-          <span class="wtmfy-title" id="wtmfyTitle">What This Means For You</span>
-          <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
-        </div>
-        <div class="wtmfy-body" id="wtmfyBody">—</div>
-        <div class="wtmfy-divider" id="wtmfyDivider" style="display:none"></div>
-        <div class="wtmfy-actions" id="wtmfyActions"></div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="section-header"><span class="section-title">What Could Happen Next</span></div>
-
-      <div class="scenario-visual" id="scenarioVisual">
-        <div class="scenario-prob-bars">
-          <div class="scenario-prob-bar-row" id="scenarioProbBase">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-baseline"></span>
-              <span>Base Case</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBase">—</div>
-          </div>
-          <div class="scenario-prob-bar-row" id="scenarioProbBull">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-bullish"></span>
-              <span>Growth Upside</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBull">—</div>
-          </div>
-          <div class="scenario-prob-bar-row" id="scenarioProbBear">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-bearish"></span>
-              <span>External Shock</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBear">—</div>
-          </div>
-        </div>
-        <div class="scenario-dominant" id="scenarioDominant">
-          <div class="scenario-dominant-label">MOST LIKELY SCENARIO</div>
-          <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
-          <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
-        </div>
-      </div>
-
-      <div class="scenario-grid" id="scenarioGrid">
-        <div class="scenario-card base" data-expanded="false" onclick="toggleScenarioCard(this)">
-          <div class="scenario-card-header">
-            <div class="scenario-name">Awaiting Run</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="scenario-prob" style="font-size:11px;color:var(--text-3)">—%</span>
-              <span class="scenario-card-toggle">›</span>
-            </div>
-          </div>
-          <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
-        </div>
-      </div>
-      <div class="scenario-ca-note">
-        For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="section-header">
         <span class="section-title">Where To Invest Right Now</span>
         <span class="section-meta" id="heatmapMeta">Based on current regime</span>
       </div>
@@ -4727,8 +4683,6 @@
           ↑ Portfolio overweight / underweight signals; not buy/sell recommendations
         </div>
       </div>
-
-      <div class="divider"></div>
 
       <div class="section-header">
         <span class="section-title">How This Environment Has Performed In The Past</span>
@@ -4768,6 +4722,48 @@
         <div style="margin-top:16px;position:relative;height:160px;"><canvas id="fiiDiiChart"></canvas></div>
         <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
         <div class="flow-context" id="flowContext"></div>
+      </div>
+
+      <!-- India Activity Signals Strip -->
+      <div class="activity-strip" id="activityStrip">
+        <div class="activity-strip-header">
+          <span class="activity-strip-title">How India's Real Economy Is Doing</span>
+          <span class="activity-composite" id="activityComposite">—</span>
+        </div>
+        <div class="activity-cards">
+          <div class="activity-card">
+            <div class="activity-card-label">GST Collections</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Tax collections — higher = stronger economy</div>
+            <div class="activity-card-period" id="actGstPeriod">—</div>
+            <div class="activity-card-value" id="actGstValue">—</div>
+            <div class="activity-card-yoy" id="actGstYoy">—</div>
+            <div class="activity-card-signal" id="actGstSignal">—</div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-card-label">Auto Sales</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Vehicle sales — a real economy indicator</div>
+            <div class="activity-card-period" id="actAutoPeriod">—</div>
+            <div class="activity-card-value" id="actAutoValue">—</div>
+            <div class="activity-card-yoy" id="actAutoYoy">—</div>
+            <div class="activity-card-signal" id="actAutoSignal">—</div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-card-label">Bank Credit</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">How much banks are lending — higher = more economic activity</div>
+            <div class="activity-card-period" id="actCreditPeriod">—</div>
+            <div class="activity-card-value" id="actCreditValue">—</div>
+            <div class="activity-card-yoy" id="actCreditYoy">—</div>
+            <div class="activity-card-signal" id="actCreditSignal">—</div>
+          </div>
+          <div class="activity-card" id="iipCard">
+            <div class="activity-card-label">Industrial Production (IIP)</div>
+            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Monthly output — govt measure of industrial activity</div>
+            <div class="activity-card-period" id="actIipPeriod">—</div>
+            <div class="activity-card-value" id="actIipValue">—</div>
+            <div class="activity-card-yoy" id="actIipYoy"></div>
+            <div class="activity-card-signal" id="actIipSignal">—</div>
+          </div>
+        </div>
       </div>
 
       <div class="divider"></div>
