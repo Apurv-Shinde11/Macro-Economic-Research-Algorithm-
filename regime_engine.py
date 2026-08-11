@@ -1572,6 +1572,17 @@ class MacroRegimeEngine:
         reasoning      = intel.get("reasoning",              "")
         provider       = intel.get("provider",               "none")
 
+        # IS-LM composite from main_api
+        islm_data  = intel.get(
+            "islm_composite", {}
+        ) or {}
+        islm_score = islm_data.get(
+            "islm_score"
+        )
+        islm_regime = islm_data.get(
+            "regime"
+        )
+
         repo      = self._safe_float(hard_data.get("repo_rate",      6.5),  6.5)
         inflation = self._safe_float(hard_data.get("cpi",            5.0),  5.0)
         growth    = self._safe_float(hard_data.get("gdp_growth",     7.2),  7.2)
@@ -1832,6 +1843,8 @@ class MacroRegimeEngine:
                     credit_spread_signal = intel.get("credit_spread", {}).get("signal")
                                           if isinstance(intel.get("credit_spread"), dict)
                                           else None,
+                    islm_score  = islm_score,
+                    islm_regime = islm_regime,
                 )
             leading_adj = round(
                 max(-0.05, min(0.05,
