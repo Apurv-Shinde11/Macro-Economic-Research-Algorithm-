@@ -4774,7 +4774,7 @@
         <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
         <div class="signal-grid" id="signalGrid"></div>
         <div class="signal-intel-footer">
-          This score combines nine live checks on the Indian economy. Higher means more conditions are supportive for investing.
+          This score combines eleven live checks on the Indian economy. Higher means more conditions are supportive for investing.
         </div>
       </div>
 
@@ -7866,7 +7866,12 @@
         const label  = sig.signal || '';
         const name   = sig.indicator || '';
         const indKey = name.toUpperCase();
-        const sub    = _SIG_SUBTITLES[indKey] || '';
+        const sub    = _SIG_SUBTITLES[indKey]
+          || sig.subtitle
+          || sig.description
+          || (sig.score !== undefined
+            ? `Score: ${Math.round(sig.score * 100)}% — ${label.replace(/_/g, ' ')}`
+            : '');
 
         const cell = document.createElement('div');
         cell.className = 'signal-dot-cell';
