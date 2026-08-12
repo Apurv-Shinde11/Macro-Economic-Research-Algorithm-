@@ -4417,16 +4417,16 @@
           </div>
           <div class="guide-section">
             <div class="guide-section-title">Acting on Conviction</div>
-            <div class="guide-section-body"><strong>HIGH conviction + ACT:</strong> deploy with full sizing into
-              regime-appropriate assets. <strong>MEDIUM + WAIT:</strong> selective additions only; avoid high-beta
-              bets. <strong>LOW conviction:</strong> hold existing positions, raise cash buffer, do not initiate new
-              risk. Never fight the conviction level.</div>
+            <div class="guide-section-body"><strong>HIGH confidence + ACT:</strong> add to your clients' investments
+              now — conditions are strongly supportive. <strong>MEDIUM + WAIT:</strong> make small changes only; avoid
+              aggressive moves until confidence improves. <strong>LOW confidence:</strong> hold existing positions,
+              raise cash buffer, do not initiate new risk. Never fight the confidence level.</div>
           </div>
           <div class="guide-section">
             <div class="guide-section-title">Reading the Archive</div>
             <div class="guide-section-body">The Historical Archive logs every regime call with its Suggested Action and
-              Outcome. Compare action columns across rows. Three consecutive LOW-conviction HOLD signals means macro
-              conditions are genuinely unclear. Use it to calibrate your confidence in the current read.</div>
+              Outcome. Look at the Suggested Action column across rows. Three consecutive LOW confidence HOLD readings
+              means the market conditions are genuinely unclear. Use it to calibrate your confidence in the current read.</div>
           </div>
           <div class="guide-section">
             <div class="guide-section-title">When Conditions Change</div>
@@ -4465,12 +4465,12 @@
           <div class="onboarding-step">
             <div class="onboarding-step-num">What is Sentinel?</div>
             <div class="onboarding-step-text">A macro reading engine that analyses real-time data and classifies the
-              investment climate; you'll know whether to deploy, wait, or protect capital.</div>
+              investment environment; you'll know whether to invest more, stay put, or play it safe.</div>
           </div>
           <div class="onboarding-step">
             <div class="onboarding-step-num">What is a Regime?</div>
             <div class="onboarding-step-text">Think of it like a season. A <strong>Liquidity Driven Expansion</strong>
-              is like summer: deploy capital. A <strong>Monetary Tightening</strong> is like monsoon: take cover.
+              is like summer: a good time to invest. A <strong>Rising Rates</strong> environment is like monsoon: time to be careful.
               Sentinel tells you which season you're in.</div>
           </div>
           <div class="onboarding-step">
@@ -5729,8 +5729,9 @@
         ? `<div class="anticipatory-signals">${(ant.supporting_signals || [])
             .map(s => `<span class="ant-sig">${s}</span>`).join('')}</div>`
         : '';
+      const typeLabel = ant.type === 'DEPLOYMENT_WINDOW' ? 'GOOD TIME TO ACT' : (ant.type || '').replace(/_/g, ' ');
       antEl.innerHTML = `
-        <div class="anticipatory-header" style="color:${color}">${(ant.type || '').replace(/_/g, ' ')}</div>
+        <div class="anticipatory-header" style="color:${color}">${typeLabel}</div>
         <div class="anticipatory-message">${ant.message || ''}</div>
         <div class="anticipatory-action">→ ${ant.action || ''}</div>
         ${sigsHtml}
@@ -5745,13 +5746,13 @@
       const REGIME_PLAYBOOKS = {
         "LIQUIDITY_DRIVEN_EXPANSION": {
           HIGH: [
-            "Equity: Deploy aggressively into regime-appropriate sectors",
+            "Equity: Invest confidently in the sectors that suit today's conditions",
             "Overweight Banking, Infrastructure, Real Estate, Auto",
-            "Reduce cash buffer to 5–8%; conditions support deployment",
+            "Keep minimal cash — conditions support being invested",
             "Extend bond duration modestly; liquidity supports rates",
           ],
           MEDIUM: [
-            "Equity: Selective large-cap additions; no broad deployment yet",
+            "Equity: Selective large-cap additions; not the time for large new investments yet",
             "Increase allocation modestly (5–10% toward risk assets)",
             "Favour large-cap over mid/small-cap until conviction firms",
             "Keep cash buffer at 10–12%; do not reduce below this level",
@@ -5760,7 +5761,7 @@
             "Equity: Reduce to underweight; raise cash buffer",
             "Debt: Short duration, G-Sec preferred over corporate credit",
             "Gold: Add 3–5% as safe-haven hedge",
-            "Wait for 2 consecutive MEDIUM+ runs before any deployment",
+            "Wait for 2 consecutive confident readings before investing more",
           ],
         },
         "MONETARY_TIGHTENING": {
@@ -5774,13 +5775,13 @@
             "Equity: Reduce to below benchmark weight; defensives only",
             "Debt: Short duration strongly preferred; avoid long G-Sec",
             "Gold: Add 5–8% allocation; rate uncertainty warrants hedge",
-            "Cash: Build to 15–20%; deploy only when RBI signals pivot",
+            "Build cash to 15–20%; wait for RBI to change direction before investing more",
           ],
           LOW: [
             "Equity: Minimum weight across all sleeves",
             "Debt: Cash and overnight instruments only",
             "Gold: Maximum structural allocation",
-            "Do not deploy until regime confirms MEDIUM conviction",
+            "Wait until the system is more confident before acting",
           ],
         },
         "STABLE_GROWTH": {
@@ -5791,7 +5792,7 @@
             "Focus on stock selection and quality over macro positioning",
           ],
           MEDIUM: [
-            "Equity: Maintain equity sleeve at neutral weight",
+            "Equity: Maintain equity portion at neutral weight",
             "Balanced G-Sec and corporate credit; neutral duration",
             "Gold: Hold structural 5% allocation",
             "No urgent macro trade; focus on quality and valuation",
@@ -5808,7 +5809,7 @@
             "Equity: Aggressively add; best entry point in the cycle",
             "Overweight rate-sensitives: Banks, Real Estate, Auto",
             "Extend bond duration; rate cuts ahead will boost prices",
-            "Reduce cash buffer; deploy toward risk assets decisively",
+            "Reduce cash buffer; invest more in growth assets with confidence",
           ],
           MEDIUM: [
             "Equity: Add selectively to rate-sensitive sectors",
@@ -5818,23 +5819,23 @@
           ],
           LOW: [
             "Equity: Small additions only; confirm recovery first",
-            "Watch for second consecutive MEDIUM+ run before deploying",
+            "Wait for a second confident reading before making changes",
             "Debt: Begin extending duration gradually",
             "Keep most cash ready; early cycle can reverse quickly",
           ],
         },
         "GROWTH_SLOWDOWN_SUPPORT": {
           HIGH: [
-            "Equity: Significant underweight; reduce cyclicals",
+            "Equity: Hold much less than usual; reduce economy-sensitive stocks",
             "Defensives only: FMCG, Pharma, IT exporters",
             "Debt: Extend duration; rate cuts likely ahead",
             "Build cash buffer to 15%; wait for growth stabilisation",
           ],
           MEDIUM: [
-            "Equity: Underweight; reduce cyclical exposure",
+            "Equity: Underweight; reduce economy-sensitive stock exposure",
             "Shift toward defensives and quality",
             "Debt: Neutral to long duration",
-            "Cash buffer at 12–15%; cautious deployment",
+            "Keep 12–15% in cash; invest only very carefully",
           ],
           LOW: [
             "Equity: Minimum weight; maximum caution",
@@ -5848,7 +5849,7 @@
             "Equity: Minimum weight; most challenging macro environment",
             "Hard assets: Gold and commodities; maximum overweight",
             "IT and Pharma: Only equity exposure worth maintaining",
-            "Avoid ALL domestic cyclicals entirely",
+            "Avoid all economy-sensitive Indian stocks entirely",
           ],
           MEDIUM: [
             "Equity: Well below benchmark; defensives and exporters only",
@@ -5857,7 +5858,7 @@
             "IT, Pharma, Gold: The only three allocations to hold",
           ],
           LOW: [
-            "Equity: Exit all cyclicals immediately",
+            "Equity: Move out of economy-sensitive stocks now",
             "Maximum gold and commodity exposure",
             "Cash in hard currency; INR at risk",
             "Wait for either inflation or growth signal to resolve",
@@ -5880,7 +5881,7 @@
             "Equity: Minimum weight",
             "Gold: Maximum allocation",
             "Cash in short-duration instruments only",
-            "Do not deploy until inflation shows two consecutive monthly declines",
+            "Wait until inflation has fallen for two months in a row before investing more",
           ],
         },
         "LIQUIDITY_TIGHTENING": {
@@ -5919,10 +5920,10 @@
         const _rgBookL = REGIME_PLAYBOOKS[regimeKey] || REGIME_PLAYBOOKS["STABLE_GROWTH"];
         const _lowPlays = _rgBookL["LOW"] || _rgBookL["MEDIUM"] || [];
         items.innerHTML = (_lowPlays.length ? _lowPlays : [
-          'Hold existing positions; do not add aggressively until conviction builds',
+          'Hold existing positions; do not add aggressively until confidence builds',
           'Maintain higher cash buffer (15–20%)',
-          'Avoid initiating new high-beta or mid/small-cap positions',
-          'Watch for 2 consecutive MEDIUM+ conviction runs before deploying',
+          'Do not start new aggressive or small-cap positions',
+          'Wait for 2 consecutive confident readings before making changes',
           'Reduce leverage-sensitive exposure'
         ]).map(p => _mkItem(p, false)).join('');
         return;
@@ -5973,7 +5974,7 @@
       }
       if (mandate === 'balanced') {
         if (conviction === 'HIGH') return [
-          'Equity portion: Tilt toward cyclicals and rate-sensitives per regime; deployment warranted',
+          'Equity portion: Tilt toward economy-sensitive stocks and rate-sensitives per regime; investing more makes sense here',
           'Fixed income: Short-to-medium corporate credit for yield pickup alongside equities'
         ];
         if (conviction === 'MEDIUM') return [
@@ -5987,14 +5988,14 @@
       }
       if (mandate === 'multi_asset') {
         if (conviction === 'HIGH') return [
-          'Equity: Deploy into cyclicals; Nifty Bank, auto, and rate-sensitives have regime tailwinds',
+          'Equity: Invest more in economy-sensitive stocks; Nifty Bank, auto, and rate-sensitives have regime tailwinds',
           'Debt: Short-duration corporate credit; spread compression play in current regime',
           'Gold: Maintain 5% structural; trim only if regime sustains HIGH for 3+ consecutive weeks',
           'INR: Strengthening bias; reduce USD hedge on import-cost exposure',
           'International: Reduce EM hedges; India outperformance likely in confirmed bull regime'
         ];
         if (conviction === 'MEDIUM') return [
-          'Equity: Selective large-cap additions; no broad deployment yet',
+          'Equity: Selective large-cap additions; not the time for large new investments yet',
           'Debt: Balanced G-Sec and corporate credit; neutral duration',
           'Gold: Hold structural 5%; no change at MEDIUM conviction',
           'INR: Partial hedge only; maintain existing coverage'
@@ -6019,7 +6020,7 @@
         ];
         // NEUTRAL equity_bias
         return [
-          'Equity: Hold current allocation; avoid new lump-sum deployment until conviction improves',
+          'Equity: Hold current allocation; avoid new lump-sum investments until confidence improves',
           'Debt: Short-to-medium duration; avoid credit risk in LOW conviction environment',
           'Gold: Hold structural 5% as hedge',
           'INR: Maintain existing hedge coverage',
@@ -6883,13 +6884,13 @@
     /* ── FIX 5: Regime bridge "So What" mappings ── */
     const REGIME_BRIDGE_MAP = {
       'LIQUIDITY_DRIVEN_EXPANSION': {
-        equity: 'Favour large-cap cyclicals, financials, and rate-sensitives; trim defensives',
+        equity: 'Favour large-cap economy-sensitive stocks, financials, and rate-sensitives; trim defensives',
         debt: 'Prefer short-to-medium duration; reduce G-Sec, add corporate credit on spread compression',
         currency: 'INR strengthening bias; reduce USD hedge on import exposure',
         risk: 'Watch for RBI liquidity withdrawal or sustained FII reversal as regime exit signal'
       },
       'STABLE_GROWTH': {
-        equity: 'Broad market participation; tilt quality growth and selective mid-caps; avoid deep cyclicals',
+        equity: 'Broad market participation; tilt quality growth and selective mid-caps; avoid deeply economy-sensitive stocks',
         debt: 'Neutral duration; balanced G-Sec and corporate credit mix',
         currency: 'INR range-bound; modest hedge on significant USD or import exposure only',
         risk: 'Monitor for inflation acceleration above 5.5% or external shock triggering regime shift'
@@ -6901,7 +6902,7 @@
         risk: 'RBI pause signal or CPI sub-4.5% for 2 consecutive prints to trigger regime pivot'
       },
       'EXTERNAL_SHOCK': {
-        equity: 'Reduce net equity exposure; raise cash buffer; rotate from cyclicals to defensives',
+        equity: 'Reduce net equity exposure; raise cash buffer; rotate from economy-sensitive stocks to defensives',
         debt: 'Flight-to-quality: hold short-duration G-Sec; avoid HY credit and lower-rated corporate paper',
         currency: 'INR vulnerable; maximum USD hedge; monitor crude import cost pressure on CAD',
         risk: 'Crude below $85, VIX below 18, and sustained FII inflow for 5+ sessions for normalisation'
@@ -6919,13 +6920,13 @@
         risk: 'CPI decline sustained below 5% plus GDP uptick required; watch for policy error risk'
       },
       'EARLY_CYCLE_RECOVERY': {
-        equity: 'Overweight cyclicals and small-caps; add rate-sensitives on first sign of RBI pivot',
+        equity: 'Overweight economy-sensitive stocks and small-caps; add rate-sensitives on first sign of RBI pivot',
         debt: 'Begin extending duration; lock in higher yields before rate cuts compress spreads',
         currency: 'INR recovery likely; reduce defensive USD allocation',
         risk: 'Premature tightening or global risk-off that derails recovery momentum'
       },
       'GROWTH_SLOWDOWN_SUPPORT': {
-        equity: 'Defensive tilt; healthcare, staples, and dividend-paying quality; underweight cyclicals',
+        equity: 'Defensive tilt; healthcare, staples, and dividend-paying quality; underweight economy-sensitive stocks',
         debt: 'Moderate duration extension; G-Sec over corporate credit given spread risk',
         currency: 'INR flat to weak; partial hedge on USD-denominated liabilities',
         risk: 'Further growth deterioration or RBI inability to ease due to inflation constraints'
@@ -6933,13 +6934,13 @@
     };
 
     const _CONSERVATIVE_IMPLICATIONS = {
-      equity: 'Maintain existing allocation; do not chase cyclical momentum',
+      equity: 'Maintain existing allocation; do not chase short-term economy-sensitive momentum',
       debt: 'Hold short duration, prioritise capital preservation over yield',
       currency: 'Maintain full USD hedge; do not reduce import cover',
       risk: 'Exit trigger is any single adverse signal; do not wait for confirmation'
     };
     const _AGGRESSIVE_IMPLICATIONS = {
-      equity: 'Add aggressively to cyclicals and high-beta; this is the optimal deployment window',
+      equity: 'Add aggressively to economy-sensitive stocks and other aggressive or volatile investments; this is the best time to invest',
       debt: 'Reduce duration defensiveness; move toward credit and spread compression plays',
       currency: 'Reduce USD hedge; INR strength bias supports unhedged exposure',
       risk: 'Regime exit requires 2+ consecutive confirming adverse signals before defensive repositioning'
@@ -7035,7 +7036,7 @@
       const key = (regimeKey || '').toUpperCase();
       if (conv === 'LOW') return 'Hold current positions';
       if (_DEF_REGIMES.has(key)) return 'Reduce risk exposure';
-      if (conv === 'HIGH' && _PRO_REGIMES.has(key)) return 'Deploy: high conviction window';
+      if (conv === 'HIGH' && _PRO_REGIMES.has(key)) return 'Invest more — conditions are strongly supportive';
       if (conv === 'MEDIUM' && _PRO_REGIMES.has(key)) return 'Selectively add to risk assets';
       return 'Monitor and hold';
     }
@@ -7138,7 +7139,7 @@
       document.getElementById('wtmfyBadge').textContent =
         [mandate || 'general', riskTol || ''].filter(Boolean).join(' · ').toUpperCase() || 'ALL MANDATES';
 
-      const regimeLabel = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const regimeLabel = displayRegime(regimeKey);
       const signal = _deriveActSignal(regimeKey, conviction);
       const isDefen = _DEF_REGIMES.has(regimeKey);
 
@@ -7166,17 +7167,17 @@
       } else if (confTrend === 'DETERIORATING') {
         s1 = `${regimeLabel} at ${conf}% confidence but deteriorating; signals are becoming mixed. Exercise caution before adding new positions.`;
       } else {
-        s1 = `${regimeLabel} at ${conf}% confidence; directional but conviction needs further confirmation.`;
+        s1 = `${regimeLabel} at ${conf}% confidence; pointing in the right direction but not confident enough to act decisively yet.`;
       }
 
       // ── Sentence 2: sector sensitivity ──
       let s2 = '';
       if (hmCtx.favour.length > 0) {
         const sectorRef = hmCtx.favour.length >= 2 ? `${hmCtx.favour[0]} and ${hmCtx.favour[1]}` : hmCtx.favour[0];
-        const sleeveLabel = mandate === 'debt' ? 'credit sleeve'
-          : mandate === 'balanced' || mandate === 'multi_asset' ? 'equity sleeve'
+        const sleeveLabel = mandate === 'debt' ? 'fixed income portion'
+          : mandate === 'balanced' || mandate === 'multi_asset' ? 'equity portion'
             : 'portfolio';
-        s2 = `The regime favours ${sectorRef}; align your ${sleeveLabel} accordingly.`;
+        s2 = `${sectorRef} look best placed right now — consider tilting your clients' ${sleeveLabel} toward these.`;
       }
 
       // ── Sentence 3: FII/DII flow context (mandate-aware) ──
@@ -7186,7 +7187,7 @@
         if (mandate === 'debt') {
           if (fiiNet < -500) s3 = `FII equity outflows may pressure INR; watch import cost on credit portfolios.`;
         } else {
-          if (fiiNet < -1000) s3 = `FII outflows of ₹${fiiAbs} Cr warrant caution on high-beta positions.`;
+          if (fiiNet < -1000) s3 = `FII outflows of ₹${fiiAbs} Cr warrant caution on aggressive or volatile positions.`;
           else if (fiiNet > 1000) s3 = `FII inflows of ₹${fiiAbs} Cr support the risk-on positioning.`;
         }
       }
@@ -7198,11 +7199,11 @@
         const consequence = mandate === 'debt'
           ? 'Duration decisions should account for this release.'
           : mandate === 'balanced' || mandate === 'multi_asset'
-            ? 'Review cross-asset allocation ahead of this release.'
+            ? "Review your clients' allocation before this event."
             : 'Position sizing should reflect this event risk.';
-        s4 = `Next watchpoint: ${watchpoint}. ${consequence}`;
+        s4 = `Watch for: ${watchpoint}. ${consequence}`;
       } else if (watchpoint) {
-        s4 = `Next watchpoint: ${watchpoint}.`;
+        s4 = `Watch for: ${watchpoint}.`;
       }
 
       document.getElementById('wtmfyBody').textContent = [s1, s2, s3, s4].filter(Boolean).join(' ');
@@ -7229,16 +7230,16 @@
       let fiiLine = '';
       if (fiiNet !== null) {
         const fiiAbs = Math.abs(Math.round(fiiNet)).toLocaleString('en-IN');
-        if (fiiNet < -1000) fiiLine = `FII context: ₹${fiiAbs} Cr outflows; reduce high-beta exposure.`;
+        if (fiiNet < -1000) fiiLine = `FII context: ₹${fiiAbs} Cr outflows; reduce exposure to aggressive or volatile investments.`;
         else if (fiiNet > 1000) fiiLine = `FII context: ₹${fiiAbs} Cr inflows; risk-on participation warranted.`;
       }
 
       // LOW conviction gate — universal
       if (conviction === 'LOW') {
-        actions.push('Hold existing positions; conviction is insufficient to justify new entries.');
-        actions.push('Raise cash buffer to 15–20% across sleeves.');
-        actions.push('Wait for 2 consecutive MEDIUM+ runs before any deployment.');
-        actions.push(`Next confirmation event: ${_getNextCalendarWatchpoint()}`);
+        actions.push('Hold what you have — not confident enough yet to add more.');
+        actions.push('Build up cash to 15–20% across your clients\' portfolios.');
+        actions.push('Wait for 2 consecutive confident readings before investing more.');
+        actions.push(`Next key event to watch: ${_getNextCalendarWatchpoint()}`);
         return actions.slice(0, 4);
       }
 
@@ -7252,17 +7253,17 @@
         actions.push(`Duration: ${durationAction}.`);
         actions.push(`Credit: ${creditAction}.`);
         if (fiiNet !== null && fiiNet < -500) actions.push('FII equity outflows may pressure INR; watch import cost on credit portfolios.');
-        actions.push(`How sure we are: ${convictionLabel(conviction)}. ${conviction === 'HIGH' ? 'Deploy duration extension decisively.' : 'Add only on confirmed spread opportunities.'}`);
+        actions.push(`How sure we are: ${convictionLabel(conviction)}. ${conviction === 'HIGH' ? 'Extend duration with confidence.' : 'Add only on confirmed spread opportunities.'}`);
         return actions.slice(0, 4);
       }
 
       if (mandate === 'balanced' || mandate === 'multi_asset') {
-        const equityAction = signal === 'ACT' ? 'Tilt equity sleeve to 60–65%'
-          : signal === 'WAIT' ? 'Maintain equity sleeve at neutral weight'
+        const equityAction = signal === 'ACT' ? 'Tilt equity portion to 60–65%'
+          : signal === 'WAIT' ? 'Maintain equity portion at neutral weight'
             : 'Reduce equity to below benchmark weight';
         const regimeLbl = regimeKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         actions.push(`Equity portion: ${equityAction}. ${convictionLabel(conviction)}, ${isPro ? 'regime favourable' : 'defensive posture'}.`);
-        if (favour1) actions.push(`Sector tilt: Favour ${favour1}${favour2 ? ` and ${favour2}` : ''} within equity sleeve.`);
+        if (favour1) actions.push(`Sector tilt: Favour ${favour1}${favour2 ? ` and ${favour2}` : ''} within equity portion.`);
         actions.push(`Gold: ${isDefen ? 'Add 5–8%; defensive regime warrants safe-haven exposure.' : 'Maintain 5% structural allocation.'}`);
         if (fiiLine) actions.push(fiiLine);
         return actions.slice(0, 4);
@@ -7271,17 +7272,17 @@
       // Equity / general mandate
       if (signal === 'ACT') {
         const deployTarget = favour1 && favour2 ? `${favour1} and ${favour2}` : favour1 || 'regime-favoured sectors';
-        actions.push(`Deploy into ${deployTarget}; HIGH conviction window, act decisively.`);
+        actions.push(`Invest more in ${deployTarget}; conditions are strongly supportive, act decisively.`);
         if (avoid1) actions.push(`Reduce ${avoid1} exposure; rotate into regime-favoured sectors.`);
-        actions.push('Reduce cash drag; this is the deployment window the regime has been building toward.');
+        actions.push('Reduce cash drag; this is the moment the regime has been building toward to invest more.');
         if (fiiLine) actions.push(fiiLine);
       } else if (signal === 'WAIT') {
         if (favour1) actions.push(`Selectively add to ${favour1}; regime supports this allocation.`);
-        if (avoid1) actions.push(`Avoid ${avoid1} until regime conviction reaches HIGH.`);
-        actions.push('Keep 10–12% cash buffer; do not fully deploy at MEDIUM conviction.');
+        if (avoid1) actions.push(`Avoid ${avoid1} until confidence reaches HIGH.`);
+        actions.push('Keep 10–12% cash buffer; do not fully invest yet — confidence isn\'t there.');
         if (fiiLine) actions.push(fiiLine);
       } else {
-        actions.push('Trim high-beta positions. Rotate into defensives: FMCG, IT exporters, Pharma.');
+        actions.push('Trim aggressive or volatile positions. Rotate into defensives: FMCG, IT exporters, Pharma.');
         actions.push('Raise cash buffer to 15–20%; preserve capital until regime clarity returns.');
         if (fiiLine) actions.push(fiiLine);
         if (riskTol === 'aggressive') actions.push('Even an aggressive profile should prioritise capital preservation until the regime clears.');
@@ -7626,11 +7627,11 @@
     /* ── LAYER 2: Inline Contextual Tooltips ── */
     const TIP_DATA = {
       conf: 'Confidence measures how strongly macro data supports the current regime, not a prediction of future returns. 65% means signals are aligned, not that returns are 65% certain.',
-      conviction: 'How Sure We Are reflects how actionable the signal is. Highly confident = clear alignment, deploy with full sizing. Reasonably sure = directional but wait for confirmation. Not yet — wait = too noisy, hold positions.',
+      conviction: 'How Sure We Are reflects how actionable the signal is. Highly confident = clear alignment, invest with full confidence. Reasonably sure = directional but wait for confirmation. Not yet — wait = too noisy, hold positions.',
       challenger: 'An alternative read is an alternative macro state the data partially supports. If it crosses 45% confidence, Sentinel alerts you; the dominant regime may be shifting.',
-      'equity-bias': 'Favour Equity means equities have macro tailwinds; cyclicals and growth assets are favoured. Reduce Equity signals a defensive posture: reduce net equity, favour defensives.',
+      'equity-bias': 'Favour Equity means equities have macro tailwinds; economy-sensitive stocks and growth assets are favoured. Reduce Equity signals a defensive posture: reduce net equity, favour defensives.',
       carry: 'Carry Signal measures the yield gap between Indian and US 10-year bonds. A wide positive spread attracts FII inflows; narrowing or reversal tends to trigger FII outflows.',
-      'act-signal': 'One-word decision prompt derived from regime and conviction. ACT = deploy capital now. WAIT = directional but hold for confirmation. HOLD = avoid new positions.',
+      'act-signal': 'One-word decision prompt derived from regime and conviction. ACT = invest more now. WAIT = directional but hold for confirmation. HOLD = avoid new positions.',
       implied: 'The recommended portfolio action at the time of each analysis run. Compare across rows to see how the signal has shifted; three consecutive HOLD signals indicate genuine macro uncertainty.',
       outcome: 'Retroactive 30-day outcome assigned after enough time has passed to assess market direction. Shows whether the implied action was correct given subsequent market moves.'
     };
@@ -7832,7 +7833,8 @@
           'LOW_RISING':       'Low, Rising',
           'MODERATE_FALLING': 'MOD↓',
           'HIGH_RISING':      'HIGH↑',
-          'BUILDING':         'GROWING',
+          'BUILDING':         'Growing',
+          'MODERATE_EXPANSION': 'Moderate Growth',
           'STABLE':           'STABLE',
           'CONTRACTING':      'SHRINK',
           'BUYING':           'BUYING',
@@ -8194,7 +8196,7 @@
           RISK_OFF: 'For SIP clients in their 20s-30s: continue SIPs (do not pause; rupee-cost averaging works in their favour), but defer any lump-sum or step-up additions until signals stabilise.',
         },
         mid_career: {
-          RISK_ON:  'For clients in their 30s-40s: regime supports current balanced allocation. Consider modest tilt toward favoured sectors (Banking, Infrastructure) within existing equity sleeve.',
+          RISK_ON:  'For clients in their 30s-40s: regime supports current balanced allocation. Consider modest tilt toward favoured sectors (Banking, Infrastructure) within existing equity portion.',
           NEUTRAL:  'For clients in their 30s-40s: maintain current balanced allocation. Hold off on rebalancing until 2 consecutive MEDIUM+ runs confirm direction.',
           RISK_OFF: 'For clients in their 30s-40s: maintain existing allocations, raise cash buffer modestly. Avoid increasing equity exposure until conviction improves.',
         },
