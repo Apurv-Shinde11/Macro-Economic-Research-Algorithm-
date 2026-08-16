@@ -742,11 +742,12 @@
     .last-run-info {
       font-family: var(--font-mono);
       font-size: 10px;
+      letter-spacing: 0.03em;
       color: var(--text-3);
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
+      gap: 7px;
+      margin-bottom: 16px;
     }
 
     .freshness-dot {
@@ -754,6 +755,47 @@
       height: 6px;
       border-radius: 50%;
       flex-shrink: 0;
+    }
+
+    /* ══ GREETING CARD ══ */
+    .sentinel-greeting {
+      margin-bottom: 16px;
+      padding: 16px 18px;
+      border-radius: var(--radius-lg);
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+    }
+
+    .greeting-text {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.4;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .streak-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: 4px;
+    }
+
+    .streak-chip .streak-icon {
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .streak-chip .streak-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-2);
+      letter-spacing: 0.08em;
     }
 
     .freshness-dot.fresh {
@@ -4179,39 +4221,13 @@
         <div class="freshness-dot fresh" id="freshnessDot"></div>
         <span id="freshnessText">No runs yet</span>
       </div>
-      <div class="sentinel-greeting"
-           id="sentinelGreeting"
-           style="
-             margin-bottom: 16px;
-             padding: 12px 16px;
-             border-radius: 10px;
-             background: var(--bg-2);
-             border: 1px solid
-               var(--border);
-           ">
-        <div style="
-          font-family: var(--font-sans);
-          font-size: 13px;
-          color: var(--text-2);
-          margin-bottom: 4px;
-          letter-spacing: 0.01em;
-        " id="greetingText">
+      <div class="sentinel-greeting" id="sentinelGreeting">
+        <div class="greeting-text" id="greetingText">
           Good morning.
         </div>
-        <div style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        ">
-          <span style="
-            font-size: 16px;
-          " id="streakIcon">🔥</span>
-          <span style="
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--text-3);
-            letter-spacing: 0.08em;
-          " id="streakText">
+        <div class="streak-chip">
+          <span class="streak-icon" id="streakIcon">🔥</span>
+          <span class="streak-text" id="streakText">
             Loading...
           </span>
         </div>
