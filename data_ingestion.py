@@ -865,39 +865,83 @@ class DataIngestor:
     @_HTTP_RETRY
     def _dbie_credit_growth_raw(self) -> dict:
         """
-        Performs the actual DBIE HTTP request and logs diagnostics
-        (status, content-type, body preview) so we can finally see
-        whether DBIE returns an HTML error page, empty JSON, or
-        something else. Raises on non-200 so @_HTTP_RETRY can retry
-        transient errors; the caller falls back to hardcoded values
-        on final failure.
+        Performs the actual DBIE HTTP request, trying multiple known
+        URL patterns and logging diagnostics (status, content-type,
+        body preview) for each so we can see which one — if any —
+        actually returns JSON rather than the Angular SPA shell.
+        Raises on failure so @_HTTP_RETRY can retry transient
+        errors; the caller falls back to hardcoded values on final
+        failure.
         """
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        url = (
-            "https://dbie.rbi.org.in/DBIE/dbie.rbi"
-            "?site=api&seriesId=RBIBS3MSCBY"
-            "&noOfPeriods=2"
+
+        series_id = "RBIBS3MSCBY"
+        DBIE_URLS = [
+            (
+                "https://dbie.rbi.org.in/DBIE/dbie.rbi"
+                "?site=api&seriesId="
+                f"{series_id}"
+                "&noOfPeriods=2"
+            ),
+            (
+                "https://data.rbi.org.in"
+                "/DBIE/dbie.action"
+                "?type=api"
+                f"&seriesId={series_id}"
+                "&noOfPeriods=2"
+            ),
+            (
+                "https://data.rbi.org.in"
+                f"/api/series"
+                f"?id={series_id}"
+                "&periods=2"
+            ),
+        ]
+
+        last_error = None
+        for url in DBIE_URLS:
+            try:
+                r = requests.get(
+                    url,
+                    timeout=8,
+                    verify=False,
+                    headers={
+                        "Accept":
+                            "application/json",
+                        "User-Agent":
+                            "Mozilla/5.0",
+                    }
+                )
+                print(
+                    f"[DBIE_TRY] url="
+                    f"{url[-50:]} "
+                    f"status="
+                    f"{r.status_code} "
+                    f"ct="
+                    f"{r.headers.get('content-type','?')[:20]} "
+                    f"preview="
+                    f"{r.text[:80]!r}",
+                    flush=True
+                )
+                if r.status_code == 200:
+                    ct = r.headers.get(
+                        "content-type", ""
+                    )
+                    if "json" in ct:
+                        return r.json()
+            except Exception as e:
+                print(
+                    f"[DBIE_TRY] {url[-30:]}"
+                    f" error: {e}",
+                    flush=True
+                )
+                last_error = e
+                continue
+
+        raise last_error or ValueError(
+            "All DBIE URL patterns returned non-200 or non-JSON"
         )
-        r = requests.get(
-            url, timeout=10, verify=False,
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Accept":     "application/json",
-                "Referer":    "https://dbie.rbi.org.in/",
-            }
-        )
-        print(
-            f"[DBIE_DIAG] url={url[-40:]} "
-            f"status={r.status_code} "
-            f"content_type="
-            f"{r.headers.get('content-type','?')} "
-            f"body_preview="
-            f"{r.text[:150]!r}",
-            flush=True
-        )
-        r.raise_for_status()
-        return r.json()
 
     def _fetch_dbie_credit_growth(self) -> dict | None:
         """

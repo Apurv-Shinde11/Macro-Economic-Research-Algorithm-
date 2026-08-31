@@ -351,22 +351,22 @@ DEFENSIVE_REGIMES = {
 SECTOR_HEATMAP = {
     "LIQUIDITY_DRIVEN_EXPANSION": {
         "FAVOUR": [
-            {"sector": "Banking & Financials",    "reason": "Liquidity expansion directly benefits credit growth and NIM expansion"},
-            {"sector": "Infrastructure & Capex",  "reason": "Govt capex ₹12.2L Cr cycle supports order books and revenue visibility"},
-            {"sector": "Consumer Discretionary",  "reason": "Credit availability and income growth drive discretionary spending recovery"},
-            {"sector": "Real Estate",             "reason": "Accommodative rates reduce financing costs for developers and buyers — real estate stocks benefit from rate cycle even when physical demand is mixed"},
-            {"sector": "Auto & Auto Ancillaries", "reason": "Credit cycle upturn directly boosts vehicle financing and volumes"},
+            {"sector": "Banking & Financials",    "reason": "Ample money supply helps banks lend more and earn better margins"},
+            {"sector": "Infrastructure & Capex",  "reason": "Government's ₹12.2 lakh crore spending gives infrastructure companies strong, visible order books"},
+            {"sector": "Consumer Discretionary",  "reason": "Easy credit and rising incomes mean people are spending more on non-essential goods"},
+            {"sector": "Real Estate",             "reason": "Lower borrowing costs help both builders and home buyers — real estate stocks benefit even if physical sales are uneven"},
+            {"sector": "Auto & Auto Ancillaries", "reason": "Easier loans mean more people can buy vehicles — good for auto sales"},
         ],
         "NEUTRAL": [
-            {"sector": "IT & Technology",  "reason": "Domestic demand neutral; US client spending uncertainty caps upside"},
-            {"sector": "Pharmaceuticals",  "reason": "Defensive characteristics persist; limited regime sensitivity"},
-            {"sector": "Chemicals",        "reason": "Input cost sensitivity to crude offsets volume growth benefits"},
-            {"sector": "Telecom",          "reason": "Stable recurring revenues; limited upside leverage to liquidity conditions"},
+            {"sector": "IT & Technology",  "reason": "Domestic tech demand is steady but uncertainty about US client spending limits how much IT stocks can rise"},
+            {"sector": "Pharmaceuticals",  "reason": "Pharma stocks hold their value in most conditions but don't usually lead in bull markets"},
+            {"sector": "Chemicals",        "reason": "Rising oil prices increase chemical companies' costs, limiting the benefit of higher sales volumes"},
+            {"sector": "Telecom",          "reason": "Telecom companies have steady income but don't benefit much from the current environment"},
         ],
         "AVOID": [
-            {"sector": "FMCG & Staples",        "reason": "Institutional capital rotates away from defensives in risk-on regimes — despite strong consumer demand, portfolio managers reduce FMCG weight in favour of cyclicals"},
-            {"sector": "Utilities",             "reason": "Rate-sensitive valuations compress as growth assets attract premium"},
-            {"sector": "Gold & Precious Metals", "reason": "Risk-on environment reduces safe-haven demand; opportunity cost rises"},
+            {"sector": "FMCG & Staples",        "reason": "When markets are positive, large investors move money away from everyday consumer goods stocks into faster-growing sectors"},
+            {"sector": "Utilities",             "reason": "When growth stocks are in favour, utility company valuations tend to fall as investors look elsewhere"},
+            {"sector": "Gold & Precious Metals", "reason": "When markets are positive, demand for gold as a safe haven drops — and holding gold costs you the gains you'd make elsewhere"},
         ],
     },
     "STABLE_GROWTH": {

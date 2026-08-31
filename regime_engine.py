@@ -1095,16 +1095,16 @@ class MacroRegimeEngine:
                 "type": "DEPLOYMENT_WINDOW",
                 "message": (
                     f"{support_count} of {len(leading_signals)} "
-                    "leading indicators aligned and building. "
-                    "Conditions are forming for a high-conviction "
-                    "deployment window. Consider pre-positioning "
-                    "before confidence crosses HIGH threshold."
+                    "leading indicators are lining up. This looks "
+                    "like it's building toward a strong buying "
+                    "opportunity — consider starting to invest "
+                    "before confidence is fully confirmed."
                 ),
                 "supporting_signals": supporting,
                 "confidence_pct":     round(leading_score * 100),
                 "action": (
-                    "PRE-POSITION — leading indicators "
-                    "strengthening ahead of lagging confirmation"
+                    "START INVESTING EARLY — signals are "
+                    "strengthening ahead of full confirmation"
                 ),
             }
 
@@ -1185,8 +1185,8 @@ class MacroRegimeEngine:
             "supporting_signals": supporting,
             "confidence_pct":     round(leading_score * 100),
             "action": (
-                "SELECTIVE — maintain existing positions, "
-                "defer new entries"
+                "Be choosy — hold what you have, "
+                "wait before adding"
             ),
         }
 
@@ -1422,13 +1422,11 @@ class MacroRegimeEngine:
                 "instruments offer refuge."
             ),
             "LIQUIDITY_DRIVEN_EXPANSION": (
-                f"India is in a liquidity-driven expansion phase. "
-                f"GDP tracking at {growth}% — above trend. "
-                "RBI's accommodative liquidity posture supports "
-                "risk-on positioning. "
-                f"Capex at Rs.{capex}L Cr signals sustained public "
-                "investment momentum. Equities, cyclicals, and "
-                "high-beta assets are in favour."
+                "The Indian economy is growing well and the central "
+                "bank is keeping money flowing freely. "
+                f"GDP is at {growth}% — stronger than usual. "
+                "The government is spending heavily on infrastructure. "
+                "These are good conditions for equity investments."
             ),
             "EARLY_CYCLE_RECOVERY": (
                 "India is entering an early cycle recovery. "
@@ -1483,8 +1481,8 @@ class MacroRegimeEngine:
             )
         elif consecutive_days >= 3:
             base += (
-                f" Regime has persisted for {consecutive_days} "
-                "consecutive runs, building structural confidence."
+                " This environment has been consistent across our "
+                "last several reads — adding to our confidence."
             )
         elif consecutive_days == 0:
             base += (
@@ -1510,8 +1508,8 @@ class MacroRegimeEngine:
                 "External sector under pressure"
             ],
             "LIQUIDITY_DRIVEN_EXPANSION": [
-                "Abundant system liquidity",
-                f"GDP growth at {growth}% — above trend",
+                "Money is flowing freely in the system",
+                f"GDP growth at {growth}% — stronger than normal",
                 "Risk-on environment with FII inflow support"
             ],
             "EARLY_CYCLE_RECOVERY": [

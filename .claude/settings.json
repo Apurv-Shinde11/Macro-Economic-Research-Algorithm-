@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node \".claude/skills/impeccable/scripts/context.mjs\")",
+      "Bash(node \".claude/skills/impeccable/scripts/critique-storage.mjs\" slug \"dashboard.html\")",
+      "Bash(node \".claude/skills/impeccable/scripts/detect.mjs\" --json dashboard.html)",
+      "Bash(echo \"EXIT_CODE:$?\")",
+      "Bash(node \".claude/skills/impeccable/scripts/detect.mjs\" dashboard.html)",
+      "Bash(IMPECCABLE_CRITIQUE_META='{\"target\":\"dashboard.html\",\"total_score\":22,\"p0_count\":1,\"p1_count\":2}' node \".claude/skills/impeccable/scripts/critique-storage.mjs\" write dashboard-html \"C:\\\\Users\\\\APURVA~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Apurva-Shinde-OneDrive-Desktop-Macro-Regime-Aware\\\\99b70540-eed8-451a-9a71-04696de86368\\\\scratchpad\\\\critique-body.md\")",
+      "Bash(node \".claude/skills/impeccable/scripts/critique-storage.mjs\" trend dashboard-html 5)",
+      "Bash(node -e ' *)",
+      "Skill(impeccable)",
+      "Skill(impeccable:*)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

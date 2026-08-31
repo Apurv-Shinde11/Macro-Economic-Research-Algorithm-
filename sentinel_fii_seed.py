@@ -10,6 +10,7 @@ Requirements:
     pip install requests supabase python-dotenv
 """
 
+import os
 import requests
 import json
 import time
@@ -17,8 +18,8 @@ from datetime import datetime, timedelta
 from supabase import create_client
 
 # ── Config ────────────────────────────────────
-SUPABASE_URL = "https://nurqjuywtypqvciyjlrw.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc4Njg5MywiZXhwIjoyMDkyMzYyODkzfQ.6Jb1NN4pXK2jl6FGLOnAX1wk1tJ4l7EOfSuTPEH87eI"
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 
 # ── Init Supabase ─────────────────────────────
 sb = create_client(SUPABASE_URL, SUPABASE_KEY)

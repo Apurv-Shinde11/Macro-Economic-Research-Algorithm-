@@ -1,0 +1,13 @@
+-- 005_add_profile_preference_columns.sql
+-- Adds preference fields to profiles table
+-- that the dashboard sidebar UI saves against.
+-- Run: June 20, 2026
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS client_profile text DEFAULT 'mid_career',
+ADD COLUMN IF NOT EXISTS risk_tolerance text DEFAULT 'moderate',
+ADD COLUMN IF NOT EXISTS investment_horizon text DEFAULT 'medium',
+ADD COLUMN IF NOT EXISTS report_tone text DEFAULT 'institutional',
+ADD COLUMN IF NOT EXISTS benchmark text DEFAULT 'NIFTY50',
+ADD COLUMN IF NOT EXISTS pdf_delivery_time text DEFAULT '07:00',
+ADD COLUMN IF NOT EXISTS whatsapp_number text;
