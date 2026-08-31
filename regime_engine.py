@@ -34,30 +34,16 @@ def _fetch_recent_runs(supabase_url, service_key, limit=10):
 
 def _load_supabase_credentials():
     """
-    Reads SUPABASE_URL and SUPABASE_SERVICE_KEY from
-    .streamlit/secrets.toml without requiring Streamlit.
+    Reads SUPABASE_URL and SUPABASE_SERVICE_KEY from os.environ, matching
+    main_api.py's pattern. On Render these come from dashboard env vars;
+    locally via Streamlit, st.secrets mirrors secrets.toml into os.environ
+    on first access.
     """
     import os
-    try:
-        import toml
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            ".streamlit", "secrets.toml"
-        )
-        with open(path, "r") as f:
-            s = toml.load(f)
-        return s.get("SUPABASE_URL", ""), s.get("SUPABASE_SERVICE_KEY", "")
-    except ImportError:
-        import tomllib
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            ".streamlit", "secrets.toml"
-        )
-        with open(path, "rb") as f:
-            s = tomllib.load(f)
-        return s.get("SUPABASE_URL", ""), s.get("SUPABASE_SERVICE_KEY", "")
-    except Exception:
-        return "", ""
+    return (
+        os.environ.get("SUPABASE_URL", ""),
+        os.environ.get("SUPABASE_SERVICE_KEY", ""),
+    )
 
 
 class MacroRegimeEngine:
@@ -163,12 +149,12 @@ class MacroRegimeEngine:
                 "status": "ADVISORY",
                 "detail": (
                     "Cannot probe LLM keys without a live call. "
-                    "Verify nlp_source='llm+keyword' on first run output."
+                    "Verify nlp_source='llm_v2' on first run output."
                 ),
             })
             warnings.append(
                 "NLP health advisory: confirm "
-                "nlp_source=llm+keyword on first "
+                "nlp_source=llm_v2 on first "
                 "live run. If nlp_source=keyword, "
                 "confidence will be suppressed ~8% "
                 "and equity_bias defaults to NEUTRAL."
