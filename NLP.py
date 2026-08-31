@@ -368,6 +368,10 @@ Rules:
             'rbi_policy_implication': rbi_impl,
             'equity_bias':            equity_bias,
             'confidence':             final_conf,
+            # Intentionally blank: v2's three sub-prompts are narrow, closed-vocabulary
+            # classifiers by design (see _build_rbi/fii/market_prompt) and don't generate
+            # free-text reasoning. Narrative synthesis across signals lives in
+            # intelligence_object.py / the story-generation layer, not here.
             'key_signals':            [],
             'india_specific_risks':   [],
             'global_macro_factors':   [],

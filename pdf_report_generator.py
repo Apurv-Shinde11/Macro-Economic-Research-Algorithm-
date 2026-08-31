@@ -470,13 +470,13 @@ class PDFReportGenerator:
             india_risks = nlp_intel.get("india_risks",    [])
             global_facs = nlp_intel.get("global_factors", [])
             reasoning   = nlp_intel.get("reasoning",      "")
-            source      = nlp_intel.get("source",         "keyword")
+            source      = nlp_intel.get("nlp_source",     "keyword")
             nlp_conf    = int(self._safe_float(nlp_intel.get("nlp_confidence", 0)) * 100)
 
             if dom_theme:
                 story.append(self._p(f"<b>Dominant Theme:</b> {self._clean(dom_theme)}", "body"))
             story.append(self._p(
-                f"<b>Source:</b> {'LLM + Keyword' if source == 'llm+keyword' else 'Keyword only'}  "
+                f"<b>Source:</b> {self._clean(source)}  "
                 f"<b>NLP Confidence:</b> {nlp_conf}%", "small"
             ))
             if key_signals:

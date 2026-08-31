@@ -55,7 +55,7 @@ class ReportGenerator:
  RBI Implication: {regime_data.get("components", {}).get("rbi_signal", "UNKNOWN")}
  Equity Bias:     {regime_data.get("components", {}).get("equity_bias", "NEUTRAL")}
  NLP Confidence:  {int(nlp_intel.get("nlp_confidence", 0) * 100)}%
- Source:          {nlp_intel.get("source", "keyword")}
+ Source:          {nlp_intel.get("nlp_source", "keyword")}
 
  Key Signals:
 {self._format_list(nlp_intel.get("key_signals", []))}
