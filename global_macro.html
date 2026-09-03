@@ -1403,25 +1403,48 @@
 
   <main class="page-main">
 
-    <!-- ============ ATLAS STORY ARC ============ -->
+    <!-- ============ ATLAS STORY ARC (map-first) ============ -->
     <div class="story-arc" id="storyArc">
 
-      <!-- 1. WHAT'S HAPPENING -->
+      <!-- 1. WHAT'S HAPPENING (condensed strip — map is the primary element below) -->
       <div class="story-section">
-        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
           <span class="story-eyebrow">What's happening</span>
           <div style="width:28px; height:1px; background:var(--border-2);"></div>
           <span style="font-family:var(--font-mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3);">Atlas</span>
+          <span class="placeholder-badge" style="margin-bottom:0;">Coming soon</span>
         </div>
-        <div class="placeholder-block" style="margin-bottom:20px;">
-          <span class="placeholder-badge">Coming soon</span>
-          <div class="placeholder-text">The daily lead headline and supporting read will come from Sentinel's story-generation layer once it covers Atlas, not yet live. This includes any claim comparing India against other economies — that needs its own peer-comparison methodology, not built yet either.</div>
-        </div>
-        <div class="story-lead" style="color:var(--text-3); font-style:italic; opacity:0.6;">Narrative headline — coming with the story-generation layer</div>
-        <div class="story-support placeholder-text">Full narrative arrives once Atlas's story layer is built. The map, India's indicator set, and the signal relationships below are real.</div>
+        <div class="placeholder-text" style="margin-top:10px; max-width:700px;">The daily lead headline and supporting read — including any claim comparing India against other economies — will come from Sentinel's story-generation layer once it covers Atlas. The map and India's signal relationships below are real.</div>
       </div>
 
-      <!-- 2. WHY -->
+      <!-- 2. MAP + DETAIL PANEL (primary, hero) -->
+      <div class="story-section">
+
+        <!-- ══ MAP ══ -->
+        <section class="map-section">
+          <div class="map-wrap">
+            <div class="map-loading" id="map-loading">Loading macro data…</div>
+            <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+              <rect width="1000" height="500" fill="var(--bg)" />
+              <g id="countries-group"></g>
+              <g id="labels-group"></g>
+            </svg>
+          </div>
+        </section>
+
+        <!-- ══ DETAIL PANEL ══ -->
+        <section class="detail-panel">
+          <div id="detail-content">
+            <div class="detail-empty">
+              <span style="font-size:18px;">←</span>
+              <span>Select an economy on the map to view macro details</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 3. WHY -->
       <div class="story-section">
         <span class="story-eyebrow">Why</span>
         <div class="story-section-title">Signal relationships behind India's read.</div>
@@ -1429,7 +1452,7 @@
         <div class="why-grid" id="atlasWhyGrid"></div>
       </div>
 
-      <!-- 3. SO WHAT -->
+      <!-- 4. SO WHAT -->
       <div class="story-section">
         <span class="story-eyebrow">So what</span>
         <div class="story-section-title" style="margin-top:8px;">Portfolio instruction</div>
@@ -1439,7 +1462,7 @@
         </div>
       </div>
 
-      <!-- 4. WHAT DESERVES ATTENTION -->
+      <!-- 5. WHAT DESERVES ATTENTION -->
       <div class="story-section">
         <span class="story-eyebrow amber">What deserves attention</span>
         <div class="placeholder-block" style="margin-top:18px;">
@@ -1448,7 +1471,7 @@
         </div>
       </div>
 
-      <!-- 5. WHAT COULD CHANGE THIS -->
+      <!-- 6. WHAT COULD CHANGE THIS -->
       <div class="story-section">
         <span class="story-eyebrow">What could change this</span>
         <div class="placeholder-block" style="margin-top:18px;">
@@ -1457,37 +1480,15 @@
         </div>
       </div>
 
-      <!-- 6. SHOW ME THE EVIDENCE -->
+      <!-- 7. SHOW MORE (secondary reference material — economies list + AI pulse) -->
       <div class="story-section">
         <button class="evidence-toggle-btn" onclick="toggleAtlasEvidence()">
-          <span id="atlasEvidenceBtnLabel">Show me the evidence</span>
+          <span id="atlasEvidenceBtnLabel">See the full economies list &amp; AI spending pulse</span>
           <span class="evidence-caret" id="atlasEvidenceCaret">▾</span>
         </button>
-        <div style="font-family:var(--font-sans); font-size:14px; color:var(--text-3); margin-top:10px;">The interactive map, India's full indicator set, the 50-largest-economies ranking, and the AI infrastructure pulse.</div>
+        <div style="font-family:var(--font-sans); font-size:14px; color:var(--text-3); margin-top:10px;">The 50-largest-economies ranking and the global AI infrastructure spending pulse.</div>
 
         <div class="evidence-body" id="atlasEvidenceBody" hidden>
-
-          <!-- ══ MAP ══ -->
-          <section class="map-section">
-            <div class="map-wrap">
-              <div class="map-loading" id="map-loading">Loading macro data…</div>
-              <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
-                <rect width="1000" height="500" fill="var(--bg)" />
-                <g id="countries-group"></g>
-                <g id="labels-group"></g>
-              </svg>
-            </div>
-          </section>
-
-          <!-- ══ DETAIL PANEL ══ -->
-          <section class="detail-panel">
-            <div id="detail-content">
-              <div class="detail-empty">
-                <span style="font-size:18px;">←</span>
-                <span>Select an economy on the map to view macro details</span>
-              </div>
-            </div>
-          </section>
 
           <!-- ══ ECONOMY SIZE COMPARISON ══ -->
           <section id="economy-size-section" class="economy-size-standalone">
@@ -2646,9 +2647,9 @@
       const caret = document.getElementById('atlasEvidenceCaret');
       const opening = body.hasAttribute('hidden');
       if (opening) {
-        body.removeAttribute('hidden'); btn.textContent = 'Hide the evidence'; caret.classList.add('open');
+        body.removeAttribute('hidden'); btn.textContent = 'Hide the economies list & AI spending pulse'; caret.classList.add('open');
       } else {
-        body.setAttribute('hidden', ''); btn.textContent = 'Show me the evidence'; caret.classList.remove('open');
+        body.setAttribute('hidden', ''); btn.textContent = 'See the full economies list & AI spending pulse'; caret.classList.remove('open');
       }
     }
 
