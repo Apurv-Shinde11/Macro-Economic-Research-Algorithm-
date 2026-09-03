@@ -82,16 +82,26 @@ def reliability(score: float) -> tuple[str, str | None]:
     investigation). The note must read as provisional, not as a
     settled/confirmed finding. Do not strengthen this wording without
     that re-validation landing first.
+
+    Wording is copied verbatim from the Sentinel Briefing UI mockup's
+    'banded' state (finalized with Claude Design) so the backend field
+    and the frontend's hardcoded copy never silently diverge. The
+    frontend currently owns its own copy of this text rather than
+    reading this field directly -- if that changes, this is the source
+    of truth to read from.
     """
     if score is None:
         return "NORMAL", None
     lo, hi = CONFIDENCE_CAUTION_BAND
     if lo <= score < hi:
         return "CAUTION", (
-            "Elevated uncertainty in this confidence range, based on "
-            "historical backtest patterns — this finding is under "
-            "ongoing review and has not yet been re-confirmed against "
-            "current data."
+            "This read sits in the 70–80% confidence band. An earlier "
+            "backtest flagged this band as less reliable than others, "
+            "and we have not yet re-confirmed that finding on current "
+            "data. On that provisional basis the narrative below is "
+            "presented in full but should carry less weight than its "
+            "confidence number suggests. Treat the contradictions as "
+            "the operative content."
         )
     return "NORMAL", None
 
