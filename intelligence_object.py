@@ -259,6 +259,10 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
 
     growth = inputs.get("growth")
     if growth is not None:
+        # Boundaries (6.0/7.0) mirror regime_engine.py's _sig(growth, 7.0, 6.0)
+        # call in _compute_signal_alignment() — keep in sync if those move.
+        # NOTE: the 0.5 mid-tier score here is this file's own simplification,
+        # not a mirror — regime_engine.py's _sig() returns 0.3 for that band.
         g_score = 1.0 if growth >= 7.0 else 0.5 if growth >= 6.0 else 0.0
         out.append({
             "id": "gdp_growth", "label": "GDP Growth", "category": "GROWTH",
@@ -269,6 +273,11 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
 
     inflation = inputs.get("inflation")
     if inflation is not None:
+        # 4.0/6.0 mirror regime_engine.py's self.inflation_target /
+        # self.inflation_upper class attributes — keep in sync if those move.
+        # (regime_engine.py also has a separate _sig-based inflation band
+        # at 4.5/6.0 used elsewhere; this deliberately follows the named
+        # class attributes instead.)
         i_score = 1.0 if inflation < 4.0 else 0.5 if inflation < 6.0 else 0.0
         out.append({
             "id": "inflation", "label": "Inflation (CPI)", "category": "INFLATION",
@@ -279,6 +288,10 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
 
     liquidity = inputs.get("liquidity_score")
     if liquidity is not None:
+        # 0.3/-0.3 is this file's own symmetric simplification, not a literal
+        # mirror — regime_engine.py has three different liquidity _sig() bands
+        # ((0.3,0.0), (0.5,0.1), (-0.5,-0.1)) for different purposes. If those
+        # shift meaningfully, revisit whether 0.3/-0.3 still tracks them.
         l_score = 1.0 if liquidity >= 0.3 else 0.0 if liquidity <= -0.3 else 0.5
         out.append({
             "id": "domestic_liquidity", "label": "Domestic Liquidity", "category": "DOMESTIC_LIQUIDITY",
@@ -289,6 +302,9 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
 
     rbi_signal = inputs.get("rbi_signal")
     if rbi_signal:
+        # Direction (CUT supportive, HIKE stressed) mirrors regime_engine.py's
+        # rbi_cut/rbi_hike _sig-equivalent in _compute_signal_alignment()
+        # (line ~492) — keep in sync if that scoring direction changes.
         r_score = {"CUT": 1.0, "PAUSE": 0.5, "UNKNOWN": 0.5, "HIKE": 0.0}.get(rbi_signal, 0.5)
         out.append({
             "id": "rbi_stance", "label": "RBI Policy Stance", "category": "POLICY",
