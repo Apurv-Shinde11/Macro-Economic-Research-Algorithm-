@@ -28,7 +28,7 @@ from data_ingestion       import DataIngestor
 from NLP                  import IndianMacroNLP
 from regime_engine        import MacroRegimeEngine
 from intel_aggregator     import IntelAggregator
-from intelligence_object  import build_sentinel_intelligence_object
+from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -6790,11 +6790,32 @@ def _build_economy_record(
 
 
 @app.get("/api/global-macro")
+def _with_atlas_intelligence(result: dict) -> dict:
+    """
+    Attaches intelligence_object to a /api/global-macro response, built
+    from whichever India record is present in result["economies"]. Cheap
+    and pure (no I/O), so it's recomputed on every response rather than
+    cached alongside the economies data itself.
+    """
+    try:
+        india = next(
+            (e for e in result.get("economies", []) if e.get("code") == "IN"),
+            None,
+        )
+        result["intelligence_object"] = (
+            build_atlas_intelligence_object(india) if india else None
+        )
+    except Exception as _io_err:
+        print(f"[GLOBAL_MACRO] intelligence_object build failed: {_io_err}", flush=True)
+        result["intelligence_object"] = None
+    return result
+
+
 async def get_global_macro():
     global _global_macro_cache_mem
     cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
     if _global_macro_cache_mem.get("data") and cache_age < 21600:
-        return {**_global_macro_cache_mem["data"], "cached": True}
+        return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
     # Check Supabase full-blob cache (24h)
     try:
         cache_resp = _supabase.table(
@@ -6816,7 +6837,7 @@ async def get_global_macro():
                     flush=True
                 )
                 import json
-                return json.loads(cached["data"])
+                return _with_atlas_intelligence(json.loads(cached["data"]))
     except Exception as e:
         print(
             f"[GLOBAL_MACRO] Cache check failed: {e}",
@@ -6874,7 +6895,7 @@ async def get_global_macro():
                         "cached":          True,
                     }
                     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-                    return result
+                    return _with_atlas_intelligence(result)
 
             except Exception as _e:
                 print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
@@ -7024,7 +7045,7 @@ async def get_global_macro():
     except Exception as _ce:
         print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-    return result
+    return _with_atlas_intelligence(result)
 
 
 @app.get("/api/policy-rates")
