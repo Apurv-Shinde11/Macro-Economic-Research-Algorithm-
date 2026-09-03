@@ -356,3 +356,102 @@ def build_sentinel_intelligence_object(regime_output: dict) -> dict:
         "convergence":     detect_convergence(signals),
         "contradictions":  detect_contradictions(signals),
     }
+
+
+# ══════════════════════════════════════════════════════════════════
+# LAYER 2b — ATLAS-SPECIFIC MAPPING (minimal, India-only)
+# ══════════════════════════════════════════════════════════════════
+
+def build_atlas_intelligence_object(india_record: dict) -> dict:
+    """
+    india_record: one entry from GET /api/global-macro's economies[] list
+    for code == 'IN' (see main_api.py::_build_economy_record). Pure
+    reshape of India's own already-computed indicator values — no new
+    data fetched, no LLM call.
+
+    Deliberately scoped to India's own cross-category relationships only
+    (e.g. "growth and PMI both point the same way") — NOT cross-economy
+    comparison (e.g. "India vs. its peers"). That needs a real scoping
+    decision (peer set, comparison methodology) that hasn't been made;
+    improvising it here would misrepresent it as settled. The WHY
+    section this feeds can honestly show convergence/contradiction
+    within India's own signals; any cross-economy claim (including the
+    Atlas mockup's own illustrative headline) stays placeholder until
+    that separate piece is actually built.
+    """
+    gdp         = india_record.get("gdp_growth")
+    pmi         = india_record.get("pmi")
+    inflation   = india_record.get("inflation")
+    policy_rate = india_record.get("policy_rate")
+    currency    = india_record.get("currency_vs_usd")
+    yield_10y   = india_record.get("yield_10y")
+
+    signals = []
+
+    if gdp is not None:
+        # Mirrors the growth band already used for India elsewhere in this
+        # file (_hard_inputs_to_generic) and regime_engine.py's _sig()
+        # growth check: strong >=7.0, moderate >=6.0.
+        g_score = 1.0 if gdp >= 7.0 else 0.5 if gdp >= 6.0 else 0.0
+        signals.append({
+            "id": "gdp_growth", "label": "GDP Growth", "category": "GROWTH",
+            "value": gdp, "stance": stance(g_score), "score": g_score,
+        })
+
+    if pmi is not None:
+        # Boundaries mirror SENTINEL_LEADING_INDICATOR_MAP's Manufacturing
+        # PMI band [50, 52, 55] above — same instrument, same thresholds.
+        p_score = 1.0 if pmi >= 55 else 0.5 if pmi >= 50 else 0.0
+        signals.append({
+            "id": "pmi", "label": "Manufacturing PMI", "category": "GROWTH",
+            "value": pmi, "stance": stance(p_score), "score": p_score,
+        })
+
+    if inflation is not None:
+        # Mirrors _hard_inputs_to_generic's inflation band — RBI's own
+        # target (4.0) / upper tolerance (6.0), same as regime_engine.py's
+        # self.inflation_target / self.inflation_upper.
+        i_score = 1.0 if inflation < 4.0 else 0.5 if inflation < 6.0 else 0.0
+        signals.append({
+            "id": "inflation", "label": "Inflation (CPI)", "category": "INFLATION",
+            "value": inflation, "stance": stance(i_score), "score": i_score,
+        })
+
+    if policy_rate is not None:
+        # Mirrors regime_engine.py's self.repo_neutral = 6.0 — a full point
+        # below is read as accommodative, a full point above as
+        # restrictive. Deliberately conservative: no RBI stance/direction
+        # signal (CUT/PAUSE/HIKE) is available here, only the raw rate
+        # level, unlike Sentinel's rbi_stance signal.
+        r_score = 1.0 if policy_rate <= 5.0 else 0.0 if policy_rate >= 7.0 else 0.5
+        signals.append({
+            "id": "policy_rate", "label": "RBI Policy Rate", "category": "POLICY",
+            "value": policy_rate, "stance": stance(r_score), "score": r_score,
+        })
+
+    # Currency and yield are included per spec but deliberately left
+    # NEUTRAL: unlike growth/inflation/PMI/policy rate, there's no
+    # existing, defensible absolute-level threshold for these anywhere in
+    # the codebase — a currency or yield LEVEL isn't inherently supportive
+    # or stressed without a trend/delta, which isn't persisted today (see
+    # stance()'s own docstring on this exact limitation). Included so
+    # they're visible in the evidence trail, without asserting a
+    # direction that isn't actually known.
+    if currency is not None:
+        signals.append({
+            "id": "currency_usd_inr", "label": "USD/INR", "category": "EXTERNAL_MARKET",
+            "value": currency, "stance": "NEUTRAL", "score": 0.5,
+        })
+    if yield_10y is not None:
+        signals.append({
+            "id": "yield_10y", "label": "India 10Y Yield", "category": "EXTERNAL_MARKET",
+            "value": yield_10y, "stance": "NEUTRAL", "score": 0.5,
+        })
+
+    return {
+        "module": "atlas",
+        "theme": {"label": "India"},
+        "signals": signals,
+        "convergence":     detect_convergence(signals),
+        "contradictions":  detect_contradictions(signals),
+    }
