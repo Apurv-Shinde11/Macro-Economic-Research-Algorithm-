@@ -4133,6 +4133,61 @@
       .toast { animation: none; }
       .sticky-refresh-bar, .sticky-refresh-btn { transition: none; }
     }
+
+    /* ===================== STORY ARC (Sentinel Briefing) ===================== */
+    .story-arc { padding: 40px 0 8px; }
+    .story-section { padding: 44px 0 0; border-top: 1px solid var(--border); margin-top: 44px; }
+    .story-section:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+    .story-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--blue); }
+    .story-eyebrow.amber { color: var(--amber); }
+    .story-section-title { font-family: var(--font-serif); font-weight: 600; font-size: 27px; line-height: 1.3; color: var(--text); max-width: 640px; margin: 8px 0 8px; }
+    .story-section-sub { font-family: var(--font-sans); font-size: 15px; line-height: 1.65; color: var(--text-2); max-width: 640px; margin-bottom: 28px; }
+
+    .story-top { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
+    .story-top-left { flex: 1 1 560px; min-width: 320px; }
+    .story-meta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+    .story-date { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+    .story-meta-rule { width: 28px; height: 1px; background: var(--border-2); }
+
+    .reliability-chip { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; border-radius: 6px; margin-bottom: 18px; }
+    .reliability-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .reliability-dot.banded { border-radius: 1px; transform: rotate(45deg); }
+
+    .story-lead { font-family: var(--font-serif); font-weight: 600; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.22; color: var(--text); max-width: 660px; }
+    .story-support { font-family: var(--font-sans); font-size: 16px; line-height: 1.65; color: var(--text-2); max-width: 620px; margin-top: 18px; }
+    .story-reliability-note { font-family: var(--font-sans); font-size: 14px; line-height: 1.7; color: var(--text-2); max-width: 620px; margin-top: 12px; font-style: italic; }
+
+    .story-conf-wrap { flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 46px; }
+    .story-conf-quality { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; line-height: 1.5; color: var(--text-2); }
+    .story-conf-band-note { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+    .why-card.contradiction { border-color: var(--amber-dim, var(--border)); }
+    .why-tag { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; }
+    .why-tag.convergence { background: var(--green-dim, rgba(16,212,138,0.1)); color: var(--green); }
+    .why-tag.contradiction { background: var(--amber-dim, rgba(251,191,36,0.1)); color: var(--amber); }
+    .why-card-name { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--text); }
+    .why-card-body { font-family: var(--font-sans); font-size: 14px; line-height: 1.65; color: var(--text-2); margin-top: 12px; }
+    .why-card-signals { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .why-sig-chip { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; padding: 4px 8px; border-radius: 4px; background: var(--bg-3); color: var(--text-2); }
+
+    .placeholder-block { border: 1px dashed var(--border-2); border-radius: 12px; padding: 20px 22px; }
+    .placeholder-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); background: var(--bg-3); padding: 4px 9px; border-radius: 4px; margin-bottom: 10px; }
+    .placeholder-text { font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--text-3); font-style: italic; }
+
+    .attention-row { display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+    .attention-row:last-child { border-bottom: none; }
+    .attention-rail { flex: 0 0 5px; align-self: stretch; border-radius: 3px; background: var(--amber); }
+
+    .change-trigger { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
+    .change-trigger-num { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-3); padding-top: 2px; flex: 0 0 auto; }
+
+    .evidence-toggle-btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border-2); background: var(--blue-dim); color: var(--blue); cursor: pointer; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+    .evidence-caret { display: inline-block; transition: transform 0.2s ease-out; }
+    .evidence-caret.open { transform: rotate(180deg); }
+    .evidence-body { display: flex; flex-direction: column; gap: 24px; margin-top: 26px; }
+    .evidence-body[hidden] { display: none; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -4501,297 +4556,507 @@
         </button>
       </div>
 
-      <div class="regime-hero" id="regimeHero">
-        <!-- SVG gradient def for ring -->
-        <svg width="0" height="0" style="position:absolute">
-          <defs>
-            <linearGradient id="confGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#4f83ff" />
-              <stop offset="100%" stop-color="#8b5cf6" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div class="regime-hero-top">
-          <div class="regime-hero-left">
-            <div class="regime-label-row">
-              <span class="regime-eyebrow">Today's Economic Environment</span>
-              <div class="regime-status-dot" id="regimeDot"></div>
+      <!-- ============ SENTINEL BRIEFING — STORY ARC ============ -->
+      <div class="story-arc" id="storyArc">
+
+        <!-- 1. WHAT'S HAPPENING -->
+        <div class="story-section" style="border-top:none;margin-top:0;padding-top:0;">
+          <div class="story-top">
+            <div class="story-top-left">
+              <div class="story-meta-row">
+                <span class="story-eyebrow">What's happening</span>
+                <div class="story-meta-rule"></div>
+                <span class="story-date" id="storyDate">—</span>
+              </div>
+              <div class="reliability-chip" id="storyReliabilityChip" style="display:none;">
+                <span class="reliability-dot" id="storyReliabilityDot"></span>
+                <span id="storyReliabilityLabel">—</span>
+              </div>
+              <div class="story-lead" id="storyLead">
+                <div class="skeleton" style="width:100%;height:36px;border-radius:6px;"></div>
+              </div>
+              <div class="story-support placeholder-text" id="storySupport">Run the engine to generate today's briefing.</div>
+              <div class="story-reliability-note" id="storyReliabilityNote" style="display:none;"></div>
             </div>
-            <div class="regime-name" id="regimeName">
-              <div class="skeleton" style="width:280px;height:46px;border-radius:6px;"></div>
-            </div>
-            <div class="regime-verdict" id="regimeVerdict" style="display:none;"></div>
-            <div class="regime-narrative" id="regimeNarrative">
-              <div class="skeleton" style="width:100%;height:14px;margin-bottom:6px;"></div>
-              <div class="skeleton" style="width:80%;height:14px;"></div>
-            </div>
-            <div class="regime-bridge" id="regimeBridge" style="display:none"></div>
-          </div>
-          <div class="regime-hero-right">
-            <div class="confidence-ring">
-              <svg viewBox="0 0 92 92" width="92" height="92">
-                <circle class="ring-bg" cx="46" cy="46" r="40" />
-                <circle class="ring-fill" id="confRing" cx="46" cy="46" r="40" stroke-dasharray="0 251.3"
-                  stroke-dashoffset="0" />
-              </svg>
-              <div class="confidence-ring-text">
-                <span class="confidence-pct" id="confPct">—</span><span id="confArrow"
-                  style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
-                <span class="confidence-lbl">CONF<span class="tip-icon" data-tip="conf">ⓘ</span></span>
-                <span id="confStressAdj" style="display:none;font-family:var(--font-mono);font-size:8px;margin-top:2px;letter-spacing:0.04em;"></span>
+            <div class="story-conf-wrap">
+              <div style="position:relative;width:140px;height:140px;">
+                <svg width="140" height="140" viewBox="0 0 140 140" style="display:block;">
+                  <circle cx="70" cy="70" r="58" fill="none" stroke="var(--border-2)" stroke-width="8"/>
+                  <circle cx="70" cy="70" r="58" fill="none" stroke="var(--amber)" stroke-width="8" id="storyBandArc" opacity="0" transform="rotate(-90 70 70)"/>
+                  <circle cx="70" cy="70" r="58" fill="none" stroke="var(--blue)" stroke-width="8" stroke-linecap="round" id="storyConfRing" stroke-dasharray="0 364.4" transform="rotate(-90 70 70)"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;pointer-events:none;">
+                  <div style="font-family:var(--font-mono);font-size:27px;font-weight:500;color:var(--text);line-height:1;" id="storyConfPct">—</div>
+                  <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.16em;color:var(--text-3);">CONFIDENCE</div>
+                </div>
+              </div>
+              <div class="story-conf-quality" id="storyConfQuality">—</div>
+              <div class="story-conf-band-note">
+                <span style="width:14px;height:3px;border-radius:2px;background:var(--amber);opacity:0.85;"></span>
+                <span>70–80 flagged band</span>
               </div>
             </div>
-            <svg class="conf-sparkline" id="confSparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
-              <polyline id="sparklinePath" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points=""/>
-              <circle id="sparklineDot" r="2.5" fill="var(--blue)"/>
-            </svg>
           </div>
         </div>
-        <div class="regime-pills">
-          <div class="regime-pill"><span class="regime-pill-label">Portfolio Direction<span class="tip-icon"
-                data-tip="equity-bias">ⓘ</span></span><span class="regime-pill-value" id="pillEquity">—</span></div>
-          <div class="regime-pill"><span class="regime-pill-label">How Sure We Are<span class="tip-icon"
-                data-tip="conviction">ⓘ</span></span><span class="regime-pill-value" id="pillConviction">—</span></div>
-          <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
-          <div class="regime-pill" id="vixPillGroup"><span class="regime-pill-label">India VIX</span><span class="regime-pill-value" id="vixChip">—</span></div>
-          <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
-              id="pillRBI">—</span>
-            <div id="rbiDocSource"
-                 style="
-                   font-family:var(--font-mono);
-                   font-size:7px;
-                   color:var(--text-3);
-                   letter-spacing:0.08em;
-                   margin-top:3px;
-                   display:none;">
+
+        <!-- 2. WHY -->
+        <div class="story-section">
+          <span class="story-eyebrow">Why</span>
+          <div class="story-section-title">Signal relationships behind today's read.</div>
+          <div class="story-section-sub" id="whyIntro">Run the engine to see which signals agree and which disagree today.</div>
+          <div class="why-grid" id="whyGrid"></div>
+        </div>
+
+        <!-- 3. SO WHAT -->
+        <div class="story-section">
+          <span class="story-eyebrow">So what</span>
+          <div class="story-section-title" style="margin-top:8px;">Portfolio instruction</div>
+          <div class="placeholder-block" style="margin-top:10px;">
+            <span class="placeholder-badge">Coming soon</span>
+            <div class="placeholder-text">This section will hold Sentinel's plain-language portfolio instruction, generated by the story-generation layer (not yet live). Today's playbook is still available further down the page.</div>
+          </div>
+        </div>
+
+        <!-- 4. WHAT DESERVES ATTENTION -->
+        <div class="story-section">
+          <span class="story-eyebrow amber">What deserves attention</span>
+          <div class="placeholder-block" style="margin-top:18px;">
+            <span class="placeholder-badge">Coming soon</span>
+            <div class="placeholder-text">Analyst call-outs on what's thin, fresh, or worth a second look will appear here once the story-generation layer is live.</div>
+          </div>
+        </div>
+
+        <!-- 5. WHAT COULD CHANGE THIS -->
+        <div class="story-section">
+          <span class="story-eyebrow">What could change this</span>
+          <div style="display:flex; gap:48px; flex-wrap:wrap; margin-top:18px;">
+            <div style="flex:1 1 440px; min-width:320px;">
+              <div class="placeholder-block">
+                <span class="placeholder-badge">Coming soon</span>
+                <div class="placeholder-text">Specific trigger conditions (e.g. "if the rupee breaks X while crude stays above Y") will appear here once the story-generation layer is live.</div>
+              </div>
+            </div>
+            <div style="flex:0 1 380px; min-width:280px;">
+              <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:14px;">Where the next month lands</div>
+              <div class="scenario-visual" id="scenarioVisual">
+                <div class="scenario-prob-bars">
+                  <div class="scenario-prob-bar-row" id="scenarioProbBase">
+                    <div class="scenario-prob-bar-label">
+                      <span class="scenario-prob-dot dot-baseline"></span>
+                      <span>Base Case</span>
+                    </div>
+                    <div class="scenario-prob-bar-track">
+                      <div class="scenario-prob-bar-fill fill-baseline" id="fillBase"></div>
+                    </div>
+                    <div class="scenario-prob-bar-pct" id="pctBase">—</div>
+                  </div>
+                  <div class="scenario-prob-bar-row" id="scenarioProbBull">
+                    <div class="scenario-prob-bar-label">
+                      <span class="scenario-prob-dot dot-bullish"></span>
+                      <span>Growth Upside</span>
+                    </div>
+                    <div class="scenario-prob-bar-track">
+                      <div class="scenario-prob-bar-fill fill-bullish" id="fillBull"></div>
+                    </div>
+                    <div class="scenario-prob-bar-pct" id="pctBull">—</div>
+                  </div>
+                  <div class="scenario-prob-bar-row" id="scenarioProbBear">
+                    <div class="scenario-prob-bar-label">
+                      <span class="scenario-prob-dot dot-bearish"></span>
+                      <span>External Shock</span>
+                    </div>
+                    <div class="scenario-prob-bar-track">
+                      <div class="scenario-prob-bar-fill fill-bearish" id="fillBear"></div>
+                    </div>
+                    <div class="scenario-prob-bar-pct" id="pctBear">—</div>
+                  </div>
+                </div>
+                <div class="scenario-dominant" id="scenarioDominant">
+                  <div class="scenario-dominant-label">MOST LIKELY SCENARIO</div>
+                  <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
+                  <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
-              id="pillLiquidity">—</span></div>
-          <div class="regime-pill" style="align-items:center;justify-content:center;">
-            <span class="act-signal-pill HOLD" id="actSignalPill">HOLD</span><span class="tip-icon"
-              data-tip="act-signal" style="margin-left:6px;">ⓘ</span>
+        </div>
+
+        <!-- 6. SHOW ME THE EVIDENCE -->
+        <div class="story-section">
+          <button class="evidence-toggle-btn" onclick="toggleStoryEvidence()">
+            <span id="evidenceBtnLabel">Show me the evidence</span>
+            <span class="evidence-caret" id="evidenceCaret">▾</span>
+          </button>
+          <div style="font-family:var(--font-sans); font-size:14px; color:var(--text-3); margin-top:10px;">Eleven signals, flow history, the yield curve, and the real-economy prints behind everything above.</div>
+
+          <div class="evidence-body" id="evidenceBody" hidden>
+
+            <!-- Signal Intelligence Card -->
+            <div class="card signal-intel-card" id="signalIntelCard" style="display:none;">
+              <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">What The Data Shows</div>
+
+              <div class="signal-visual-summary" id="signalVisualSummary">
+                <!-- Left: Donut chart -->
+                <div class="signal-donut-wrap">
+                  <svg class="signal-donut" viewBox="0 0 80 80" id="signalDonutSvg">
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="var(--border)" stroke-width="8"/>
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="var(--green)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutSupportive" transform="rotate(-90 40 40)"/>
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="var(--red)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutStressed" transform="rotate(-90 40 40)"/>
+                    <circle cx="40" cy="40" r="30" fill="none" stroke="var(--amber)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutNeutral" transform="rotate(-90 40 40)"/>
+                    <text x="40" y="36" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="var(--text)" id="donutCenterScore">—</text>
+                    <text x="40" y="48" text-anchor="middle" font-family="var(--font-mono)" font-size="7" fill="var(--text-3)" letter-spacing="1">SCORE</text>
+                  </svg>
+                </div>
+
+                <!-- Right: Signal counts and plain language read -->
+                <div class="signal-visual-right">
+                  <div class="signal-count-row">
+                    <div class="signal-count-item">
+                      <div class="signal-count-dot dot-green"></div>
+                      <div class="signal-count-num" id="countSupportive">—</div>
+                      <div class="signal-count-label">Supportive</div>
+                    </div>
+                    <div class="signal-count-item">
+                      <div class="signal-count-dot dot-red"></div>
+                      <div class="signal-count-num" id="countStressed">—</div>
+                      <div class="signal-count-label">Stressed</div>
+                    </div>
+                    <div class="signal-count-item">
+                      <div class="signal-count-dot dot-amber"></div>
+                      <div class="signal-count-num" id="countNeutral">—</div>
+                      <div class="signal-count-label">Neutral</div>
+                    </div>
+                  </div>
+                  <div class="signal-plain-read" id="signalPlainRead">—</div>
+                  <div class="signal-trend-row">
+                    <span class="signal-trend-label">OVERALL DIRECTION</span>
+                    <span class="signal-trend-value" id="signalTrendValue">—</span>
+                  </div>
+
+                  <!-- Signal Entropy Indicator -->
+                  <div id="entropyIndicator"
+                       style="
+                         display:none;
+                         margin-top:8px;
+                         padding:6px 10px;
+                         border-radius:6px;
+                         background:var(--bg-3);
+                         border:1px solid var(--border);
+                         font-family:var(--font-mono);
+                         font-size:9px;
+                         letter-spacing:0.1em;">
+                    <span id="entropyLabel"
+                          style="font-weight:700;">
+                    </span>
+                    <span id="entropyValue"
+                          style="
+                            color:var(--text-3);
+                            margin-left:6px;">
+                    </span>
+                    <div id="entropyInterp"
+                         style="
+                           color:var(--text-2);
+                           font-size:9px;
+                           margin-top:3px;
+                           font-family:
+                             var(--font-sans);
+                           letter-spacing:0;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
+              <div class="signal-grid" id="signalGrid"></div>
+              <div class="signal-intel-footer">
+                This score combines eleven live checks on the Indian economy. Higher means more conditions are supportive for investing.
+              </div>
+            </div>
+
+            <div>
+              <div class="section-header">
+                <span class="section-title">What Big Investors Are Doing</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span class="section-meta" id="flowDate">—</span>
+                  <div class="flow-timeframe-tabs" id="flowTabs" style="display:none;">
+                    <button class="flow-tab active" data-period="1D">1D</button>
+                    <button class="flow-tab" data-period="1W">1W</button>
+                    <button class="flow-tab" data-period="1M">1M</button>
+                    <button class="flow-tab" data-period="3M">3M</button>
+                  </div>
+                </div>
+              </div>
+              <div class="flows-grid">
+                <div class="flow-card">
+                  <div class="flow-type">Foreign Investors (FII)</div>
+                  <div class="flow-amount" id="fiiNet">—</div>
+                  <div class="flow-signal" id="fiiSignal">Loading...</div>
+                </div>
+                <div class="flow-card">
+                  <div class="flow-type">Indian Institutions (DII)</div>
+                  <div class="flow-amount" id="diiNet">—</div>
+                  <div class="flow-signal" id="diiSignal">Loading...</div>
+                </div>
+                <div style="margin-top:18px;position:relative;height:172px;"><canvas id="fiiDiiChart"></canvas></div>
+                <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
+                <div class="flow-context" id="flowContext"></div>
+              </div>
+            </div>
+
+            <!-- India Activity Signals Strip -->
+            <div class="activity-strip" id="activityStrip">
+              <div class="activity-strip-header">
+                <span class="activity-strip-title">How India's Real Economy Is Doing</span>
+                <span class="activity-composite" id="activityComposite">—</span>
+              </div>
+              <div class="activity-cards">
+                <div class="activity-card">
+                  <div class="activity-card-label">GST Collections</div>
+                  <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Tax collections — higher = stronger economy</div>
+                  <div class="activity-card-period" id="actGstPeriod">—</div>
+                  <div class="activity-card-value" id="actGstValue">—</div>
+                  <div class="activity-card-yoy" id="actGstYoy">—</div>
+                  <div class="activity-card-signal" id="actGstSignal">—</div>
+                </div>
+                <div class="activity-card">
+                  <div class="activity-card-label">Auto Sales</div>
+                  <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Vehicle sales — a real economy indicator</div>
+                  <div class="activity-card-period" id="actAutoPeriod">—</div>
+                  <div class="activity-card-value" id="actAutoValue">—</div>
+                  <div class="activity-card-yoy" id="actAutoYoy">—</div>
+                  <div class="activity-card-signal" id="actAutoSignal">—</div>
+                </div>
+                <div class="activity-card">
+                  <div class="activity-card-label">Bank Credit</div>
+                  <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">How much banks are lending — higher = more economic activity</div>
+                  <div class="activity-card-period" id="actCreditPeriod">—</div>
+                  <div class="activity-card-value" id="actCreditValue">—</div>
+                  <div class="activity-card-yoy" id="actCreditYoy">—</div>
+                  <div class="activity-card-signal" id="actCreditSignal">—</div>
+                </div>
+                <div class="activity-card" id="iipCard">
+                  <div class="activity-card-label">Industrial Production (IIP)</div>
+                  <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Monthly output — govt measure of industrial activity</div>
+                  <div class="activity-card-period" id="actIipPeriod">—</div>
+                  <div class="activity-card-value" id="actIipValue">—</div>
+                  <div class="activity-card-yoy" id="actIipYoy"></div>
+                  <div class="activity-card-signal" id="actIipSignal">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="section-header"><span class="section-title">Interest Rate Environment</span></div>
+              <div class="yield-grid">
+                <div class="yield-card">
+                  <div class="yield-label">India Rate Curve</div>
+                  <div class="yield-value" id="yieldSpread">—</div>
+                  <div class="yield-sub" id="yieldShape">Loading...</div>
+                </div>
+                <div class="yield-card">
+                  <div class="yield-label">India 10Y</div>
+                  <div class="yield-value" id="yield10y">—</div>
+                  <div class="yield-sub">G-Sec Benchmark</div>
+                </div>
+                <div class="yield-card">
+                  <div class="yield-label">US 10Y-2Y</div>
+                  <div class="yield-value" id="usSpread">—</div>
+                  <div class="yield-sub" id="usShape">Loading...</div>
+                </div>
+                <div class="yield-card">
+                  <div class="yield-label">Rate Advantage<span class="tip-icon" data-tip="carry">ⓘ</span></div>
+                  <div class="yield-value" id="carrySpread">—</div>
+                  <div class="yield-sub" id="carrySignal">India-US 10Y</div>
+                </div>
+              </div>
+              <div style="margin-top:18px;position:relative;height:190px;padding-bottom:10px;"><canvas id="yieldCurveChart"></canvas></div>
+            </div>
+
           </div>
         </div>
-        <div class="challenger-banner" id="challengerBanner" style="display:none">
-          <div>⚠️ Alternative read:<span class="tip-icon" data-tip="challenger">ⓘ</span> <strong
-              id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
-            45%</div>
-          <div style="font-size:11px;">🔔 WhatsApp + email alert will fire automatically if this regime is confirmed
-          </div>
-        </div>
-        <div class="transition-indicator" id="transitionIndicator" style="display:none;">
-          <span class="transition-label">Chance of change</span>
-          <div class="transition-bar-container">
-            <div class="transition-bar" id="transitionBar"></div>
-          </div>
-          <span class="transition-pct" id="transitionPct">—</span>
-          <span class="transition-next" id="transitionNext"></span>
-        </div>
+
       </div>
+      <!-- ============ END STORY ARC ============ -->
 
       <div class="ticker-strip" id="tickerStrip">
         <span class="ticker-live-badge">LIVE</span>
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">Loading market data...</span>
       </div>
 
-      <!-- FEATURE 7: Decision Prompt Card -->
-      <div class="decision-prompt" id="decisionPrompt">
-        <div class="decision-prompt-title">What To Do Today</div>
-        <div class="decision-prompt-rows">
-          <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
-              id="dpAction">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Why</span><span class="dp-value"
-              id="dpRationale">—</span></div>
-          <div class="decision-prompt-row"><span class="dp-label">Watch Out For</span><span class="dp-value"
-              id="dpWatchpoint">—</span></div>
-        </div>
-      </div>
-
-      <div class="section-header">
-        <span class="section-title">Today's Playbook</span>
-        <span class="section-meta" id="convictionMeta">—</span>
-      </div>
-      <div class="playbook-card">
-        <div class="playbook-items" id="playbookItems">
-          <div class="empty-state">
-            <div class="empty-state-icon">🎯</div>
-            <div class="empty-state-title">No intelligence yet</div>
-            <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio
-              playbook.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- FEATURE 11: What This Means For You -->
-      <div class="wtmfy-card" id="wtmfyCard">
-        <div class="wtmfy-header">
-          <span class="wtmfy-title" id="wtmfyTitle">What This Means For You</span>
-          <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
-        </div>
-        <div class="wtmfy-body" id="wtmfyBody">—</div>
-        <div class="wtmfy-divider" id="wtmfyDivider" style="display:none"></div>
-        <div class="wtmfy-actions" id="wtmfyActions"></div>
-      </div>
-
-      <!-- What Changed Delta Card -->
-      <div class="delta-card" id="deltaCard" style="display:none;">
-        <div class="delta-header">
-          <div class="delta-header-left">
-            <span class="delta-eyebrow">Since Yesterday</span>
-            <span class="delta-headline" id="deltaHeadline">—</span>
-          </div>
-          <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
-        </div>
-        <div class="delta-changes" id="deltaChanges"></div>
-        <div class="delta-watch" id="deltaWatch" style="display:none;">
-          <div class="delta-watch-title">Coming Up</div>
-          <div class="delta-watch-items" id="deltaWatchItems"></div>
-        </div>
-      </div>
-
-      <!-- Anticipatory Signal Card -->
-      <div class="anticipatory-card" id="anticipatoryCard" style="display:none;"></div>
-
-      <div class="divider"></div>
-
-      <div class="section-header"><span class="section-title">What Could Happen Next</span></div>
-
-      <div class="scenario-visual" id="scenarioVisual">
-        <div class="scenario-prob-bars">
-          <div class="scenario-prob-bar-row" id="scenarioProbBase">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-baseline"></span>
-              <span>Base Case</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-baseline" id="fillBase"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBase">—</div>
-          </div>
-          <div class="scenario-prob-bar-row" id="scenarioProbBull">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-bullish"></span>
-              <span>Growth Upside</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bullish" id="fillBull"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBull">—</div>
-          </div>
-          <div class="scenario-prob-bar-row" id="scenarioProbBear">
-            <div class="scenario-prob-bar-label">
-              <span class="scenario-prob-dot dot-bearish"></span>
-              <span>External Shock</span>
-            </div>
-            <div class="scenario-prob-bar-track">
-              <div class="scenario-prob-bar-fill fill-bearish" id="fillBear"></div>
-            </div>
-            <div class="scenario-prob-bar-pct" id="pctBear">—</div>
-          </div>
-        </div>
-        <div class="scenario-dominant" id="scenarioDominant">
-          <div class="scenario-dominant-label">MOST LIKELY SCENARIO</div>
-          <div class="scenario-dominant-name" id="scenarioDominantName">—</div>
-          <div class="scenario-dominant-sub" id="scenarioDominantSub">—</div>
-        </div>
-      </div>
-
-      <div class="scenario-grid" id="scenarioGrid">
-        <div class="scenario-card base" data-expanded="false" onclick="toggleScenarioCard(this)">
-          <div class="scenario-card-header">
-            <div class="scenario-name">Awaiting Run</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="scenario-prob" style="font-size:11px;color:var(--text-3)">—%</span>
-              <span class="scenario-card-toggle">›</span>
-            </div>
-          </div>
-          <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
-        </div>
-      </div>
-      <div class="scenario-ca-note">
-        For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
-      </div>
-
-      <!-- Signal Intelligence Card -->
-      <div class="card signal-intel-card" id="signalIntelCard" style="display:none;">
-        <div class="card-label" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">What The Data Shows</div>
-
-        <div class="signal-visual-summary" id="signalVisualSummary">
-          <!-- Left: Donut chart -->
-          <div class="signal-donut-wrap">
-            <svg class="signal-donut" viewBox="0 0 80 80" id="signalDonutSvg">
-              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--border)" stroke-width="8"/>
-              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--green)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutSupportive" transform="rotate(-90 40 40)"/>
-              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--red)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutStressed" transform="rotate(-90 40 40)"/>
-              <circle cx="40" cy="40" r="30" fill="none" stroke="var(--amber)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 188.5" id="donutNeutral" transform="rotate(-90 40 40)"/>
-              <text x="40" y="36" text-anchor="middle" font-family="var(--font-mono)" font-size="14" font-weight="700" fill="var(--text)" id="donutCenterScore">—</text>
-              <text x="40" y="48" text-anchor="middle" font-family="var(--font-mono)" font-size="7" fill="var(--text-3)" letter-spacing="1">SCORE</text>
-            </svg>
-          </div>
-
-          <!-- Right: Signal counts and plain language read -->
-          <div class="signal-visual-right">
-            <div class="signal-count-row">
-              <div class="signal-count-item">
-                <div class="signal-count-dot dot-green"></div>
-                <div class="signal-count-num" id="countSupportive">—</div>
-                <div class="signal-count-label">Supportive</div>
+      <!--
+        ============ LEGACY PRIMARY VIEW — superseded by the story arc above ============
+        Kept in the DOM (hidden, not deleted) rather than removed outright: a lot of
+        renderRunResult()'s existing logic writes to element IDs inside this block
+        (dpAction, playbookItems, wtmfyBody, deltaHeadline, etc.), and removing the
+        elements outright risks a getElementById() throw that silently kills the rest
+        of renderRunResult() for anyone still on cached/old JS during a rolling deploy.
+        Safe to delete for real in a follow-up once the story arc is confirmed working
+        end-to-end against a live run.
+      -->
+      <div id="legacyPrimaryView" style="display:none;">
+        <div class="regime-hero" id="regimeHero">
+          <!-- SVG gradient def for ring -->
+          <svg width="0" height="0" style="position:absolute">
+            <defs>
+              <linearGradient id="confGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#4f83ff" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="regime-hero-top">
+            <div class="regime-hero-left">
+              <div class="regime-label-row">
+                <span class="regime-eyebrow">Today's Economic Environment</span>
+                <div class="regime-status-dot" id="regimeDot"></div>
               </div>
-              <div class="signal-count-item">
-                <div class="signal-count-dot dot-red"></div>
-                <div class="signal-count-num" id="countStressed">—</div>
-                <div class="signal-count-label">Stressed</div>
+              <div class="regime-name" id="regimeName">
+                <div class="skeleton" style="width:280px;height:46px;border-radius:6px;"></div>
               </div>
-              <div class="signal-count-item">
-                <div class="signal-count-dot dot-amber"></div>
-                <div class="signal-count-num" id="countNeutral">—</div>
-                <div class="signal-count-label">Neutral</div>
+              <div class="regime-verdict" id="regimeVerdict" style="display:none;"></div>
+              <div class="regime-narrative" id="regimeNarrative">
+                <div class="skeleton" style="width:100%;height:14px;margin-bottom:6px;"></div>
+                <div class="skeleton" style="width:80%;height:14px;"></div>
               </div>
+              <div class="regime-bridge" id="regimeBridge" style="display:none"></div>
             </div>
-            <div class="signal-plain-read" id="signalPlainRead">—</div>
-            <div class="signal-trend-row">
-              <span class="signal-trend-label">OVERALL DIRECTION</span>
-              <span class="signal-trend-value" id="signalTrendValue">—</span>
+            <div class="regime-hero-right">
+              <div class="confidence-ring">
+                <svg viewBox="0 0 92 92" width="92" height="92">
+                  <circle class="ring-bg" cx="46" cy="46" r="40" />
+                  <circle class="ring-fill" id="confRing" cx="46" cy="46" r="40" stroke-dasharray="0 251.3"
+                    stroke-dashoffset="0" />
+                </svg>
+                <div class="confidence-ring-text">
+                  <span class="confidence-pct" id="confPct">—</span><span id="confArrow"
+                    style="font-family:var(--font-mono);font-size:12px;margin-left:3px;vertical-align:middle;"></span>
+                  <span class="confidence-lbl">CONF<span class="tip-icon" data-tip="conf">ⓘ</span></span>
+                  <span id="confStressAdj" style="display:none;font-family:var(--font-mono);font-size:8px;margin-top:2px;letter-spacing:0.04em;"></span>
+                </div>
+              </div>
+              <svg class="conf-sparkline" id="confSparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+                <polyline id="sparklinePath" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points=""/>
+                <circle id="sparklineDot" r="2.5" fill="var(--blue)"/>
+              </svg>
             </div>
-
-            <!-- Signal Entropy Indicator -->
-            <div id="entropyIndicator"
-                 style="
-                   display:none;
-                   margin-top:8px;
-                   padding:6px 10px;
-                   border-radius:6px;
-                   background:var(--bg-3);
-                   border:1px solid var(--border);
-                   font-family:var(--font-mono);
-                   font-size:9px;
-                   letter-spacing:0.1em;">
-              <span id="entropyLabel"
-                    style="font-weight:700;">
-              </span>
-              <span id="entropyValue"
-                    style="
-                      color:var(--text-3);
-                      margin-left:6px;">
-              </span>
-              <div id="entropyInterp"
+          </div>
+          <div class="regime-pills">
+            <div class="regime-pill"><span class="regime-pill-label">Portfolio Direction<span class="tip-icon"
+                  data-tip="equity-bias">ⓘ</span></span><span class="regime-pill-value" id="pillEquity">—</span></div>
+            <div class="regime-pill"><span class="regime-pill-label">How Sure We Are<span class="tip-icon"
+                  data-tip="conviction">ⓘ</span></span><span class="regime-pill-value" id="pillConviction">—</span></div>
+            <div class="regime-pill" id="stabilityPillGroup" style="display:none;"><span class="regime-pill-label">Stability</span><span class="regime-pill-value" id="stabilityChip">—</span></div>
+            <div class="regime-pill" id="vixPillGroup"><span class="regime-pill-label">India VIX</span><span class="regime-pill-value" id="vixChip">—</span></div>
+            <div class="regime-pill"><span class="regime-pill-label">RBI Signal</span><span class="regime-pill-value"
+                id="pillRBI">—</span>
+              <div id="rbiDocSource"
                    style="
-                     color:var(--text-2);
-                     font-size:9px;
+                     font-family:var(--font-mono);
+                     font-size:7px;
+                     color:var(--text-3);
+                     letter-spacing:0.08em;
                      margin-top:3px;
-                     font-family:
-                       var(--font-sans);
-                     letter-spacing:0;">
+                     display:none;">
               </div>
+            </div>
+            <div class="regime-pill"><span class="regime-pill-label">Liquidity</span><span class="regime-pill-value"
+                id="pillLiquidity">—</span></div>
+            <div class="regime-pill" style="align-items:center;justify-content:center;">
+              <span class="act-signal-pill HOLD" id="actSignalPill">HOLD</span><span class="tip-icon"
+                data-tip="act-signal" style="margin-left:6px;">ⓘ</span>
+            </div>
+          </div>
+          <div class="challenger-banner" id="challengerBanner" style="display:none">
+            <div>⚠️ Alternative read:<span class="tip-icon" data-tip="challenger">ⓘ</span> <strong
+                id="challengerName">—</strong> &nbsp;·&nbsp; Monitor if confidence exceeds
+              45%</div>
+            <div style="font-size:11px;">🔔 WhatsApp + email alert will fire automatically if this regime is confirmed
+            </div>
+          </div>
+          <div class="transition-indicator" id="transitionIndicator" style="display:none;">
+            <span class="transition-label">Chance of change</span>
+            <div class="transition-bar-container">
+              <div class="transition-bar" id="transitionBar"></div>
+            </div>
+            <span class="transition-pct" id="transitionPct">—</span>
+            <span class="transition-next" id="transitionNext"></span>
+          </div>
+        </div>
+
+        <!-- FEATURE 7: Decision Prompt Card -->
+        <div class="decision-prompt" id="decisionPrompt">
+          <div class="decision-prompt-title">What To Do Today</div>
+          <div class="decision-prompt-rows">
+            <div class="decision-prompt-row"><span class="dp-label">Action</span><span class="dp-value"
+                id="dpAction">—</span></div>
+            <div class="decision-prompt-row"><span class="dp-label">Why</span><span class="dp-value"
+                id="dpRationale">—</span></div>
+            <div class="decision-prompt-row"><span class="dp-label">Watch Out For</span><span class="dp-value"
+                id="dpWatchpoint">—</span></div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">Today's Playbook</span>
+          <span class="section-meta" id="convictionMeta">—</span>
+        </div>
+        <div class="playbook-card">
+          <div class="playbook-items" id="playbookItems">
+            <div class="empty-state">
+              <div class="empty-state-icon">🎯</div>
+              <div class="empty-state-title">No intelligence yet</div>
+              <div class="empty-state-desc">Press ▶ Run Engine to generate today's macro intelligence and portfolio
+                playbook.</div>
             </div>
           </div>
         </div>
 
-        <div class="signal-intel-subtitle" id="signalIntelSummary"></div>
-        <div class="signal-grid" id="signalGrid"></div>
-        <div class="signal-intel-footer">
-          This score combines eleven live checks on the Indian economy. Higher means more conditions are supportive for investing.
+        <!-- FEATURE 11: What This Means For You -->
+        <div class="wtmfy-card" id="wtmfyCard">
+          <div class="wtmfy-header">
+            <span class="wtmfy-title" id="wtmfyTitle">What This Means For You</span>
+            <span class="wtmfy-mandate-badge" id="wtmfyBadge">—</span>
+          </div>
+          <div class="wtmfy-body" id="wtmfyBody">—</div>
+          <div class="wtmfy-divider" id="wtmfyDivider" style="display:none"></div>
+          <div class="wtmfy-actions" id="wtmfyActions"></div>
+        </div>
+
+        <!-- What Changed Delta Card -->
+        <div class="delta-card" id="deltaCard" style="display:none;">
+          <div class="delta-header">
+            <div class="delta-header-left">
+              <span class="delta-eyebrow">Since Yesterday</span>
+              <span class="delta-headline" id="deltaHeadline">—</span>
+            </div>
+            <span class="delta-sentiment-badge" id="deltaSentimentBadge"></span>
+          </div>
+          <div class="delta-changes" id="deltaChanges"></div>
+          <div class="delta-watch" id="deltaWatch" style="display:none;">
+            <div class="delta-watch-title">Coming Up</div>
+            <div class="delta-watch-items" id="deltaWatchItems"></div>
+          </div>
+        </div>
+
+        <!-- Anticipatory Signal Card -->
+        <div class="anticipatory-card" id="anticipatoryCard" style="display:none;"></div>
+
+        <div class="section-header"><span class="section-title">What Could Happen Next</span></div>
+
+        <div class="scenario-grid" id="scenarioGrid">
+          <div class="scenario-card base" data-expanded="false" onclick="toggleScenarioCard(this)">
+            <div class="scenario-card-header">
+              <div class="scenario-name">Awaiting Run</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="scenario-prob" style="font-size:11px;color:var(--text-3)">—%</span>
+                <span class="scenario-card-toggle">›</span>
+              </div>
+            </div>
+            <div class="scenario-desc">Run the intelligence engine to generate scenario probabilities.</div>
+          </div>
+        </div>
+        <div class="scenario-ca-note">
+          For client conversations: Base Case probability above 55% supports maintaining existing SIP allocations. Growth Upside above 30% supports increasing equity exposure for long-horizon clients. External Shock above 15% warrants defensive repositioning regardless of client age.
         </div>
       </div>
 
@@ -4823,105 +5088,6 @@
         <div class="backtest-grid" id="backtestGrid"></div>
         <div class="backtest-insight" id="backtestInsight"></div>
       </div>
-
-      <div class="divider"></div>
-
-      <div class="section-header">
-        <span class="section-title">What Big Investors Are Doing</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="section-meta" id="flowDate">—</span>
-          <div class="flow-timeframe-tabs" id="flowTabs" style="display:none;">
-            <button class="flow-tab active" data-period="1D">1D</button>
-            <button class="flow-tab" data-period="1W">1W</button>
-            <button class="flow-tab" data-period="1M">1M</button>
-            <button class="flow-tab" data-period="3M">3M</button>
-          </div>
-        </div>
-      </div>
-      <div class="flows-grid">
-        <div class="flow-card">
-          <div class="flow-type">Foreign Investors (FII)</div>
-          <div class="flow-amount" id="fiiNet">—</div>
-          <div class="flow-signal" id="fiiSignal">Loading...</div>
-        </div>
-        <div class="flow-card">
-          <div class="flow-type">Indian Institutions (DII)</div>
-          <div class="flow-amount" id="diiNet">—</div>
-          <div class="flow-signal" id="diiSignal">Loading...</div>
-        </div>
-        <div style="margin-top:18px;position:relative;height:172px;"><canvas id="fiiDiiChart"></canvas></div>
-        <div class="flow-narrative" id="flowNarrative">Flow intelligence loads after running the engine.</div>
-        <div class="flow-context" id="flowContext"></div>
-      </div>
-
-      <!-- India Activity Signals Strip -->
-      <div class="activity-strip" id="activityStrip">
-        <div class="activity-strip-header">
-          <span class="activity-strip-title">How India's Real Economy Is Doing</span>
-          <span class="activity-composite" id="activityComposite">—</span>
-        </div>
-        <div class="activity-cards">
-          <div class="activity-card">
-            <div class="activity-card-label">GST Collections</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Tax collections — higher = stronger economy</div>
-            <div class="activity-card-period" id="actGstPeriod">—</div>
-            <div class="activity-card-value" id="actGstValue">—</div>
-            <div class="activity-card-yoy" id="actGstYoy">—</div>
-            <div class="activity-card-signal" id="actGstSignal">—</div>
-          </div>
-          <div class="activity-card">
-            <div class="activity-card-label">Auto Sales</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Vehicle sales — a real economy indicator</div>
-            <div class="activity-card-period" id="actAutoPeriod">—</div>
-            <div class="activity-card-value" id="actAutoValue">—</div>
-            <div class="activity-card-yoy" id="actAutoYoy">—</div>
-            <div class="activity-card-signal" id="actAutoSignal">—</div>
-          </div>
-          <div class="activity-card">
-            <div class="activity-card-label">Bank Credit</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">How much banks are lending — higher = more economic activity</div>
-            <div class="activity-card-period" id="actCreditPeriod">—</div>
-            <div class="activity-card-value" id="actCreditValue">—</div>
-            <div class="activity-card-yoy" id="actCreditYoy">—</div>
-            <div class="activity-card-signal" id="actCreditSignal">—</div>
-          </div>
-          <div class="activity-card" id="iipCard">
-            <div class="activity-card-label">Industrial Production (IIP)</div>
-            <div style="font-size:8px;color:var(--text-3);font-family:var(--font-sans);margin-top:1px;font-style:italic;">Monthly output — govt measure of industrial activity</div>
-            <div class="activity-card-period" id="actIipPeriod">—</div>
-            <div class="activity-card-value" id="actIipValue">—</div>
-            <div class="activity-card-yoy" id="actIipYoy"></div>
-            <div class="activity-card-signal" id="actIipSignal">—</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="section-header"><span class="section-title">Interest Rate Environment</span></div>
-      <div class="yield-grid">
-        <div class="yield-card">
-          <div class="yield-label">India Rate Curve</div>
-          <div class="yield-value" id="yieldSpread">—</div>
-          <div class="yield-sub" id="yieldShape">Loading...</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">India 10Y</div>
-          <div class="yield-value" id="yield10y">—</div>
-          <div class="yield-sub">G-Sec Benchmark</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">US 10Y-2Y</div>
-          <div class="yield-value" id="usSpread">—</div>
-          <div class="yield-sub" id="usShape">Loading...</div>
-        </div>
-        <div class="yield-card">
-          <div class="yield-label">Rate Advantage<span class="tip-icon" data-tip="carry">ⓘ</span></div>
-          <div class="yield-value" id="carrySpread">—</div>
-          <div class="yield-sub" id="carrySignal">India-US 10Y</div>
-        </div>
-      </div>
-      <div style="margin-top:18px;position:relative;height:190px;padding-bottom:10px;"><canvas id="yieldCurveChart"></canvas></div>
 
       <div class="divider"></div>
 
@@ -5577,6 +5743,150 @@
       }
     }
 
+    function toggleStoryEvidence() {
+      const body = document.getElementById('evidenceBody');
+      const btn = document.getElementById('evidenceBtnLabel');
+      const caret = document.getElementById('evidenceCaret');
+      const opening = body.hasAttribute('hidden');
+      if (opening) {
+        body.removeAttribute('hidden'); btn.textContent = 'Hide the evidence'; caret.classList.add('open');
+      } else {
+        body.setAttribute('hidden', ''); btn.textContent = 'Show me the evidence'; caret.classList.remove('open');
+      }
+    }
+
+    // Confidence-honesty state machine — ported verbatim from the approved Sentinel
+    // Briefing mockup's confidenceState()/flagMeta composition rule (finalized with
+    // Claude Design). reliabilityFlag is hardcoded 'reliable' for now — there's no
+    // backend signal yet for 'watch' (decoupled signals) or 'low' (stale/contradicting
+    // inputs); that's a tracked future backend item, not guessed at here. The 70-80%
+    // band-check still fires correctly regardless of the flag, since the composition
+    // rule can only ever downgrade the presentation, never upgrade it.
+    function _storyConfidenceState(pct, reliabilityFlag) {
+      const flag = reliabilityFlag || 'reliable';
+      if (flag === 'low') return 'low';
+      if (pct >= 70 && pct < 80) return 'banded';
+      if (flag === 'watch') return 'watch';
+      if (pct >= 80) return 'reliable';
+      if (pct >= 55) return 'moderate';
+      return 'watch';
+    }
+
+    const _STORY_FLAG_META = {
+      reliable: {
+        color: 'var(--green)', dim: 'var(--green-dim)', border: 'transparent',
+        label: 'Confident read · signals agree', quality: 'Clear signal',
+      },
+      banded: {
+        color: 'var(--amber)', dim: 'var(--amber-dim)', border: 'var(--amber)',
+        label: 'Elevated uncertainty · 70–80% band', quality: 'Flagged band · under review',
+        note: 'This read sits in the 70–80% confidence band. An earlier backtest flagged this band as less reliable than others, and we have not yet re-confirmed that finding on current data. On that provisional basis the narrative below is presented in full but should carry less weight than its confidence number suggests. Treat the contradictions as the operative content.',
+      },
+      moderate: {
+        color: 'var(--blue)', dim: 'var(--blue-dim)', border: 'transparent',
+        label: 'Qualified read · partial agreement', quality: 'Moderate signal',
+      },
+      watch: {
+        color: 'var(--amber)', dim: 'var(--amber-dim)', border: 'transparent',
+        label: 'Watch carefully · signals conflict', quality: 'Mixed signal',
+      },
+      low: {
+        color: 'var(--red)', dim: 'var(--red-dim)', border: 'transparent',
+        label: 'Low reliability · do not act on this alone', quality: 'Unreliable',
+      },
+    };
+
+    // Populates the story-arc's confidence honesty display (real, from `pct`) and
+    // the WHY section's convergence/contradiction cards (real, from
+    // intelligence_object.py's output — only present on a fresh run, since it isn't
+    // persisted to the runs table yet, so fromHistory has nothing to show here).
+    // Every other section of the story arc (lead headline, so-what, attention,
+    // triggers) is intentionally left as a placeholder — that prose requires the
+    // not-yet-built story-generation LLM layer.
+    function renderStoryArc(data, fromHistory, pct) {
+      const dateEl = document.getElementById('storyDate');
+      if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      const state = _storyConfidenceState(pct, 'reliable');
+      const meta = _STORY_FLAG_META[state];
+      const inBand = state === 'banded';
+      const circumference = 2 * Math.PI * 58;
+
+      document.getElementById('storyConfPct').textContent = pct + '%';
+      const qualEl = document.getElementById('storyConfQuality');
+      qualEl.textContent = meta.quality;
+      qualEl.style.color = inBand ? 'var(--amber)' : 'var(--text-2)';
+
+      const ring = document.getElementById('storyConfRing');
+      ring.setAttribute('stroke', meta.color);
+      ring.setAttribute('stroke-dasharray', (circumference * pct / 100).toFixed(1) + ' ' + circumference.toFixed(1));
+
+      const bandArc = document.getElementById('storyBandArc');
+      bandArc.style.opacity = inBand ? 0.85 : 0.3;
+      bandArc.setAttribute('stroke-dasharray', (circumference * 0.1).toFixed(1) + ' ' + circumference.toFixed(1));
+      bandArc.setAttribute('stroke-dashoffset', (-circumference * 0.7).toFixed(1));
+
+      const chip = document.getElementById('storyReliabilityChip');
+      const dot = document.getElementById('storyReliabilityDot');
+      const label = document.getElementById('storyReliabilityLabel');
+      chip.style.display = 'inline-flex';
+      chip.style.background = meta.dim;
+      chip.style.color = meta.color;
+      chip.style.border = (inBand ? '1px dashed ' : '1px solid ') + meta.border;
+      dot.style.background = meta.color;
+      dot.classList.toggle('banded', inBand);
+      label.textContent = meta.label;
+
+      const noteEl = document.getElementById('storyReliabilityNote');
+      if (inBand && meta.note) {
+        noteEl.textContent = meta.note;
+        noteEl.style.display = '';
+      } else {
+        noteEl.style.display = 'none';
+      }
+
+      const leadEl = document.getElementById('storyLead');
+      leadEl.textContent = 'Narrative headline — coming with the story-generation layer';
+      leadEl.style.cssText = 'font-family:var(--font-serif);font-weight:600;font-size:clamp(24px,3vw,34px);line-height:1.25;color:var(--text-3);font-style:italic;opacity:0.6;';
+
+      const supportEl = document.getElementById('storySupport');
+      supportEl.textContent = fromHistory
+        ? 'Run the engine to generate today\'s briefing.'
+        : 'Full narrative arrives with the story-generation layer, not yet live. The confidence read and signal relationships above are real.';
+
+      const io = (!fromHistory && data.intelligence_object) ? data.intelligence_object : null;
+      const whyGrid = document.getElementById('whyGrid');
+      const whyIntro = document.getElementById('whyIntro');
+      whyGrid.innerHTML = '';
+      if (io && ((io.convergence && io.convergence.length) || (io.contradictions && io.contradictions.length))) {
+        whyIntro.textContent = 'Where independent signals agree, and where they disagree.';
+        const cards = [
+          ...(io.convergence || []).map(c => Object.assign({ kind: 'Convergence' }, c)),
+          ...(io.contradictions || []).map(c => Object.assign({ kind: 'Contradiction' }, c)),
+        ];
+        cards.forEach(c => {
+          const isC = c.kind === 'Contradiction';
+          const card = document.createElement('div');
+          card.className = 'why-card' + (isC ? ' contradiction' : '');
+          const sigIds = c.signal_ids || [];
+          const catLabel = (c.category || '').replace(/_/g, ' ');
+          const chips = sigIds.map(s => `<span class="why-sig-chip">${String(s).replace(/_/g, ' ').toUpperCase()}</span>`).join('');
+          card.innerHTML =
+            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+              `<span class="why-tag ${isC ? 'contradiction' : 'convergence'}">${c.kind}</span>` +
+              `<span class="why-card-name">${catLabel}</span>` +
+            '</div>' +
+            `<div class="why-card-body">${c.description || ''}</div>` +
+            `<div class="why-card-signals">${chips}</div>`;
+          whyGrid.appendChild(card);
+        });
+      } else if (fromHistory) {
+        whyIntro.textContent = 'Run the engine to see which signals agree and which disagree today.';
+      } else {
+        whyIntro.textContent = 'No convergence or contradiction detected in today\'s signals.';
+      }
+    }
+
     function renderRunResult(data, fromHistory) {
       window._lastRunResult = data;
       const regime = fromHistory ? { regime: data.regime, confidence: data.confidence } : data.regime;
@@ -5599,6 +5909,7 @@
       const pct = Math.round(confidence * 100); const circ = 2 * Math.PI * 40;
       document.getElementById('confRing').setAttribute('stroke-dasharray', (circ * pct / 100).toFixed(1) + ' ' + circ.toFixed(1));
       document.getElementById('confPct').textContent = pct + '%';
+      renderStoryArc(data, fromHistory, pct);
       const stressAdj = data.regime?.stress_adjustment || 0;
       const stressEl  = document.getElementById('confStressAdj');
       if (stressEl && Math.abs(stressAdj) >= 0.02) {
