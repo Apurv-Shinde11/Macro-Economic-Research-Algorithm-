@@ -28,6 +28,7 @@ from data_ingestion       import DataIngestor
 from NLP                  import IndianMacroNLP
 from regime_engine        import MacroRegimeEngine
 from intel_aggregator     import IntelAggregator
+from intelligence_object  import build_sentinel_intelligence_object
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -3414,8 +3415,18 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
+
+        # Story-layer intelligence object — pure reshape of already-computed
+        # regime_engine output, no new signal math, no LLM call yet.
+        # Additive only: does not change any existing key below.
+        try:
+            _intelligence_object = build_sentinel_intelligence_object(regime)
+        except Exception as _io_err:
+            print(f"[API] intelligence_object build failed: {_io_err}", flush=True)
+            _intelligence_object = None
+
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
