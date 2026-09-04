@@ -6601,14 +6601,17 @@ def _wb_fetch(wb_code: str, indicator: str) -> tuple[float, int] | None:
         return None
 
 
-async def _wb_fetch_async(
+@_HTTP_RETRY
+async def _wb_fetch_async_raw(
     client: "httpx.AsyncClient", wb_code: str, indicator: str
-) -> tuple[float, int] | None:
+) -> tuple[float, int]:
     """
     Async World Bank indicator fetch — mirrors _wb_fetch_raw but uses
     the shared httpx.AsyncClient for genuine concurrency instead of
-    blocking the event loop via run_in_executor. Never raises —
-    returns None on failure, matching _wb_fetch's contract.
+    blocking the event loop via run_in_executor. Raises on failure/empty
+    records so @_HTTP_RETRY can retry transient errors (pool-wait
+    timeouts, connection resets); the caller returns None on final
+    failure.
     """
     url = (
         f"https://api.worldbank.org"
@@ -6616,36 +6619,52 @@ async def _wb_fetch_async(
         f"/indicator/{indicator}"
         f"?format=json&mrv=1"
     )
-    try:
-        r = await client.get(
-            url, timeout=10.0
-        )
-        if r.status_code != 200:
+    r = await client.get(url, timeout=10.0)
+    r.raise_for_status()
+    data = r.json()
+    records = (
+        data[1]
+        if isinstance(data, list)
+        and len(data) > 1
+        else []
+    )
+    for rec in records:
+        val = rec.get("value")
+        year = rec.get("date")
+        if val is not None:
+            return (
+                round(float(val), 2),
+                int(year)
+                if year else None,
+            )
+    raise ValueError(f"No records with value for {wb_code}/{indicator}")
+
+
+async def _wb_fetch_async(
+    client: "httpx.AsyncClient",
+    wb_code: str,
+    indicator: str,
+    sem: "asyncio.Semaphore",
+) -> tuple[float, int] | None:
+    """
+    Bounded-concurrency wrapper around _wb_fetch_async_raw. Never raises —
+    returns None on failure (after retry), matching _wb_fetch's contract.
+    `sem` caps how many of these run concurrently across the whole
+    50-economy x 5-indicator batch, so the burst stays well under both
+    the client's connection-pool limit and any per-IP rate limit World
+    Bank enforces.
+    """
+    async with sem:
+        try:
+            return await _wb_fetch_async_raw(client, wb_code, indicator)
+        except Exception as e:
+            print(
+                f"[WB_ASYNC] Failed "
+                f"{wb_code}/{indicator}"
+                f": {e}",
+                flush=True
+            )
             return None
-        data = r.json()
-        records = (
-            data[1]
-            if isinstance(data, list)
-            and len(data) > 1
-            else []
-        )
-        for rec in records:
-            val = rec.get("value")
-            year = rec.get("date")
-            if val is not None:
-                return (
-                    round(float(val), 2),
-                    int(year)
-                    if year else None,
-                )
-    except Exception as e:
-        print(
-            f"[WB_ASYNC] Failed "
-            f"{wb_code}/{indicator}"
-            f": {e}",
-            flush=True
-        )
-    return None
 
 
 def _derive_macro_signal(gdp: float | None, inflation: float | None) -> str:
@@ -6914,6 +6933,12 @@ async def get_global_macro():
         print(f"[GLOBAL_MACRO] FRED rate fetch failed: {_e}", flush=True)
         live_rates = {}
 
+    # Caps concurrent World Bank requests across the whole 50-economy x
+    # 5-indicator batch (up to 250 requests). Well under the httpx
+    # client's default 100-connection pool, and conservative enough to
+    # avoid tripping World Bank's per-IP rate limiting under a burst.
+    _wb_semaphore = asyncio.Semaphore(15)
+
     async def _fetch_one(eco, client):
         wb   = eco["wb_code"]
         code = eco["code"]
@@ -6922,19 +6947,19 @@ async def get_global_macro():
             await asyncio.gather(
                 _wb_fetch_async(
                     client, wb,
-                    "NY.GDP.MKTP.KD.ZG"),
+                    "NY.GDP.MKTP.KD.ZG", _wb_semaphore),
                 _wb_fetch_async(
                     client, wb,
-                    "FP.CPI.TOTL.ZG"),
+                    "FP.CPI.TOTL.ZG", _wb_semaphore),
                 _wb_fetch_async(
                     client, wb,
-                    "SL.UEM.TOTL.ZS"),
+                    "SL.UEM.TOTL.ZS", _wb_semaphore),
                 _wb_fetch_async(
                     client, wb,
-                    "NY.GDP.MKTP.CD"),
+                    "NY.GDP.MKTP.CD", _wb_semaphore),
                 _wb_fetch_async(
                     client, wb,
-                    "FI.RES.TOTL.CD"),
+                    "FI.RES.TOTL.CD", _wb_semaphore),
             )
         )
 
