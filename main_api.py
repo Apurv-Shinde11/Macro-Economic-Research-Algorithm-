@@ -6789,7 +6789,6 @@ def _build_economy_record(
     }
 
 
-@app.get("/api/global-macro")
 def _with_atlas_intelligence(result: dict) -> dict:
     """
     Attaches intelligence_object to a /api/global-macro response, built
@@ -6811,6 +6810,7 @@ def _with_atlas_intelligence(result: dict) -> dict:
     return result
 
 
+@app.get("/api/global-macro")
 async def get_global_macro():
     global _global_macro_cache_mem
     cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
