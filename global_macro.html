@@ -2627,7 +2627,7 @@
       }
     }
 
-    async function fetchWithTimeout(url, ms = 8000) {
+    async function fetchWithTimeout(url, ms = 20000) {
       const ctrl = new AbortController();
       const id = setTimeout(() => ctrl.abort(), ms);
       try {
