@@ -3399,7 +3399,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             print(f"[API] intelligence_object build failed: {_io_err}", flush=True)
             _intelligence_object = None
 
-        _story = None
+        _story = {"status": "unavailable"}
         if _intelligence_object is not None:
             try:
                 _story = generate_story(
