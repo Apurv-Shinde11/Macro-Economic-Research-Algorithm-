@@ -3405,6 +3405,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 _story = generate_story(
                     _intelligence_object,
                     deterministic_narrative=regime.get("narrative"),
+                    supabase_client=_supabase,
                 )
             except Exception as _story_err:
                 print(f"[API] generate_story failed: {_story_err}", flush=True)
@@ -6864,7 +6865,7 @@ def _with_atlas_intelligence_and_story(result: dict) -> dict:
     io = result.get("intelligence_object")
     if io is not None:
         try:
-            result["story"] = generate_story(io)
+            result["story"] = generate_story(io, supabase_client=_supabase)
         except Exception as _story_err:
             print(f"[GLOBAL_MACRO] generate_story failed: {_story_err}", flush=True)
             result["story"] = {"status": "unavailable"}

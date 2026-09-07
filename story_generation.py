@@ -25,6 +25,7 @@ support.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 
@@ -93,6 +94,13 @@ HARD RULES — violating any of these makes your output unusable:
    this module — do not invent directional language to fill the gap.
 5. Write in plain, direct language for someone making portfolio
    decisions — no hedging filler, no restating the JSON as a list."""
+
+# First 12 hex chars of SHA-256 of SYSTEM_PROMPT, logged with every call
+# to story_generation_log so a later fine-tuning pass can tell whether
+# two logged calls were generated under the same instructions — the
+# prompt will be tuned over time, and that correlation can't be
+# reconstructed after the fact if it isn't captured when it happens.
+_SYSTEM_PROMPT_HASH = hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()[:12]
 
 
 def _nearest_boundary_str_variants(n) -> list[str]:
@@ -230,7 +238,7 @@ def _validate_grounding(llm_output: dict, candidates: list[dict]) -> bool:
     return True
 
 
-def _call_anthropic(system_prompt: str, user_content: str, config: dict) -> dict:
+def _call_anthropic(system_prompt: str, user_content: str, config: dict, metadata: dict) -> dict:
     import anthropic
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -250,22 +258,31 @@ def _call_anthropic(system_prompt: str, user_content: str, config: dict) -> dict
         messages=[{"role": "user", "content": user_content}],
     )
 
+    metadata["input_tokens"]  = response.usage.input_tokens
+    metadata["output_tokens"] = response.usage.output_tokens
+
     text = next((b.text for b in response.content if b.type == "text"), None)
     if text is None:
         raise ValueError("No text block in LLM response")
-    return json.loads(text)
+    parsed = json.loads(text)
+    metadata["raw_llm_output"] = parsed
+    return parsed
 
 
 def _call_story_llm(
     io: dict,
     candidates: list[dict],
     deterministic_narrative: str | None,
+    metadata: dict,
 ) -> dict:
     """
     Single call site for the LLM. Provider/model come from
     STORY_LLM_CONFIG — swapping providers means adding a branch here
     and changing the config, not touching generate_story() or anything
-    upstream of it.
+    upstream of it. `metadata` is an out-parameter the callee fills in
+    (token usage, the raw parsed output) so generate_story() can log
+    the full call to story_generation_log without changing this
+    function's return contract (still just the parsed dict).
     """
     user_content = (
         f"<intelligence_object>\n{json.dumps(io, indent=2)}\n</intelligence_object>\n\n"
@@ -278,16 +295,67 @@ def _call_story_llm(
 
     provider = STORY_LLM_CONFIG["provider"]
     if provider == "anthropic":
-        return _call_anthropic(SYSTEM_PROMPT, user_content, STORY_LLM_CONFIG)
+        return _call_anthropic(SYSTEM_PROMPT, user_content, STORY_LLM_CONFIG, metadata)
     raise NotImplementedError(f"Unknown story-generation provider: {provider!r}")
 
 
-def generate_story(io: dict, deterministic_narrative: str | None = None) -> dict:
+def _log_story_call(
+    supabase_client,
+    io: dict,
+    candidates: list[dict],
+    deterministic_narrative: str | None,
+    result: dict | None,
+    metadata: dict,
+    error_message: str | None,
+) -> None:
+    """
+    Best-effort, non-blocking log of this call to story_generation_log —
+    a dedicated append-only table for a future fine-tuning corpus and
+    operational history, separate from wherever the caller caches
+    `result` for display (runs.story / global_macro_cache). Never
+    raises: a logging failure must never affect the story generation or
+    caching this call is actually part of.
+
+    supabase_client is injected by the caller (main_api.py's existing
+    module-level client) rather than constructed here, so this module
+    doesn't gain a hard dependency on Supabase being configured —
+    passing None (the default) just skips logging.
+    """
+    if supabase_client is None or result is None:
+        return
+    try:
+        supabase_client.table("story_generation_log").insert({
+            "module":                    io.get("module", "unknown"),
+            "status":                    result.get("status"),
+            "intelligence_object":       io,
+            "change_trigger_candidates": candidates,
+            "deterministic_narrative":   deterministic_narrative,
+            "story_result":              result,
+            "raw_llm_output":            metadata.get("raw_llm_output"),
+            "provider":                  STORY_LLM_CONFIG.get("provider"),
+            "model":                     STORY_LLM_CONFIG.get("model"),
+            "effort":                    STORY_LLM_CONFIG.get("effort"),
+            "system_prompt_hash":        _SYSTEM_PROMPT_HASH,
+            "input_tokens":              metadata.get("input_tokens"),
+            "output_tokens":             metadata.get("output_tokens"),
+            "error_message":             error_message,
+        }).execute()
+    except Exception as e:
+        print(f"[STORY_GEN] Logging to story_generation_log failed: {e}", flush=True)
+
+
+def generate_story(
+    io: dict,
+    deterministic_narrative: str | None = None,
+    supabase_client=None,
+) -> dict:
     """
     io: build_sentinel_intelligence_object() or build_atlas_intelligence_object()
         output. deterministic_narrative: regime_output["narrative"] for
         Sentinel (the old _build_narrative template); None for Atlas,
-        which has no equivalent.
+        which has no equivalent. supabase_client: the caller's existing
+        Supabase client, used only to log this call to
+        story_generation_log — pass None to skip logging entirely.
 
     Returns {"status": "paused" | "unavailable" | "ok", ...}. "paused"
     and "unavailable" are deliberately distinct: paused means the
@@ -296,31 +364,49 @@ def generate_story(io: dict, deterministic_narrative: str | None = None) -> dict
     output that didn't pass the grounding check.
     """
     confidence = io.get("confidence")  # None for Atlas today — no gate applies
-
-    if confidence and confidence.get("briefing_allowed") is False:
-        return {"status": "paused", "message": _build_paused_message(confidence)}
-
-    candidates = _build_trigger_candidates(io)
-
-    try:
-        llm_output = _call_story_llm(io, candidates, deterministic_narrative)
-    except Exception as e:
-        print(f"[STORY_GEN] LLM call failed: {e}", flush=True)
-        return {"status": "unavailable"}
-
-    if not _validate_grounding(llm_output, candidates):
-        return {"status": "unavailable"}
+    candidates: list[dict] = []
+    metadata: dict = {}
+    error_message: str | None = None
+    result: dict | None = None
 
     try:
-        headline_block = assemble_headline_block(io, llm_output["headline_elaboration"])
-    except (ValueError, AssertionError) as e:
-        print(f"[STORY_GEN] Headline assembly failed: {e}", flush=True)
-        return {"status": "unavailable"}
+        if confidence and confidence.get("briefing_allowed") is False:
+            result = {"status": "paused", "message": _build_paused_message(confidence)}
+            return result
 
-    return {
-        "status":                  "ok",
-        "headline":                headline_block["text"],
-        "so_what":                 llm_output["so_what"],
-        "what_deserves_attention": llm_output["what_deserves_attention"],
-        "change_triggers":         llm_output["change_triggers"],
-    }
+        candidates = _build_trigger_candidates(io)
+
+        try:
+            llm_output = _call_story_llm(io, candidates, deterministic_narrative, metadata)
+        except Exception as e:
+            print(f"[STORY_GEN] LLM call failed: {e}", flush=True)
+            error_message = str(e)
+            result = {"status": "unavailable"}
+            return result
+
+        if not _validate_grounding(llm_output, candidates):
+            error_message = "grounding validation failed"
+            result = {"status": "unavailable"}
+            return result
+
+        try:
+            headline_block = assemble_headline_block(io, llm_output["headline_elaboration"])
+        except (ValueError, AssertionError) as e:
+            print(f"[STORY_GEN] Headline assembly failed: {e}", flush=True)
+            error_message = str(e)
+            result = {"status": "unavailable"}
+            return result
+
+        result = {
+            "status":                  "ok",
+            "headline":                headline_block["text"],
+            "so_what":                 llm_output["so_what"],
+            "what_deserves_attention": llm_output["what_deserves_attention"],
+            "change_triggers":         llm_output["change_triggers"],
+        }
+        return result
+    finally:
+        _log_story_call(
+            supabase_client, io, candidates, deterministic_narrative,
+            result, metadata, error_message,
+        )
