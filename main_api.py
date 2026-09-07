@@ -29,6 +29,7 @@ from NLP                  import IndianMacroNLP
 from regime_engine        import MacroRegimeEngine
 from intel_aggregator     import IntelAggregator
 from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object
+from story_generation     import generate_story
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -3385,6 +3386,30 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 else instability_note
             )
 
+        # Story-layer intelligence object + generated narrative — built
+        # BEFORE the runs insert (unlike the original additive-only
+        # intelligence_object build) so both can be written into the
+        # same row in one insert, rather than an insert-then-update.
+        # generate_story() makes a real LLM call unless briefing_allowed
+        # is False, in which case it returns the paused state without
+        # calling out at all — see story_generation.py.
+        try:
+            _intelligence_object = build_sentinel_intelligence_object(regime)
+        except Exception as _io_err:
+            print(f"[API] intelligence_object build failed: {_io_err}", flush=True)
+            _intelligence_object = None
+
+        _story = None
+        if _intelligence_object is not None:
+            try:
+                _story = generate_story(
+                    _intelligence_object,
+                    deterministic_narrative=regime.get("narrative"),
+                )
+            except Exception as _story_err:
+                print(f"[API] generate_story failed: {_story_err}", flush=True)
+                _story = {"status": "unavailable"}
+
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
@@ -3412,21 +3437,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "asset_out":      asset_out,
                 "strat":          strat,
                 "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}),
+                "story":          _story,
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
 
-        # Story-layer intelligence object — pure reshape of already-computed
-        # regime_engine output, no new signal math, no LLM call yet.
-        # Additive only: does not change any existing key below.
-        try:
-            _intelligence_object = build_sentinel_intelligence_object(regime)
-        except Exception as _io_err:
-            print(f"[API] intelligence_object build failed: {_io_err}", flush=True)
-            _intelligence_object = None
-
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object, "story": _story}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
@@ -6829,6 +6846,33 @@ def _with_atlas_intelligence(result: dict) -> dict:
     return result
 
 
+def _with_atlas_intelligence_and_story(result: dict) -> dict:
+    """
+    Like _with_atlas_intelligence(), but ALSO generates the story (a
+    real, paid LLM call) and embeds it in `result` before it's returned.
+
+    Use this ONLY at the two moments the underlying economy data is
+    genuinely fresh (the enriched-per-row-cache fallback and the true
+    cache-miss fetch below) — never on a cache-hit path. Both of those
+    call sites cache `result` (Supabase upsert and/or the in-memory
+    cache) right after calling this, so `story` rides along inside the
+    same cached blob and gets read back unchanged by every subsequent
+    cache-hit request via plain _with_atlas_intelligence(), which never
+    touches result["story"] at all.
+    """
+    result = _with_atlas_intelligence(result)
+    io = result.get("intelligence_object")
+    if io is not None:
+        try:
+            result["story"] = generate_story(io)
+        except Exception as _story_err:
+            print(f"[GLOBAL_MACRO] generate_story failed: {_story_err}", flush=True)
+            result["story"] = {"status": "unavailable"}
+    else:
+        result["story"] = None
+    return result
+
+
 @app.get("/api/global-macro")
 async def get_global_macro():
     global _global_macro_cache_mem
@@ -6913,8 +6957,9 @@ async def get_global_macro():
                         "page_updated_at": max(e["last_updated"] for e in enriched),
                         "cached":          True,
                     }
+                    result = _with_atlas_intelligence_and_story(result)
                     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-                    return _with_atlas_intelligence(result)
+                    return result
 
             except Exception as _e:
                 print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
@@ -7059,6 +7104,7 @@ async def get_global_macro():
         "page_updated_at": datetime.now(timezone.utc).isoformat(),
         "cached":          False,
     }
+    result = _with_atlas_intelligence_and_story(result)
     try:
         import json as _json
         _supabase.table("global_macro_cache").upsert({
@@ -7070,7 +7116,7 @@ async def get_global_macro():
     except Exception as _ce:
         print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-    return _with_atlas_intelligence(result)
+    return result
 
 
 @app.get("/api/policy-rates")
