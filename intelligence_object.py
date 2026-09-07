@@ -131,6 +131,19 @@ def _nearest_boundary_distance(value: float, boundaries: list[float]) -> float |
     return round(min(abs(value - b) for b in boundaries), 3)
 
 
+def _nearest_boundary(value: float, boundaries: list[float]) -> float | None:
+    """
+    The boundary VALUE itself (not the distance to it) -- e.g. for GDP
+    growth at 7.2 with boundaries [6.0, 7.0], returns 7.0. Companion to
+    _nearest_boundary_distance(); the story-generation layer needs both
+    (the number to compare against, and how far away it is) to phrase a
+    trigger condition without inventing which threshold is meant.
+    """
+    if value is None or not boundaries:
+        return None
+    return min(boundaries, key=lambda b: abs(value - b))
+
+
 def detect_convergence(signals: list[dict]) -> list[dict]:
     """
     Groups signals by category; when 2+ signals in the same category
@@ -240,6 +253,7 @@ def _leading_signal_to_generic(sig: dict) -> dict:
     score = sig.get("score")
     raw_value = sig.get("value")
     distance = _nearest_boundary_distance(raw_value, boundaries) if boundaries else None
+    nearest  = _nearest_boundary(raw_value, boundaries) if boundaries else None
     return {
         "id":                     label.lower().replace(" ", "_").replace("(", "").replace(")", ""),
         "label":                  label,
@@ -248,6 +262,7 @@ def _leading_signal_to_generic(sig: dict) -> dict:
         "stance":                 stance(score),
         "score":                  score,
         "distance_to_threshold":  distance,
+        "nearest_boundary":       nearest,
         "weight":                 sig.get("weight"),
     }
 
@@ -278,6 +293,7 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
             "id": "gdp_growth", "label": "GDP Growth", "category": "GROWTH",
             "value": growth, "stance": stance(g_score), "score": g_score,
             "distance_to_threshold": _nearest_boundary_distance(growth, [6.0, 7.0]),
+            "nearest_boundary": _nearest_boundary(growth, [6.0, 7.0]),
             "weight": None,
         })
 
@@ -293,6 +309,7 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
             "id": "inflation", "label": "Inflation (CPI)", "category": "INFLATION",
             "value": inflation, "stance": stance(i_score), "score": i_score,
             "distance_to_threshold": _nearest_boundary_distance(inflation, [4.0, 6.0]),
+            "nearest_boundary": _nearest_boundary(inflation, [4.0, 6.0]),
             "weight": None,
         })
 
@@ -307,6 +324,7 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
             "id": "domestic_liquidity", "label": "Domestic Liquidity", "category": "DOMESTIC_LIQUIDITY",
             "value": liquidity, "stance": stance(l_score), "score": l_score,
             "distance_to_threshold": _nearest_boundary_distance(liquidity, [-0.3, 0.3]),
+            "nearest_boundary": _nearest_boundary(liquidity, [-0.3, 0.3]),
             "weight": None,
         })
 
@@ -320,6 +338,7 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
             "id": "rbi_stance", "label": "RBI Policy Stance", "category": "POLICY",
             "value": rbi_signal, "stance": stance(r_score), "score": r_score,
             "distance_to_threshold": None,  # categorical, no numeric distance
+            "nearest_boundary": None,
             "weight": None,
         })
 
@@ -346,10 +365,17 @@ def build_sentinel_intelligence_object(regime_output: dict) -> dict:
             "label": regime_output.get("regime", "").replace("_", " ").title(),
         },
         "confidence": {
-            "score":             confidence_score,
-            "band":              confidence_band(confidence_score),
-            "reliability_flag":  rel_flag,
-            "reliability_note":  rel_note,
+            "score":                    confidence_score,
+            "band":                     confidence_band(confidence_score),
+            "reliability_flag":         rel_flag,
+            "reliability_note":         rel_note,
+            # Same field, same default, as main_api.py's own gate check
+            # (regime.get("briefing_allowed", True)) -- mirrored here so
+            # the story-generation layer can see it without depending on
+            # main_api.py. Not a new gate; this is main_api.py's existing
+            # gate made visible on the object that feeds the new layer.
+            "briefing_allowed":         regime_output.get("briefing_allowed", True),
+            "briefing_blocked_reason":  regime_output.get("briefing_blocked_reason", None),
         },
         "momentum": momentum,
         "signals": signals,
@@ -392,29 +418,38 @@ def build_atlas_intelligence_object(india_record: dict) -> dict:
         # Mirrors the growth band already used for India elsewhere in this
         # file (_hard_inputs_to_generic) and regime_engine.py's _sig()
         # growth check: strong >=7.0, moderate >=6.0.
+        _gdp_bounds = [6.0, 7.0]
         g_score = 1.0 if gdp >= 7.0 else 0.5 if gdp >= 6.0 else 0.0
         signals.append({
             "id": "gdp_growth", "label": "GDP Growth", "category": "GROWTH",
             "value": gdp, "stance": stance(g_score), "score": g_score,
+            "distance_to_threshold": _nearest_boundary_distance(gdp, _gdp_bounds),
+            "nearest_boundary": _nearest_boundary(gdp, _gdp_bounds),
         })
 
     if pmi is not None:
         # Boundaries mirror SENTINEL_LEADING_INDICATOR_MAP's Manufacturing
         # PMI band [50, 52, 55] above — same instrument, same thresholds.
+        _pmi_bounds = [50, 55]
         p_score = 1.0 if pmi >= 55 else 0.5 if pmi >= 50 else 0.0
         signals.append({
             "id": "pmi", "label": "Manufacturing PMI", "category": "GROWTH",
             "value": pmi, "stance": stance(p_score), "score": p_score,
+            "distance_to_threshold": _nearest_boundary_distance(pmi, _pmi_bounds),
+            "nearest_boundary": _nearest_boundary(pmi, _pmi_bounds),
         })
 
     if inflation is not None:
         # Mirrors _hard_inputs_to_generic's inflation band — RBI's own
         # target (4.0) / upper tolerance (6.0), same as regime_engine.py's
         # self.inflation_target / self.inflation_upper.
+        _inf_bounds = [4.0, 6.0]
         i_score = 1.0 if inflation < 4.0 else 0.5 if inflation < 6.0 else 0.0
         signals.append({
             "id": "inflation", "label": "Inflation (CPI)", "category": "INFLATION",
             "value": inflation, "stance": stance(i_score), "score": i_score,
+            "distance_to_threshold": _nearest_boundary_distance(inflation, _inf_bounds),
+            "nearest_boundary": _nearest_boundary(inflation, _inf_bounds),
         })
 
     if policy_rate is not None:
@@ -423,10 +458,13 @@ def build_atlas_intelligence_object(india_record: dict) -> dict:
         # restrictive. Deliberately conservative: no RBI stance/direction
         # signal (CUT/PAUSE/HIKE) is available here, only the raw rate
         # level, unlike Sentinel's rbi_stance signal.
+        _rate_bounds = [5.0, 7.0]
         r_score = 1.0 if policy_rate <= 5.0 else 0.0 if policy_rate >= 7.0 else 0.5
         signals.append({
             "id": "policy_rate", "label": "RBI Policy Rate", "category": "POLICY",
             "value": policy_rate, "stance": stance(r_score), "score": r_score,
+            "distance_to_threshold": _nearest_boundary_distance(policy_rate, _rate_bounds),
+            "nearest_boundary": _nearest_boundary(policy_rate, _rate_bounds),
         })
 
     # Currency and yield are included per spec but deliberately left
@@ -436,21 +474,33 @@ def build_atlas_intelligence_object(india_record: dict) -> dict:
     # or stressed without a trend/delta, which isn't persisted today (see
     # stance()'s own docstring on this exact limitation). Included so
     # they're visible in the evidence trail, without asserting a
-    # direction that isn't actually known.
+    # direction that isn't actually known. No boundaries exist for these,
+    # so distance_to_threshold/nearest_boundary are honestly None rather
+    # than guessed -- kept as explicit keys so every signal dict has the
+    # same shape regardless of whether it has real threshold data.
     if currency is not None:
         signals.append({
             "id": "currency_usd_inr", "label": "USD/INR", "category": "EXTERNAL_MARKET",
             "value": currency, "stance": "NEUTRAL", "score": 0.5,
+            "distance_to_threshold": None, "nearest_boundary": None,
         })
     if yield_10y is not None:
         signals.append({
             "id": "yield_10y", "label": "India 10Y Yield", "category": "EXTERNAL_MARKET",
             "value": yield_10y, "stance": "NEUTRAL", "score": 0.5,
+            "distance_to_threshold": None, "nearest_boundary": None,
         })
 
     return {
         "module": "atlas",
         "theme": {"label": "India"},
+        # Explicit None, not omitted -- Atlas has neither concept yet
+        # (no regime-confidence equivalent, no persisted trend). Kept as
+        # real keys so the shared story-generation layer can do
+        # io.get("confidence") uniformly across both modules instead of
+        # branching on whether the key exists at all.
+        "confidence": None,
+        "momentum": None,
         "signals": signals,
         "convergence":     detect_convergence(signals),
         "contradictions":  detect_contradictions(signals),
