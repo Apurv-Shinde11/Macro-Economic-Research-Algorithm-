@@ -5846,6 +5846,20 @@
 
       const story = (data.story && data.story.status) ? data.story : { status: 'unavailable' };
 
+      // Paused overrides the chip's old 5-tier label/color — reusing e.g.
+      // "moderate"'s blue for a genuinely different meaning (the system
+      // withheld narration, not "qualified read") would contradict the
+      // pause message right below it. Same blue used for .story-state-note.paused,
+      // so "paused" reads as one consistent color across the whole section.
+      if (story.status === 'paused') {
+        chip.style.background = 'var(--blue-dim)';
+        chip.style.color = 'var(--blue)';
+        chip.style.border = '1px solid transparent';
+        dot.style.background = 'var(--blue)';
+        dot.classList.remove('banded');
+        label.textContent = `Paused · ${pct}% confidence`;
+      }
+
       // The reliability note is embedded verbatim in story.headline by
       // assemble_headline_block() whenever status is "ok" and the band applies —
       // showing the old hardcoded copy too would duplicate it. For "paused"/
