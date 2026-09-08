@@ -2386,7 +2386,7 @@
                   color:var(--text-3);
                   margin-left:4px;">
                   ${eco.data_sources?.policy_rate?.includes('FRED')
-                    ? '· Source: US Federal Reserve · Live'
+                    ? '· Source: FRED · Live'
                     : eco.data_sources?.policy_rate?.includes('hardcoded')
                       ? '· May 2026'
                       : ''}
@@ -2427,9 +2427,8 @@
               <div class="card-label">Forex Reserves</div>
               <div class="card-value" style="color:var(--text)">$${eco.forex_reserves_bn}B</div>
               <div class="card-sub" title="${eco.data_sources?.forex_reserves || ''}">
-                ${eco.code === 'IN'
-                  ? 'RBI · Weekly'
-                  : `World Bank · ${eco.forex_reserves_year || 'latest'} (latest available)`}
+                ${eco.data_sources?.forex_reserves
+                  || `World Bank · ${eco.forex_reserves_year || 'latest'} (latest available)`}
               </div>
             </div>
             ` : ''}

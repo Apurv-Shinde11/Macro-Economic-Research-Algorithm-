@@ -43,6 +43,7 @@ from schema_validator     import SchemaValidator
 from schema_repair_engine import SchemaRepairEngine
 from nse_data             import NSEDataFetcher
 from yield_curve          import get_yield_curve_data
+from rbi_data             import RBIDataFetcher
 from schemas import (
     REGIME_SCHEMA, SCENARIO_SCHEMA,
     ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA
@@ -6201,6 +6202,13 @@ _INDIA_OVERRIDES = {
     # Unemployment: leave as World Bank until PLFS 2025-26 is published
 }
 
+# Dedicated instance for Atlas's forex reserves fetch -- deliberately
+# separate from regime_engine.py's own RBIDataFetcher instance (used
+# for Sentinel), each with its own 1h cache. A single shared instance
+# across both modules was considered and rejected as unnecessary scope
+# for this fix; the extra hourly DBIE call this costs is trivial.
+_atlas_rbi_fetcher = RBIDataFetcher()
+
 # ── Hardcoded PMI — update monthly on S&P Global release day ─────────────────
 # Last verified: May 2026 (source: S&P Global Manufacturing PMI releases)
 _PMI_VALUES = {
@@ -6740,6 +6748,7 @@ def _build_economy_record(
     reserves_year=None,
 ):
     # ── Apply India domestic overrides (more current than World Bank data) ──
+    reserves_source = None
     if eco.get("code") == "IN":
         _ov = _INDIA_OVERRIDES
         if "inflation" in _ov:
@@ -6748,9 +6757,29 @@ def _build_economy_record(
         if "gdp_growth" in _ov:
             gdp      = _ov["gdp_growth"]["value"]
             gdp_year = _ov["gdp_growth"]["year"]
-        if "forex_reserves" in _ov:
-            reserves_bn   = _ov["forex_reserves"]["value"]
-            reserves_year = _ov["forex_reserves"]["year"]
+
+        # Live RBI DBIE fetch first -- same RBIDataFetcher/DBIE series
+        # (RBIFX3MFXFXTOT) Sentinel's regime engine already uses via
+        # rbi_data.py, own 1h internal cache. Falls back to the static
+        # _INDIA_OVERRIDES snapshot only if DBIE itself is unreachable
+        # this cycle -- same live-fetch-with-labeled-fallback pattern
+        # already used for FIMMDA AAA yield and MOSPI IIP elsewhere in
+        # this file, rather than a permanently-static value.
+        try:
+            _rbi_signals  = _atlas_rbi_fetcher.get_rbi_signals()
+            _forex_series = (_rbi_signals.get("raw") or {}).get("forex_series") or []
+        except Exception as _rbi_err:
+            print(f"[GLOBAL_MACRO] RBI DBIE forex fetch failed: {_rbi_err}", flush=True)
+            _forex_series = []
+
+        if _forex_series:
+            reserves_bn     = _rbi_signals["forex_reserves_bn"]
+            reserves_year   = None
+            reserves_source = f"RBI DBIE · {_forex_series[-1]['date']}"
+        elif "forex_reserves" in _ov:
+            reserves_bn     = _ov["forex_reserves"]["value"]
+            reserves_year   = _ov["forex_reserves"]["year"]
+            reserves_source = _ov["forex_reserves"]["source"]
 
     code = eco["code"]
     raw_fx = currency_map.get(code)
@@ -6803,13 +6832,17 @@ def _build_economy_record(
                 else f"World Bank FP.CPI.TOTL.ZG ({inf_year or 'latest'})"
             ),
             "unemployment": f"World Bank SL.UEM.TOTL.ZS ({une_year or 'latest'})",
-            "policy_rate":  "Central bank official — hardcoded May 2026",
+            "policy_rate": (
+                "FRED · Live"
+                if live_rates and live_rates.get(code)
+                else "Central bank official — hardcoded May 2026"
+            ),
             "pmi":          "S&P Global — hardcoded May 2026",
             "currency":     "yfinance live",
             "yield":        "yfinance live / hardcoded fallback",
             "forex_reserves": (
-                _INDIA_OVERRIDES["forex_reserves"]["source"]
-                if eco.get("code") == "IN" and "forex_reserves" in _INDIA_OVERRIDES
+                reserves_source
+                if reserves_source
                 else f"World Bank FI.RES.TOTL.CD ({reserves_year or 'latest'})"
             ),
         },
