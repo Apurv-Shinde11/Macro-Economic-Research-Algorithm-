@@ -5213,9 +5213,13 @@ PE_DEAL_FLOW = [
 ]
 
 PE_DEAL_FLOW_META = {
-    "last_updated":      "May 2026",
-    "last_updated_iso":  "2026-05-01",
-    "next_update_due":   "June 2026",
+    "last_updated":       "May 2026",
+    "last_updated_iso":   "2026-05-01",
+    "next_update_due":    "June 2026",
+    # ISO form of next_update_due, first working day of that month --
+    # lets the frontend compute overdue status with a real date
+    # comparison instead of parsing "June 2026" as a string.
+    "next_update_due_iso": "2026-06-01",
     "sources": [
         "SEBI public filings",
         "Company press releases",
