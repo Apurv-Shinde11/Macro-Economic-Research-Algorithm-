@@ -1349,6 +1349,10 @@
     .change-trigger { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
     .change-trigger-num { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-3); padding-top: 2px; flex: 0 0 auto; }
     .change-trigger-body { font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--text-2); }
+
+    /* Persistent — does not change or hide when a different country is
+       selected on the map, unlike the WHY/story sections it sits above. */
+    .scope-banner { font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--text-3); padding: 12px 16px; margin: 24px 0 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
     .attention-row { display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); }
     .attention-row:last-child { border-bottom: none; }
     .attention-rail { flex: 0 0 6px; align-self: stretch; border-radius: 3px; background: var(--amber); }
@@ -1449,6 +1453,8 @@
         </section>
 
       </div>
+
+      <div class="scope-banner">This read covers India only. Global comparison coverage is planned but not yet built.</div>
 
       <!-- 3. WHY -->
       <div class="story-section">
