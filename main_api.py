@@ -3418,11 +3418,29 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         # sections succeeded or failed.
         _guidance = {"status": "withheld", "reason": "no intelligence object"}
         if _intelligence_object is not None:
+            # Diagnostic for the personalization staleness investigation --
+            # prints the exact profile dict object reinterpret() is about to
+            # consume, in this background job, for this run. Compare against
+            # the /api/run fetch line logged above for the same request.
+            _p = profile or {}
+            print(
+                f"[PROFILE_GUIDANCE_DEBUG] job={job_id} user={user_id} reinterpret() input: "
+                f"mandate_type={_p.get('mandate_type')!r} "
+                f"risk_tolerance={_p.get('risk_tolerance')!r} "
+                f"investment_horizon={_p.get('investment_horizon')!r} "
+                f"client_profile={_p.get('client_profile')!r}",
+                flush=True,
+            )
             try:
                 _guidance = reinterpret_profile_guidance(_intelligence_object, profile)
             except Exception as _guidance_err:
                 print(f"[API] profile_guidance.reinterpret failed: {_guidance_err}", flush=True)
                 _guidance = {"status": "withheld", "reason": "guidance generation failed"}
+            print(
+                f"[PROFILE_GUIDANCE_DEBUG] job={job_id} user={user_id} reinterpret() output: "
+                f"status={_guidance.get('status')!r} bucket={_guidance.get('bucket')!r}",
+                flush=True,
+            )
 
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
@@ -3561,6 +3579,18 @@ async def test_jugaad():
 async def start_run(body: RunRequest, background_tasks: BackgroundTasks, profile: dict = Depends(require_access)):
     _expire_old_jobs()
     job_id = _create_job(profile["id"])
+    # Diagnostic for the personalization staleness investigation -- prints
+    # exactly what Depends(require_access) fetched from the profiles table
+    # for THIS request, at THIS moment. Compare this line's values across
+    # two consecutive runs against what was actually saved between them.
+    print(
+        f"[PROFILE_GUIDANCE_DEBUG] /api/run fetched profile for user={profile['id']} "
+        f"mandate_type={profile.get('mandate_type')!r} "
+        f"risk_tolerance={profile.get('risk_tolerance')!r} "
+        f"investment_horizon={profile.get('investment_horizon')!r} "
+        f"client_profile={profile.get('client_profile')!r}",
+        flush=True,
+    )
     background_tasks.add_task(asyncio.get_running_loop().run_in_executor, None, _run_pipeline_sync, job_id, profile["id"], body.repo, body.deficit, body.capex, profile)
     return {"job_id": job_id, "status": "running"}
 
