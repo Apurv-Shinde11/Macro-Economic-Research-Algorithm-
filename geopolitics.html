@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Geopolitical Watch — EconIQ</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -569,6 +570,7 @@
           <div class="card-header">
             <div class="card-label">${esc(theme.theme_label || '')}</div>
             <div class="card-badges">
+              ${theme.relevant_to_profile ? '<span class="status-badge" style="background:var(--blue-dim,rgba(79,131,255,0.12));color:var(--blue,#4f83ff);">Relevant to your mandate</span>' : ''}
               <span class="status-badge status-${status}">${statusLabel(status)}</span>
               <span class="${confClass}">${confLabel}</span>
             </div>
@@ -600,21 +602,62 @@
       `;
     }
 
+    // /api/geopolitical-watch itself stays free/unauthenticated -- same
+    // content, same 10 cards, for every viewer. Logged-in viewers get the
+    // same cards reordered by relevance via a separate, additive,
+    // authenticated endpoint, same pattern as Atlas's SO WHAT. Anonymous
+    // viewers see the endpoint's default (unranked) order, same as today.
+    async function _getGeoWatchSessionToken() {
+      try {
+        const { createClient } = supabase;
+        const sb_geo = createClient(
+          'https://nurqjuywtypqvciyjlrw.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ'
+        );
+        const { data: { session } } = await sb_geo.auth.getSession();
+        return session ? session.access_token : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
     async function loadThemes() {
       const grid = document.getElementById('themes-grid');
       const meta = document.getElementById('page-meta');
       const metaText = document.getElementById('page-updated-text');
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000);
-        const resp = await fetch(
-          `${RAIL}/api/geopolitical-watch`,
-          { signal: controller.signal }
-        );
-        clearTimeout(timeoutId);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
+        const token = await _getGeoWatchSessionToken();
+
+        const fetchThemes = async (endpoint, authHeader) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000);
+          try {
+            const resp = await fetch(`${RAIL}${endpoint}`, {
+              signal: controller.signal,
+              headers: authHeader ? { Authorization: authHeader } : {},
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return await resp.json();
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        };
+
+        let data;
+        if (token) {
+          try {
+            data = await fetchThemes('/api/geopolitical-watch/ranked', `Bearer ${token}`);
+          } catch (rankedErr) {
+            // Ranked call failed (e.g. expired token) -- fall back to the
+            // free endpoint rather than failing the whole page for a
+            // logged-in viewer.
+            console.warn('[GeoWatch] Ranked fetch failed, falling back to unranked:', rankedErr);
+            data = await fetchThemes('/api/geopolitical-watch');
+          }
+        } else {
+          data = await fetchThemes('/api/geopolitical-watch');
+        }
 
         const themes = data.themes || [];
         if (themes.length === 0) {

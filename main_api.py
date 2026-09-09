@@ -31,6 +31,7 @@ from intel_aggregator     import IntelAggregator
 from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object
 from story_generation     import generate_story
 from profile_guidance     import reinterpret as reinterpret_profile_guidance
+from geopolitical_relevance import rank_geopolitical_themes
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -6188,7 +6189,7 @@ def _get_theme_cached(
                 datetime.now(timezone.utc)
                 - datetime.fromisoformat(row["fetched_at"])
             ).total_seconds() / 3600
-            if age_hours < 0:  # TEMP: force refresh
+            if age_hours < 72:
                 return row
     except Exception as e:
         print(f"[GEOWATCH] Cache read failed {theme_key}: {e}", flush=True)
@@ -7708,15 +7709,11 @@ async def get_india_activity():
 
 @app.get("/api/geopolitical-watch")
 async def get_geopolitical_watch():
-    print("[GEOWATCH] Endpoint called", flush=True)
-    print(f"[GEOWATCH] Theme count: {len(GEOPOLITICAL_THEMES)}", flush=True)
-    for key, meta in GEOPOLITICAL_THEMES.items():
-        print(f"[GEOWATCH] Processing {key}", flush=True)
-    row = _get_theme_cached(...)
     """
     Returns all 10 geopolitical theme analyses with 72h cache TTL.
     Free endpoint — no auth required, same tier as /api/global-macro.
     """
+    print("[GEOWATCH] Endpoint called", flush=True)
     nlp_engine = IndianMacroNLP()
     if not nlp_engine:
         print(
@@ -7740,3 +7737,23 @@ async def get_geopolitical_watch():
             default=None,
         ),
     }
+
+
+@app.get("/api/geopolitical-watch/ranked")
+async def get_geopolitical_watch_ranked(profile: dict = Depends(require_access)):
+    """
+    Same 10 theme cards as /api/geopolitical-watch, reordered by
+    relevance to this profile's mandate_type/investment_horizon -- no
+    new text, see geopolitical_relevance.py. Deliberately a separate,
+    authenticated endpoint rather than a change to /api/geopolitical-
+    watch itself, which stays free/unauthenticated -- same reasoning as
+    /api/global-macro/guidance for Atlas.
+    """
+    result = await get_geopolitical_watch()
+    themes = result.get("themes", [])
+    try:
+        ranked = rank_geopolitical_themes(themes, profile)
+    except Exception as _rank_err:
+        print(f"[GEOWATCH] rank_geopolitical_themes failed: {_rank_err}", flush=True)
+        ranked = themes
+    return {**result, "themes": ranked}
