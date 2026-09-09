@@ -30,6 +30,7 @@ from regime_engine        import MacroRegimeEngine
 from intel_aggregator     import IntelAggregator
 from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object
 from story_generation     import generate_story
+from profile_guidance     import reinterpret as reinterpret_profile_guidance
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -2826,7 +2827,7 @@ def _compute_fii_trend(sb_url: str, sb_key: str) -> dict:
         return empty
 
 
-def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float):
+def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, capex: float, profile: dict | None = None):
     _headlines = []
     _rbi_context = []
     _fii_context = []
@@ -3410,6 +3411,19 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 print(f"[API] generate_story failed: {_story_err}", flush=True)
                 _story = {"status": "unavailable"}
 
+        # Profile-aware SO WHAT — deterministic, no LLM call, reuses the
+        # same _intelligence_object generate_story() just read. Kept
+        # separate from _story on purpose: this can be "withheld" (e.g.
+        # briefing paused) independently of whether the shared narrative
+        # sections succeeded or failed.
+        _guidance = {"status": "withheld", "reason": "no intelligence object"}
+        if _intelligence_object is not None:
+            try:
+                _guidance = reinterpret_profile_guidance(_intelligence_object, profile)
+            except Exception as _guidance_err:
+                print(f"[API] profile_guidance.reinterpret failed: {_guidance_err}", flush=True)
+                _guidance = {"status": "withheld", "reason": "guidance generation failed"}
+
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
@@ -3438,12 +3452,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 "strat":          strat,
                 "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}),
                 "story":          _story,
+                "guidance":       _guidance,
             }).execute()
         except Exception as e:
             print(f"[API] save_run failed: {e}")
 
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object, "story": _story}
+        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object, "story": _story, "guidance": _guidance}
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()
@@ -3546,7 +3561,7 @@ async def test_jugaad():
 async def start_run(body: RunRequest, background_tasks: BackgroundTasks, profile: dict = Depends(require_access)):
     _expire_old_jobs()
     job_id = _create_job(profile["id"])
-    background_tasks.add_task(asyncio.get_running_loop().run_in_executor, None, _run_pipeline_sync, job_id, profile["id"], body.repo, body.deficit, body.capex)
+    background_tasks.add_task(asyncio.get_running_loop().run_in_executor, None, _run_pipeline_sync, job_id, profile["id"], body.repo, body.deficit, body.capex, profile)
     return {"job_id": job_id, "status": "running"}
 
 @app.get("/api/run/{job_id}")
@@ -3576,7 +3591,7 @@ async def get_run_status(job_id: str, user=Depends(get_current_user)):
 
 @app.get("/api/history")
 async def get_history(limit: int = 100, profile: dict = Depends(require_access)):
-    _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_crore,dii_net_crore,crude_price,scenarios,triggers,asset_out,strat,sector_heatmap"
+    _COLS = "id,run_at,regime,confidence,conviction,implied_action,outcome,summary,allocation,fii_net_crore,dii_net_crore,crude_price,scenarios,triggers,asset_out,strat,sector_heatmap,story,guidance"
     result = _supabase.table("runs").select(_COLS).eq("user_id", profile["id"]).order("run_at", desc=True).limit(limit).execute()
     runs = result.data or []
     # Auto-evaluate any runs older than 30 days that still have no outcome

@@ -5436,7 +5436,7 @@
       try {
         const { data: histData, error } = await sb
           .from('runs')
-          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story,guidance')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
           .limit(100);
@@ -5595,7 +5595,7 @@
             document.getElementById('runStatus').classList.remove('visible');
             const { data: freshData } = await sb
               .from('runs')
-              .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,story')
+              .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,story,guidance')
               .eq('user_id', _session.user.id)
               .order('run_at', { ascending: false })
               .limit(100);
@@ -5892,9 +5892,13 @@
       const soWhatEl = document.getElementById('storySoWhat');
       const attentionEl = document.getElementById('storyAttention');
       const changeEl = document.getElementById('storyChangeTriggers');
+      // SO WHAT is driven by data.guidance (profile_guidance.reinterpret()),
+      // not the shared LLM-authored story object -- it's the one section
+      // of the story arc that's profile-aware, deterministic, and
+      // recomputed per viewer rather than cached once per run. See
+      // profile_guidance.py.
+      const guidance = (data.guidance && data.guidance.status) ? data.guidance : { status: 'withheld' };
       if (story.status === 'ok') {
-        soWhatEl.className = 'story-support';
-        soWhatEl.textContent = story.so_what;
         attentionEl.className = 'story-support';
         attentionEl.textContent = story.what_deserves_attention;
         const triggers = story.change_triggers || [];
@@ -5906,6 +5910,18 @@
               '</div>'
             )).join('')
           : '<div class="story-support">No quantified trigger levels are available yet for today\'s read.</div>';
+
+        if (guidance.status === 'ok') {
+          soWhatEl.className = 'story-support';
+          soWhatEl.textContent = guidance.so_what;
+        } else {
+          // Distinct, real failure mode from the rest of the story
+          // (e.g. profile fetch failed) -- the shared sections above
+          // still succeeded, so don't show the same pause/unavailable
+          // language that would apply if they hadn't.
+          soWhatEl.className = 'story-state-note unavailable';
+          soWhatEl.textContent = 'Personalized guidance isn\'t available for this read — see What Deserves Attention above for the shared read.';
+        }
       } else {
         const stateClass = story.status === 'paused' ? 'paused' : 'unavailable';
         const line = story.status === 'paused'
@@ -6897,7 +6913,7 @@
         // Refresh the history table to show updated outcomes
         const { data: freshData } = await sb
           .from('runs')
-          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story,guidance')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
           .limit(100);
@@ -8636,7 +8652,7 @@
       try {
         const { data, error } = await sb
           .from('runs')
-          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story')
+          .select('id,run_at,regime,confidence,conviction,implied_action,outcome,allocation,fii_net_crore,dii_net_crore,summary,sector_heatmap,story,guidance')
           .eq('user_id', _session.user.id)
           .order('run_at', { ascending: false })
           .limit(1);

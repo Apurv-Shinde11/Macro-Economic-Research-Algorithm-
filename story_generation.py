@@ -2,8 +2,14 @@
 story_generation.py — LLM-powered narrative layer for Sentinel and Atlas.
 
 Reads a build_sentinel_intelligence_object() / build_atlas_intelligence_object()
-output and produces the prose for the headline elaboration, SO WHAT, WHAT
-DESERVES ATTENTION, and WHAT COULD CHANGE THIS sections of the story arc.
+output and produces the prose for the headline elaboration, WHAT DESERVES
+ATTENTION, and WHAT COULD CHANGE THIS sections of the story arc.
+
+SO WHAT is deliberately NOT generated here as of the personalization work —
+it moved to profile_guidance.py, a deterministic, profile-aware rule layer,
+since portfolio instructions differ per viewer (mandate/risk/horizon) while
+everything else in this file stays shared and profile-agnostic, cached once
+per run. See profile_guidance.py's module docstring for the reasoning.
 
 Everything in this file except the one LLM call is deterministic, plain
 Python, and independently testable — the reliability-band caveat, the
@@ -42,7 +48,6 @@ STORY_OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
         "headline_elaboration":    {"type": "string"},
-        "so_what":                 {"type": "string"},
         "what_deserves_attention": {"type": "string"},
         "change_triggers": {
             "type": "array",
@@ -58,7 +63,7 @@ STORY_OUTPUT_SCHEMA = {
         },
     },
     "required": [
-        "headline_elaboration", "so_what",
+        "headline_elaboration",
         "what_deserves_attention", "change_triggers",
     ],
     "additionalProperties": False,
@@ -320,7 +325,6 @@ def generate_story(io: dict, deterministic_narrative: str | None = None) -> dict
     return {
         "status":                  "ok",
         "headline":                headline_block["text"],
-        "so_what":                 llm_output["so_what"],
         "what_deserves_attention": llm_output["what_deserves_attention"],
         "change_triggers":         llm_output["change_triggers"],
     }

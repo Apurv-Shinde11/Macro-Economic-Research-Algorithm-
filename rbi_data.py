@@ -13,18 +13,29 @@ Key indicators fetched:
   - CRR (Cash Reserve Ratio)
   - RBI liquidity posture (surplus/deficit)
 
-DBIE API base: https://dbie.rbi.org.in/DBIE/dbie.rbi?site=api
+OLD DBIE API base (dead as of 2026-09): https://dbie.rbi.org.in/DBIE/dbie.rbi?site=api
+RBI rebuilt the whole DBIE portal onto a new domain and a session-token
+-authenticated POST gateway rather than the old GET+seriesId API this
+file originally used. repo_rate/crr/credit_growth/m3_growth below still
+go through the dead old path and are silently running on their
+hardcoded defaults until each one's new endpoint is found the same way
+forex_reserves' was (live browser capture, then verified end-to-end
+against the real API before writing any parsing code -- see
+_get_cims_session_token / fetch_forex_reserves_cims). Confirmed
+2026-09-09: real session token round-trip, real forex data, response
+shape verified by hand, not guessed.
 """
 
 import requests
 import json
+import html
 import datetime
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # =========================
-# 📊 RBI DBIE SERIES IDs
+# 📊 RBI DBIE SERIES IDs (OLD API — dead, see module docstring)
 # Verified series codes from DBIE
 # =========================
 DBIE_SERIES = {
@@ -32,10 +43,25 @@ DBIE_SERIES = {
     "crr":             "RBINJ3MRATECRR",    # CRR
     "credit_growth":   "RBIBS3MSCBY",       # Bank credit YoY growth
     "m3_growth":       "RBIML3MMSEAM3",     # M3 money supply
-    "forex_reserves":  "RBIFX3MFXFXTOT",   # Total forex reserves
+    "forex_reserves":  "RBIFX3MFXFXTOT",   # Total forex reserves — unused now, see fetch_forex_reserves_cims
 }
 
 DBIE_BASE = "https://dbie.rbi.org.in/DBIE/dbie.rbi?site=api"
+
+# =========================
+# 📊 NEW CIMS GATEWAY (data.rbi.org.in) — live as of 2026-09-09
+# =========================
+CIMS_GATEWAY_BASE = "https://data.rbi.org.in/CIMS_Gateway_DBIE/GATEWAY/SERVICES"
+
+# fxReservesCode -> what it actually is, confirmed via the API's own
+# fxReservesDescription field on a real response (not assumed):
+# TR = "1 Total Reserves". FCA/GOLD/SDR/IMF were seen in a scrambled
+# concurrent capture and are NOT yet independently confirmed the same
+# way -- only use TR until each of those gets its own clean single-code
+# verification.
+CIMS_FOREX_RESERVE_CODES = {
+    "total": "TR",
+}
 
 # RBI DBIE headers — required
 HEADERS = {
@@ -104,6 +130,109 @@ class RBIDataFetcher:
             if prev and prev != 0:
                 return round((curr - prev) / prev * 100, 2)
         return 0.0
+
+    # =========================
+    # 📥 NEW CIMS GATEWAY FETCHER (data.rbi.org.in)
+    # Replaces the dead dbie.rbi.org.in path for forex reserves only.
+    # =========================
+    def _get_cims_session_token(self):
+        """
+        Auth handshake for the rebuilt DBIE portal's gateway. No
+        credentials -- POSTing an empty body gets you a token good for
+        the rest of the requests you make with it. The one easy way to
+        get this wrong: the token is NOT in the JSON response body
+        (that just says {"header":{"status":"success",...}}) -- it
+        comes back as the "authorization" RESPONSE header. Echo that
+        exact value as the "authorization" REQUEST header on the
+        actual data call.
+        """
+        url = f"{CIMS_GATEWAY_BASE}/security_generateSessionToken"
+        headers = {
+            "content-type": "application/json",
+            "accept":       "application/json",
+            "datatype":     "application/json",
+            "channelkey":   "key2",
+        }
+        resp = requests.post(
+            url, headers=headers, json={"body": {}},
+            timeout=15, verify=False,
+        )
+        resp.raise_for_status()
+        token = resp.headers.get("authorization")
+        if not token:
+            raise ValueError(
+                "CIMS gateway session token missing from response "
+                "headers -- check whether RBI changed the handshake "
+                "again before assuming this is a transient failure."
+            )
+        return token
+
+    def fetch_forex_reserves_cims(self, reserve_code="TR", currency_code="USD", days=90):
+        """
+        Live forex reserves fetch via the new CIMS gateway. Returns a
+        list of {"date": "YYYY-MM-DD", "value": <USD billion>} dicts,
+        newest last -- same shape _fetch_dbie_series() used to return,
+        so callers (get_rbi_signals()'s "raw" block) don't need to
+        change. Returns [] on any failure -- caller falls back to the
+        hardcoded default, same as every other series in this file.
+
+        reserve_code="TR" ("Total Reserves") is the only code verified
+        so far -- see CIMS_FOREX_RESERVE_CODES.
+        """
+        try:
+            token = self._get_cims_session_token()
+        except Exception as e:
+            print(f"  [RBI] CIMS session token fetch failed: {e}")
+            return []
+
+        to_date   = datetime.datetime.now()
+        from_date = to_date - datetime.timedelta(days=days)
+        url = f"{CIMS_GATEWAY_BASE}/dbie_foreignExchangeReserves"
+        headers = {
+            "authorization": token,
+            "content-type":  "application/json",
+            "channelkey":    "key2",
+        }
+        body = {
+            "body": {
+                "currencyCode": currency_code,
+                "reserveCode":  reserve_code,
+                "fromDate":     from_date.strftime("%Y-%m-%d"),
+                "toDate":       to_date.strftime("%Y-%m-%d"),
+                "frequency":    "Weekly",
+            }
+        }
+        try:
+            resp = requests.post(
+                url, headers=headers, json=body,
+                timeout=15, verify=False,
+            )
+            resp.raise_for_status()
+            # Response is JSON but HTML-entity-encoded (e.g. "{" as
+            # &#x7b;, non-breaking spaces inside text fields) --
+            # confirmed by hand against a real response, not assumed.
+            data = json.loads(html.unescape(resp.text))
+            records = ((data.get("body") or {}).get("resultList")) or []
+            result = []
+            for r in records:
+                if r.get("fxReservesCode") != reserve_code:
+                    # Defensive -- guards against exactly the kind of
+                    # code/value mismatch a concurrent capture produced
+                    # during discovery. A clean single-code request
+                    # shouldn't trigger this, but don't silently trust
+                    # it if it ever does.
+                    continue
+                obs_date = datetime.datetime.fromtimestamp(
+                    r["timeDate"] / 1000, tz=datetime.timezone.utc
+                ).strftime("%Y-%m-%d")
+                result.append({
+                    "date":  obs_date,
+                    "value": round(r["amount"] / 1_000_000_000, 2),
+                })
+            return sorted(result, key=lambda x: x["date"])
+        except Exception as e:
+            print(f"  [RBI] CIMS forex reserves fetch failed: {e}")
+            return []
 
     # =========================
     # 🏦 RBI PRESS RELEASE PARSER
@@ -175,7 +304,14 @@ class RBIDataFetcher:
         crr_series     = self._fetch_dbie_series(DBIE_SERIES["crr"],          4)
         credit_series  = self._fetch_dbie_series(DBIE_SERIES["credit_growth"],4)
         m3_series      = self._fetch_dbie_series(DBIE_SERIES["m3_growth"],    4)
-        forex_series   = self._fetch_dbie_series(DBIE_SERIES["forex_reserves"],4)
+        # forex_reserves moved to the new CIMS gateway -- the old
+        # dbie.rbi.org.in path below it is dead (domain migrated) and
+        # kept only as a second-layer fallback in case the new gateway
+        # itself has an outage; both failing lands on the hardcoded
+        # default below, same as any other series in this file.
+        forex_series = self.fetch_forex_reserves_cims()
+        if not forex_series:
+            forex_series = self._fetch_dbie_series(DBIE_SERIES["forex_reserves"], 4)
 
         # -------------------------
         # Extract latest values
