@@ -28,7 +28,7 @@ from data_ingestion       import DataIngestor
 from NLP                  import IndianMacroNLP
 from regime_engine        import MacroRegimeEngine
 from intel_aggregator     import IntelAggregator
-from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object
+from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object, build_pe_intelligence_object
 from story_generation     import generate_story
 from profile_guidance     import reinterpret as reinterpret_profile_guidance
 from scenario_engine      import ScenarioEngine
@@ -5527,7 +5527,7 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
     try:
         latest_run = (
             _supabase.table("runs")
-            .select("regime,confidence,conviction,run_at,repo_rate")
+            .select("regime,confidence,conviction,run_at,repo_rate,story")
             .eq("user_id", profile["id"])
             .order("run_at", desc=True)
             .limit(1)
@@ -5538,6 +5538,14 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
         conviction     = "MEDIUM"
         run_at         = None
         repo_rate      = 5.25
+        # briefing_allowed is never persisted as its own column (only
+        # ever lived on the transient job result -- see start_run's
+        # diagnostic comment above) -- the one durable trace of it is
+        # whether that same run's story came out "paused". Absent/None
+        # story (rows predating the story column, or generation that
+        # never ran) defaults to allowed, same as regime.get(
+        # "briefing_allowed", True) does everywhere else in this file.
+        briefing_allowed = True
         if latest_run.data:
             r              = latest_run.data[0]
             current_regime = r.get("regime", current_regime)
@@ -5545,6 +5553,8 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
             conviction     = r.get("conviction", "MEDIUM")
             run_at         = r.get("run_at")
             repo_rate      = float(r.get("repo_rate") or 5.25)
+            _story         = r.get("story") or {}
+            briefing_allowed = _story.get("status") != "paused"
 
         cost_of_capital = _build_live_cost_of_capital(
             regime     = current_regime,
@@ -5557,6 +5567,20 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
             regime     = current_regime,
             confidence = confidence,
         )
+
+        try:
+            _pe_intelligence_object = build_pe_intelligence_object(
+                regime           = current_regime,
+                confidence_score = confidence,
+                repo_rate        = repo_rate,
+                cost_of_capital  = cost_of_capital,
+                briefing_allowed = briefing_allowed,
+            )
+            guidance = reinterpret_profile_guidance(_pe_intelligence_object, profile)
+        except Exception as _guidance_err:
+            print(f"[PE] profile_guidance.reinterpret failed: {_guidance_err}", flush=True)
+            guidance = {"status": "withheld", "reason": "guidance generation failed"}
+
         return {
             "regime":          current_regime,
             "confidence":      confidence,
@@ -5567,6 +5591,7 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
             "sector_cycles":   sector_cycles,
             "deal_flow":       PE_DEAL_FLOW,
             "deal_flow_meta":  PE_DEAL_FLOW_META,
+            "guidance":        guidance,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PE overview failed: {e}")
@@ -7162,6 +7187,29 @@ async def get_global_macro():
         print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     return result
+
+
+@app.get("/api/global-macro/guidance")
+async def get_global_macro_guidance(profile: dict = Depends(require_access)):
+    """
+    Personalized SO WHAT for Atlas -- deliberately a separate,
+    authenticated endpoint rather than a change to /api/global-macro
+    itself, which is documented as free/unauthenticated (same tier as
+    Geopolitical Watch). Calling get_global_macro() directly reuses its
+    full cache cascade (in-memory, Supabase blob, per-row fallback) with
+    no duplication -- intelligence_object rebuild is pure/no-I/O on every
+    one of those paths, so this stays cheap even on a cache hit.
+    """
+    result = await get_global_macro()
+    io = result.get("intelligence_object")
+    if io is None:
+        return {"guidance": {"status": "withheld", "reason": "no intelligence object"}}
+    try:
+        guidance = reinterpret_profile_guidance(io, profile)
+    except Exception as _guidance_err:
+        print(f"[GLOBAL_MACRO] profile_guidance.reinterpret failed: {_guidance_err}", flush=True)
+        guidance = {"status": "withheld", "reason": "guidance generation failed"}
+    return {"guidance": guidance}
 
 
 @app.get("/api/policy-rates")

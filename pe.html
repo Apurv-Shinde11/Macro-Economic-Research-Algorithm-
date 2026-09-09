@@ -340,6 +340,15 @@
     .env-exit-badge.neutral  { background: var(--blue-dim);  color: var(--blue); }
     .env-exit-badge.negative { background: var(--red-dim);   color: var(--red); }
     .env-exit-badge.closed   { background: var(--amber-dim); color: var(--amber); }
+    .env-guidance {
+      margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+      font-size: 13px; line-height: 1.6; color: var(--text-2);
+    }
+    .env-guidance-label {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;
+    }
+    .env-guidance.unavailable { color: var(--text-3); font-style: italic; }
 
     /* ══ EMERGING SECTORS ══ */
     .emerging-grid {
@@ -1063,7 +1072,7 @@
           'Engine run: ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
       }
 
-      renderEnvCard(costOfCapital, regime);
+      renderEnvCard(costOfCapital, regime, data.guidance);
       renderSectors(sectorCycles);
       initSectorCards();
       renderCapMetrics(costOfCapital);
@@ -1100,7 +1109,7 @@
     }
 
     /* ── Environment card ── */
-    function renderEnvCard(coc, regime) {
+    function renderEnvCard(coc, regime, guidance) {
       const env    = coc.environment   || 'NEUTRAL';
       const call   = coc.dry_powder_call || '';
       const rate   = coc.repo_rate_trend || '—';
@@ -1111,6 +1120,14 @@
       const envColour = _envColour(env);
       const exitCls   = _exitClass(exit);
       const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+
+      // Personalized, deterministic (no LLM) -- see profile_guidance.py.
+      // Distinct from the shared dry_powder_call quoted above: that's the
+      // same read every viewer sees, this reinterprets it per mandate.
+      const g = (guidance && guidance.status) ? guidance : { status: 'withheld' };
+      const guidanceHtml = g.status === 'ok'
+        ? `<div class="env-guidance"><div class="env-guidance-label">For Your Mandate</div>${_escPE(g.so_what)}</div>`
+        : `<div class="env-guidance unavailable"><div class="env-guidance-label">For Your Mandate</div>Personalized guidance isn't available for this read.</div>`;
 
       document.getElementById('envCard').innerHTML = `
         <div class="env-header">
@@ -1135,7 +1152,14 @@
             <div class="env-label">Exit Environment</div>
             <div class="env-value"><span class="env-exit-badge ${exitCls}">${exit.split('—')[0].trim()}</span></div>
           </div>
-        </div>`;
+        </div>
+        ${guidanceHtml}`;
+    }
+
+    function _escPE(s) {
+      const div = document.createElement('div');
+      div.textContent = s == null ? '' : s;
+      return div.innerHTML;
     }
 
     function _envColour(env) {

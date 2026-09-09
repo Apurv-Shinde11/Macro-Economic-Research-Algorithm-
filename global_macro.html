@@ -2660,25 +2660,25 @@
       return div.innerHTML;
     }
 
-    // Populates the WHAT'S HAPPENING / SO WHAT / WHAT DESERVES ATTENTION / WHAT
-    // COULD CHANGE THIS sections from data.story (build_atlas_intelligence_object()'s
+    // Populates the WHAT'S HAPPENING / WHAT DESERVES ATTENTION / WHAT COULD
+    // CHANGE THIS sections from data.story (build_atlas_intelligence_object()'s
     // output is confidence:None for Atlas, so generate_story() never returns
-    // "paused" here — only "ok" or "unavailable" are reachable today).
+    // "paused" here — only "ok" or "unavailable" are reachable today). SO WHAT
+    // is populated separately by renderAtlasGuidance() below -- it's driven by
+    // profile_guidance.reinterpret(), not the shared story object, since it's
+    // the one section that's personalized per viewer rather than cached once.
     function renderAtlasStory(story) {
       const s = (story && story.status) ? story : { status: 'unavailable' };
       const leadEl = document.getElementById('atlasStoryLead');
-      const soWhatEl = document.getElementById('atlasSoWhat');
       const attentionEl = document.getElementById('atlasAttention');
       const changeEl = document.getElementById('atlasChangeTriggers');
-      if (!leadEl || !soWhatEl || !attentionEl || !changeEl) return;
+      if (!leadEl || !attentionEl || !changeEl) return;
 
       if (s.status === 'ok') {
         leadEl.className = '';
         leadEl.style.cssText = 'margin-top:10px;max-width:700px;font-family:var(--font-sans);font-size:16px;line-height:1.6;color:var(--text);white-space:pre-line;';
         leadEl.textContent = s.headline;
 
-        soWhatEl.className = 'story-support';
-        soWhatEl.textContent = s.so_what;
         attentionEl.className = 'story-support';
         attentionEl.textContent = s.what_deserves_attention;
 
@@ -2696,11 +2696,57 @@
         leadEl.className = 'story-state-note unavailable';
         leadEl.style.cssText = 'margin-top:10px;max-width:700px;';
         leadEl.textContent = 'Story generation is temporarily unavailable. India\'s signal relationships below are real — see the evidence layer for today\'s raw numbers.';
-        soWhatEl.className = 'story-state-note unavailable';
-        soWhatEl.textContent = line;
         attentionEl.className = 'story-state-note unavailable';
         attentionEl.textContent = line;
         changeEl.innerHTML = `<div class="story-state-note unavailable">${line}</div>`;
+      }
+    }
+
+    // SO WHAT is personalized and requires login (profile_guidance.reinterpret()
+    // needs a real profile) -- /api/global-macro itself stays free/unauthenticated,
+    // so this is a separate, additive call, not a change to that endpoint's
+    // contract. Anonymous viewers see an honest "log in" note, not a fabricated
+    // generic instruction.
+    async function _getAtlasSessionToken() {
+      try {
+        const { createClient } = supabase;
+        const sb_atlas = createClient(
+          'https://nurqjuywtypqvciyjlrw.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnFqdXl3dHlwcXZjaXlqbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODY4OTMsImV4cCI6MjA5MjM2Mjg5M30.kMvnWiFOUuDnGLoHwe5nUpznsBU-5MlKDqakb0ktOcQ'
+        );
+        const { data: { session } } = await sb_atlas.auth.getSession();
+        return session ? session.access_token : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function renderAtlasGuidance() {
+      const soWhatEl = document.getElementById('atlasSoWhat');
+      if (!soWhatEl) return;
+      const token = await _getAtlasSessionToken();
+      if (!token) {
+        soWhatEl.className = 'story-state-note unavailable';
+        soWhatEl.textContent = 'Log in for guidance tailored to your mandate — see What Deserves Attention above for the shared read.';
+        return;
+      }
+      try {
+        const res = await fetchWithTimeout(`${RAIL}/api/global-macro/guidance`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const g = (data.guidance && data.guidance.status) ? data.guidance : { status: 'withheld' };
+        if (g.status === 'ok') {
+          soWhatEl.className = 'story-support';
+          soWhatEl.textContent = g.so_what;
+        } else {
+          soWhatEl.className = 'story-state-note unavailable';
+          soWhatEl.textContent = 'Personalized guidance isn\'t available for this read — see What Deserves Attention above for the shared read.';
+        }
+      } catch (err) {
+        console.error('Atlas guidance fetch failed:', err);
+        soWhatEl.className = 'story-state-note unavailable';
+        soWhatEl.textContent = 'Personalized guidance isn\'t available for this read — see What Deserves Attention above for the shared read.';
       }
     }
 
@@ -2775,6 +2821,7 @@
         economies.forEach(eco => { economiesData[eco.code] = eco; });
         renderAtlasWhy(data.intelligence_object);
         renderAtlasStory(data.story);
+        renderAtlasGuidance();
 
         document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
         highlightEconomyCountries(economies);
