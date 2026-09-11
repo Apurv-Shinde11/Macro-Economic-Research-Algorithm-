@@ -5249,52 +5249,75 @@
 
       <div class="divider"></div>
 
-      <div class="section-header">
-        <span class="section-title">Where To Invest Right Now</span>
-        <span class="section-meta" id="heatmapMeta">Based on current regime</span>
-      </div>
-      <div class="heatmap-context">
-        These are suggestions for how to position client portfolios — not recommendations to buy or sell specific stocks. Based on the current economic environment only.
-      </div>
-      <div class="heatmap-card" id="heatmapCard">
-        <div class="heatmap-columns" id="heatmapColumns">
-          <div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:16px 0;grid-column:1/-1;">
-            Run the engine to generate sector positioning.</div>
-        </div>
-        <div class="heatmap-legend-note">
-          ↑ Portfolio overweight / underweight signals; not buy/sell recommendations
-        </div>
-      </div>
+      <!-- TOGGLE 1: Sector Positioning & Historical Performance -->
+      <button class="evidence-toggle-btn" onclick="toggleCollapsible('sectorPerfBody','sectorPerfCaret','sectorPerfBtnLabel','Hide sector positioning & historical performance','Show sector positioning & historical performance')">
+        <span id="sectorPerfBtnLabel">Show sector positioning & historical performance</span>
+        <span class="evidence-caret" id="sectorPerfCaret">▾</span>
+      </button>
+      <div class="evidence-body" id="sectorPerfBody" hidden>
 
-      <div class="section-header">
-        <span class="section-title">How This Environment Has Performed In The Past</span>
-        <span class="section-meta" id="backtestMeta">Based on 2010–2025 data</span>
-      </div>
-      <div class="backtest-card" id="backtestCard">
-        <div class="backtest-summary" id="backtestSummary"></div>
-        <div class="backtest-grid" id="backtestGrid"></div>
-        <div class="backtest-insight" id="backtestInsight"></div>
+        <div>
+          <div class="section-header">
+            <span class="section-title">Where To Invest Right Now</span>
+            <span class="section-meta" id="heatmapMeta">Based on current regime</span>
+          </div>
+          <div class="heatmap-context">
+            These are suggestions for how to position client portfolios — not recommendations to buy or sell specific stocks. Based on the current economic environment only.
+          </div>
+          <div class="heatmap-card" id="heatmapCard">
+            <div class="heatmap-columns" id="heatmapColumns">
+              <div style="color:var(--text-3);font-family:var(--font-mono);font-size:11px;padding:16px 0;grid-column:1/-1;">
+                Run the engine to generate sector positioning.</div>
+            </div>
+            <div class="heatmap-legend-note">
+              ↑ Portfolio overweight / underweight signals; not buy/sell recommendations
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-header">
+            <span class="section-title">How This Environment Has Performed In The Past</span>
+            <span class="section-meta" id="backtestMeta">Based on 2010–2025 data</span>
+          </div>
+          <div class="backtest-card" id="backtestCard">
+            <div class="backtest-summary" id="backtestSummary"></div>
+            <div class="backtest-grid" id="backtestGrid"></div>
+            <div class="backtest-insight" id="backtestInsight"></div>
+          </div>
+        </div>
+
       </div>
 
       <div class="divider"></div>
 
-      <div class="section-header">
-        <span class="section-title">Upcoming Events To Watch</span>
-        <span class="section-meta">Next 90 days</span>
-      </div>
-      <div class="calendar-list" id="calendarList">
-        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">Loading calendar...
+      <!-- TOGGLE 2: Market Data & Events -->
+      <button class="evidence-toggle-btn" onclick="toggleCollapsible('marketDataBody','marketDataCaret','marketDataBtnLabel','Hide market data & events','Show market data & events')">
+        <span id="marketDataBtnLabel">Show market data & events</span>
+        <span class="evidence-caret" id="marketDataCaret">▾</span>
+      </button>
+      <div class="evidence-body" id="marketDataBody" hidden>
+
+        <div>
+          <div class="section-header">
+            <span class="section-title">Upcoming Events To Watch</span>
+            <span class="section-meta">Next 90 days</span>
+          </div>
+          <div class="calendar-list" id="calendarList">
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);padding:16px 0;">Loading calendar...
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="divider"></div>
+        <div class="divider" style="margin:4px 0;"></div>
 
-      <div class="section-header">
-        <span class="section-title">Historical Regime Archive</span>
-        <span class="section-meta" id="archiveCount">20 runs</span>
-      </div>
+        <div>
+          <div class="section-header">
+            <span class="section-title">Historical Regime Archive</span>
+            <span class="section-meta" id="archiveCount">20 runs</span>
+          </div>
 
-      <div class="archive-controls">
+          <div class="archive-controls">
         <div class="archive-controls-left">
           <div class="archive-filter-group">
             <label class="archive-filter-label">REGIME</label>
@@ -5378,6 +5401,10 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+        </div>
+
       </div>
 
       <div class="page-legal">
@@ -5941,6 +5968,21 @@
       }
     }
 
+    // Same collapse/expand pattern as toggleStoryEvidence(), generalized for
+    // the below-the-fold section toggles (sector positioning & historical
+    // performance / market data & events) so the logic isn't duplicated.
+    function toggleCollapsible(bodyId, caretId, btnLabelId, openLabel, closedLabel) {
+      const body = document.getElementById(bodyId);
+      const btn = document.getElementById(btnLabelId);
+      const caret = document.getElementById(caretId);
+      const opening = body.hasAttribute('hidden');
+      if (opening) {
+        body.removeAttribute('hidden'); btn.textContent = openLabel; caret.classList.add('open');
+      } else {
+        body.setAttribute('hidden', ''); btn.textContent = closedLabel; caret.classList.remove('open');
+      }
+    }
+
     // Confidence-honesty state machine — ported verbatim from the approved Sentinel
     // Briefing mockup's confidenceState()/flagMeta composition rule (finalized with
     // Claude Design). reliabilityFlag is hardcoded 'reliable' for now — there's no
@@ -5997,6 +6039,20 @@
     // and the story-generation layer's output (data.story — real on both fresh
     // runs and history reloads, since it's written to and read from runs.story).
     function renderStoryArc(data, fromHistory, pct) {
+      // Evidence must default to collapsed for every freshly-rendered
+      // result (fresh run, history load, auto-refresh) — not carry over
+      // an earlier expand/collapse from a prior render in the same
+      // session. toggleStoryEvidence() is the only other place that
+      // touches this state, and only in response to a user click.
+      const evBody = document.getElementById('evidenceBody');
+      if (evBody) {
+        evBody.setAttribute('hidden', '');
+        const evBtn = document.getElementById('evidenceBtnLabel');
+        const evCaret = document.getElementById('evidenceCaret');
+        if (evBtn) evBtn.textContent = 'Show me the evidence';
+        if (evCaret) evCaret.classList.remove('open');
+      }
+
       const dateEl = document.getElementById('storyDate');
       if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
