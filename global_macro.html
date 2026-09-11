@@ -2664,6 +2664,12 @@
     // COULD CHANGE THIS sections from data.story (build_atlas_intelligence_object()'s
     // output is confidence:None for Atlas, so generate_story() never returns
     // "paused" here — only "ok" or "unavailable" are reachable today).
+    //
+    // SO WHAT: story.so_what was removed from story_generation.py's LLM
+    // schema (it's superseded by a profile-aware personalization layer for
+    // Atlas that hasn't shipped yet) -- this used to silently render the
+    // literal string "undefined" here as a result. Honest placeholder until
+    // that layer ships, not a fabricated instruction.
     function renderAtlasStory(story) {
       const s = (story && story.status) ? story : { status: 'unavailable' };
       const leadEl = document.getElementById('atlasStoryLead');
@@ -2677,8 +2683,8 @@
         leadEl.style.cssText = 'margin-top:10px;max-width:700px;font-family:var(--font-sans);font-size:16px;line-height:1.6;color:var(--text);white-space:pre-line;';
         leadEl.textContent = s.headline;
 
-        soWhatEl.className = 'story-support';
-        soWhatEl.textContent = s.so_what;
+        soWhatEl.className = 'story-state-note unavailable';
+        soWhatEl.textContent = "Portfolio-specific guidance for Atlas isn't available yet — see What Deserves Attention below for the shared read.";
         attentionEl.className = 'story-support';
         attentionEl.textContent = s.what_deserves_attention;
 
