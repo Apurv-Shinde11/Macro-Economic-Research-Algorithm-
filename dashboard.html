@@ -53,7 +53,6 @@
       --surface-4: var(--bg-4);
       --font-display: var(--font-serif);
       --nav-h: 68px;
-      --sidebar-w: 300px;
       --radius: 8px;
       --radius-lg: 14px;
       --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
@@ -102,7 +101,6 @@
     /* ══ TRANSITIONS ══ */
     body,
     .nav,
-    .sidebar,
     .playbook-card,
     .regime-hero,
     .flow-card,
@@ -423,39 +421,215 @@
     /* ══ LAYOUT ══ */
     .app-layout {
       display: grid;
-      grid-template-columns: var(--sidebar-w) 1fr;
-      grid-template-areas: "sidebar main";
+      grid-template-columns: 1fr;
+      grid-template-areas: "main";
       min-height: 100vh;
       padding-top: var(--nav-h);
       position: relative;
       z-index: var(--z-content);
     }
 
-    /* ══ SIDEBAR ══ */
-    .sidebar {
-      grid-area: sidebar;
-      padding: 24px 18px;
+    /* ══ PORTFOLIO LENS PANEL ══ */
+    .lens-panel {
       background: var(--bg-2);
-      border-right: 1px solid var(--border);
-      position: sticky;
-      top: var(--nav-h);
-      height: calc(100vh - var(--nav-h));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 26px 24px;
+      margin-bottom: 20px;
+    }
+
+    .lens-panel.overlay-mode {
+      position: fixed;
+      top: calc(var(--nav-h) + 1px);
+      left: 0;
+      right: 0;
+      z-index: var(--z-dropdown);
+      max-height: calc(100vh - var(--nav-h) - 24px);
       overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+      margin: 0 16px;
     }
 
-    .sidebar::-webkit-scrollbar {
-      width: 3px;
+    .lens-overlay-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      top: var(--nav-h);
+      background: rgba(0, 0, 0, 0.45);
+      z-index: calc(var(--z-dropdown) - 1);
     }
 
-    .sidebar::-webkit-scrollbar-track {
-      background: transparent;
+    .lens-overlay-backdrop.visible {
+      display: block;
     }
 
-    .sidebar::-webkit-scrollbar-thumb {
-      background: var(--border-2);
-      border-radius: 2px;
+    .lens-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .lens-panel-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .lens-panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .lens-panel-footer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .lens-panel-footer .save-btn {
+      width: auto;
+      padding: 10px 22px;
+    }
+
+    /* ══ LENS CONDENSED STICKY STRIP ══ */
+    .lens-sticky {
+      position: fixed;
+      top: var(--nav-h);
+      left: 0;
+      right: 0;
+      z-index: var(--z-sticky);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(8, 13, 28, 0.93);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-2);
+      transform: translateY(-100%);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+
+    .lens-sticky.visible {
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    html.light .lens-sticky {
+      background: rgba(255, 255, 255, 0.93);
+      border-bottom-color: var(--border-2);
+    }
+
+    .lens-sticky-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+
+    .lens-sticky-chevron {
+      background: none;
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      color: var(--text-2);
+      cursor: pointer;
+      padding: 4px 10px;
+      font-size: 11px;
+      line-height: 1;
+      transition: transform 0.2s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .lens-sticky-chevron:hover {
+      background: var(--bg-3);
+    }
+
+    .lens-sticky-chevron.open {
+      transform: rotate(180deg);
+    }
+
+    /* ══ ENGINE ROW (greeting/streak + run controls) ══ */
+    .engine-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding: 16px 26px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 24px;
+    }
+
+    .engine-row-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .engine-row .sentinel-greeting {
+      margin-bottom: 0;
+      padding: 0;
+      border: none;
+      background: none;
+    }
+
+    .engine-row .greeting-text {
+      margin-bottom: 6px;
+    }
+
+    .engine-row-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .engine-row .run-btn {
+      width: auto;
+      padding: 13px 26px;
+      margin-bottom: 0;
+    }
+
+    .engine-row .run-status {
+      margin-bottom: 0;
+    }
+
+    .engine-row .last-run-info {
+      margin-bottom: 0;
+    }
+
+    /* ══ SETTINGS DROPDOWN (nav gear) ══ */
+    .settings-dropdown-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 360px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: var(--z-dropdown);
+      padding: 16px 18px;
+    }
+
+    .settings-dropdown-panel.open {
+      display: block;
     }
 
     .run-btn {
@@ -2801,17 +2975,21 @@
 
     /* ══ RESPONSIVE ══ */
     @media (max-width: 900px) {
-      .app-layout {
-        grid-template-columns: 1fr;
-        grid-template-areas: "sidebar" "main";
+      .lens-panel-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
 
-      .sidebar {
-        position: static;
-        height: auto;
+      .engine-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .engine-row-right {
+        justify-content: stretch;
+      }
+
+      .engine-row .run-btn {
         width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
       }
 
       .scenario-grid,
@@ -4061,7 +4239,7 @@
     .sticky-refresh-bar {
       position: fixed;
       bottom: 0;
-      left: var(--sidebar-w);
+      left: 0;
       right: 0;
       z-index: var(--z-sticky);
       padding: 11px 28px;
@@ -4123,10 +4301,6 @@
       transform: translateY(-1px);
       box-shadow: 0 4px 14px rgba(79, 131, 255, 0.35);
     }
-    @media (max-width: 900px) {
-      .sticky-refresh-bar { left: 0; }
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .aurora-blob, .run-spinner, .freshness-dot.old, .regime-status-dot, .pulse-dot { animation: none; }
       .scenario-prob-bar-fill, .transition-bar, .signal-item-bar { transition: none; }
@@ -4241,6 +4415,49 @@
           </div>
         </div>
       </div>
+      <!-- Settings dropdown: alert thresholds, WhatsApp, PDF delivery, report tone -->
+      <div id="settingsDropdown" style="position:relative;">
+        <button id="settingsBtn" class="nav-btn" onclick="toggleSettingsDropdown()" title="Settings" style="padding:6px 8px;">⚙</button>
+        <div id="settingsDropdownPanel" class="settings-dropdown-panel">
+          <div class="sidebar-section" style="margin-bottom:16px;">
+            <div class="sidebar-section-title">Alert Thresholds</div>
+            <div class="threshold-row"><span class="threshold-name">India VIX</span><span class="threshold-edit" id="threshVIX" data-key="vix_threshold" data-value="22.0"><span class="threshold-display">22.0</span><input class="threshold-input" type="number" min="5" max="80" step="0.5" aria-label="India VIX alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+            <div class="threshold-row"><span class="threshold-name">USD/INR</span><span class="threshold-edit" id="threshINR" data-key="inr_threshold" data-value="85.0"><span class="threshold-display">85.0</span><input class="threshold-input" type="number" min="60" max="120" step="0.5" aria-label="USD/INR alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+            <div class="threshold-row"><span class="threshold-name">FII Outflow Days</span><span class="threshold-edit" id="threshFII" data-key="fii_consecutive_days" data-value="3"><span class="threshold-display">3</span><input class="threshold-input" type="number" min="1" max="30" step="1" aria-label="FII consecutive outflow days threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+            <div class="threshold-row"><span class="threshold-name">Challenger Conf.</span><span class="threshold-edit" id="threshChallenger" data-key="confidence_breach_threshold" data-value="45"><span class="threshold-display">45%</span><input class="threshold-input" type="number" min="0" max="100" step="1" aria-label="Challenger confidence threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">Tap
+              any value to edit inline. Alerts fire via email when thresholds are crossed.</div>
+            <div class="form-row" style="margin-top:12px;">
+              <label class="form-label" style="display:flex;align-items:center;gap:0;">
+                WhatsApp Briefing
+                <span id="waBadge"
+                  style="display:none;margin-left:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;color:var(--green);background:var(--green-dim);padding:2px 7px;border-radius:20px;border:1px solid rgba(16,212,138,0.2);">✓
+                  Active</span>
+              </label>
+              <input class="form-input" type="tel" id="waNumber" placeholder="+91XXXXXXXXXX" style="margin-top:4px;">
+              <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Daily briefing at
+                7:00 AM IST</div>
+              <div id="waNotConfigured"
+                style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:2px;display:none;">Not
+                configured</div>
+            </div>
+          </div>
+          <div class="sidebar-section" style="margin-bottom:0;">
+            <div class="sidebar-section-title">Reporting</div>
+            <div class="form-row">
+              <label class="form-label">PDF Delivery Time</label>
+              <input class="form-input" type="time" id="pdfTime" data-field="pdf_delivery_time" value="07:00">
+            </div>
+            <div class="form-row" style="margin-bottom:0;">
+              <label class="form-label">Report Tone</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <button class="segment-btn active" data-field="report_tone" data-val="institutional">Institutional</button>
+                <button class="segment-btn" data-field="report_tone" data-val="client">Client-Friendly</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
         <span class="icon-moon">🌙</span>
         <span class="icon-sun">☀️</span>
@@ -4271,146 +4488,6 @@
 
   <!-- APP LAYOUT -->
   <div class="app-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="run-status" id="runStatus">
-        <div class="run-status-text">
-          <div class="run-spinner"></div>
-          <span id="runStatusText">Running pipeline...</span>
-        </div>
-      </div>
-      <div class="last-run-info" id="freshnessRow">
-        <div class="freshness-dot fresh" id="freshnessDot"></div>
-        <span id="freshnessText">No runs yet</span>
-      </div>
-      <div class="sentinel-greeting" id="sentinelGreeting">
-        <div class="greeting-text" id="greetingText">
-          Good morning.
-        </div>
-        <div class="streak-chip">
-          <span class="streak-icon" id="streakIcon">🔥</span>
-          <span class="streak-text" id="streakText">
-            Loading...
-          </span>
-        </div>
-      </div>
-      <button class="run-btn" id="runBtn"><span>▶</span> Run Intelligence Engine</button>
-
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Portfolio Profile
-          <span style="font-size:8px;color:var(--blue);cursor:pointer;" id="profileSaveHint">unsaved</span>
-        </div>
-        <div class="form-row">
-          <label class="form-label">AUM Size</label>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
-            <button class="segment-btn" data-field="aum_size" data-val="individual">Individual<br><span class="segment-sub">&lt;₹50 Cr</span></button>
-            <button class="segment-btn" data-field="aum_size" data-val="small">Small<br><span class="segment-sub">₹50-200 Cr</span></button>
-            <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid<br><span class="segment-sub">₹200-500 Cr</span></button>
-            <button class="segment-btn" data-field="aum_size" data-val="large">Large<br><span class="segment-sub">₹500+ Cr</span></button>
-          </div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Mandate Type</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="mandateType" data-field="mandate_type">
-              <option value="equity">Equity Long-Only</option>
-              <option value="balanced">Balanced</option>
-              <option value="debt">Debt-Heavy</option>
-              <option value="multi_asset">Multi-Asset</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Primary Client Profile</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="clientProfile" data-field="client_profile">
-              <option value="young_accumulator">Young Accumulator (20s-30s, SIP-heavy)</option>
-              <option value="mid_career" selected>Mid-Career Balanced (30s-40s)</option>
-              <option value="pre_retirement">Pre-Retirement Conservative (50s+)</option>
-              <option value="hni_preservation">HNI Wealth Preservation</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Risk Tolerance</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Conservative</button>
-            <button class="segment-btn active" data-field="risk_tolerance" data-val="moderate">Mod.</button>
-            <button class="segment-btn" data-field="risk_tolerance" data-val="aggressive">Aggr.</button>
-          </div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Investment Horizon</label>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-            <button class="segment-btn" data-field="investment_horizon" data-val="short">Short</button>
-            <button class="segment-btn active" data-field="investment_horizon" data-val="medium">Medium</button>
-            <button class="segment-btn" data-field="investment_horizon" data-val="long">Long</button>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Short: 3–6m ·
-            Medium: 6–18m · Long: 18m+</div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Benchmark</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="benchmark" data-field="benchmark">
-              <option value="NIFTY50">Nifty 50</option>
-              <option value="NIFTY500">Nifty 500</option>
-              <option value="NIFTYMIDCAP150">Nifty Midcap 150</option>
-              <option value="NIFTYSMALLCAP250">Nifty Smallcap 250</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Alert Thresholds</div>
-        <div class="threshold-row"><span class="threshold-name">India VIX</span><span class="threshold-edit" id="threshVIX" data-key="vix_threshold" data-value="22.0"><span class="threshold-display">22.0</span><input class="threshold-input" type="number" min="5" max="80" step="0.5" aria-label="India VIX alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
-        <div class="threshold-row"><span class="threshold-name">USD/INR</span><span class="threshold-edit" id="threshINR" data-key="inr_threshold" data-value="85.0"><span class="threshold-display">85.0</span><input class="threshold-input" type="number" min="60" max="120" step="0.5" aria-label="USD/INR alert threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
-        <div class="threshold-row"><span class="threshold-name">FII Outflow Days</span><span class="threshold-edit" id="threshFII" data-key="fii_consecutive_days" data-value="3"><span class="threshold-display">3</span><input class="threshold-input" type="number" min="1" max="30" step="1" aria-label="FII consecutive outflow days threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
-        <div class="threshold-row"><span class="threshold-name">Challenger Conf.</span><span class="threshold-edit" id="threshChallenger" data-key="confidence_breach_threshold" data-value="45"><span class="threshold-display">45%</span><input class="threshold-input" type="number" min="0" max="100" step="1" aria-label="Challenger confidence threshold"><button class="threshold-confirm" type="button" aria-label="Confirm">&#10003;</button></span></div>
-        <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:8px;line-height:1.6;">Tap
-          any value to edit inline. Alerts fire via email when thresholds are crossed.</div>
-        <div class="form-row" style="margin-top:12px;">
-          <label class="form-label" style="display:flex;align-items:center;gap:0;">
-            WhatsApp Briefing
-            <span id="waBadge"
-              style="display:none;margin-left:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;color:var(--green);background:var(--green-dim);padding:2px 7px;border-radius:20px;border:1px solid rgba(16,212,138,0.2);">✓
-              Active</span>
-          </label>
-          <input class="form-input" type="tel" id="waNumber" placeholder="+91XXXXXXXXXX" style="margin-top:4px;">
-          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Daily briefing at
-            7:00 AM IST</div>
-          <div id="waNotConfigured"
-            style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:2px;display:none;">Not
-            configured</div>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Reporting</div>
-        <div class="form-row">
-          <label class="form-label">PDF Delivery Time</label>
-          <input class="form-input" type="time" id="pdfTime" data-field="pdf_delivery_time" value="07:00">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Report Tone</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <button class="segment-btn active" data-field="report_tone" data-val="institutional">Institutional</button>
-            <button class="segment-btn" data-field="report_tone" data-val="client">Client-Friendly</button>
-          </div>
-        </div>
-      </div>
-
-      <button class="save-btn" id="savePrefsBtn">Save Preferences</button>
-      <button class="admin-nav-btn" id="adminNavBtn" onclick="openAdminPanel()">⬡ ADMIN PANEL</button>
-      <div style="margin-top:16px;text-align:center;">
-        <button onclick="signOut()"
-          style="background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);cursor:pointer;letter-spacing:0.08em;transition:color 0.2s;"
-          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">SIGN OUT</button>
-      </div>
-    </aside>
 
     <!-- ADMIN OVERLAY -->
     <div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
@@ -4511,7 +4588,7 @@
             <div class="guide-section-title">When Conditions Change</div>
             <div class="guide-section-body">A Challenger Regime alert means an alternative macro state is gaining weight
               in the data. If it crosses 45% confidence, a regime shift may be imminent. Run Sentinel again within 24
-              hours for a fresh read, and check your alert thresholds in the sidebar.</div>
+              hours for a fresh read, and check your alert thresholds in Settings.</div>
           </div>
         </div>
       </div>
@@ -4519,6 +4596,116 @@
 
     <!-- MAIN -->
     <main class="main-content" id="mainContent">
+
+      <!-- PORTFOLIO LENS PANEL (Group A) -->
+      <div class="lens-panel" id="lensPanel">
+        <div class="lens-panel-header">
+          <span class="lens-panel-title">Portfolio Profile</span>
+          <span style="font-size:8px;color:var(--blue);cursor:pointer;font-family:var(--font-mono);" id="profileSaveHint">unsaved</span>
+        </div>
+        <div class="lens-panel-grid">
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">AUM Size</label>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
+              <button class="segment-btn" data-field="aum_size" data-val="individual">Individual<br><span class="segment-sub">&lt;₹50 Cr</span></button>
+              <button class="segment-btn" data-field="aum_size" data-val="small">Small<br><span class="segment-sub">₹50-200 Cr</span></button>
+              <button class="segment-btn active" data-field="aum_size" data-val="mid">Mid<br><span class="segment-sub">₹200-500 Cr</span></button>
+              <button class="segment-btn" data-field="aum_size" data-val="large">Large<br><span class="segment-sub">₹500+ Cr</span></button>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">Mandate Type</label>
+            <div class="form-select-wrap">
+              <select class="form-select" id="mandateType" data-field="mandate_type">
+                <option value="equity">Equity Long-Only</option>
+                <option value="balanced">Balanced</option>
+                <option value="debt">Debt-Heavy</option>
+                <option value="multi_asset">Multi-Asset</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">Primary Client Profile</label>
+            <div class="form-select-wrap">
+              <select class="form-select" id="clientProfile" data-field="client_profile">
+                <option value="young_accumulator">Young Accumulator (20s-30s, SIP-heavy)</option>
+                <option value="mid_career" selected>Mid-Career Balanced (30s-40s)</option>
+                <option value="pre_retirement">Pre-Retirement Conservative (50s+)</option>
+                <option value="hni_preservation">HNI Wealth Preservation</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">Risk Tolerance</label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <button class="segment-btn" data-field="risk_tolerance" data-val="conservative">Conservative</button>
+              <button class="segment-btn active" data-field="risk_tolerance" data-val="moderate">Mod.</button>
+              <button class="segment-btn" data-field="risk_tolerance" data-val="aggressive">Aggr.</button>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">Investment Horizon</label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <button class="segment-btn" data-field="investment_horizon" data-val="short">Short</button>
+              <button class="segment-btn active" data-field="investment_horizon" data-val="medium">Medium</button>
+              <button class="segment-btn" data-field="investment_horizon" data-val="long">Long</button>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-3);margin-top:4px;">Short: 3–6m ·
+              Medium: 6–18m · Long: 18m+</div>
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label class="form-label">Benchmark</label>
+            <div class="form-select-wrap">
+              <select class="form-select" id="benchmark" data-field="benchmark">
+                <option value="NIFTY50">Nifty 50</option>
+                <option value="NIFTY500">Nifty 500</option>
+                <option value="NIFTYMIDCAP150">Nifty Midcap 150</option>
+                <option value="NIFTYSMALLCAP250">Nifty Smallcap 250</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="lens-panel-footer">
+          <button class="save-btn" id="savePrefsBtn">Save Preferences</button>
+        </div>
+      </div>
+      <div class="lens-overlay-backdrop" id="lensOverlayBackdrop" onclick="collapseLensOverlay()"></div>
+
+      <!-- LENS CONDENSED STICKY STRIP -->
+      <div class="lens-sticky" id="lensSticky">
+        <span class="lens-sticky-text" id="lensStickyText">—</span>
+        <button class="lens-sticky-chevron" id="lensStickyChevron" onclick="toggleLensOverlay()" aria-label="Expand portfolio profile">⌄</button>
+      </div>
+
+      <!-- ENGINE ROW: greeting/streak + run controls -->
+      <div class="engine-row">
+        <div class="engine-row-left">
+          <div class="sentinel-greeting" id="sentinelGreeting">
+            <div class="greeting-text" id="greetingText">
+              Good morning.
+            </div>
+            <div class="streak-chip">
+              <span class="streak-icon" id="streakIcon">🔥</span>
+              <span class="streak-text" id="streakText">
+                Loading...
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="engine-row-right">
+          <div class="last-run-info" id="freshnessRow">
+            <div class="freshness-dot fresh" id="freshnessDot"></div>
+            <span id="freshnessText">No runs yet</span>
+          </div>
+          <div class="run-status" id="runStatus">
+            <div class="run-status-text">
+              <div class="run-spinner"></div>
+              <span id="runStatusText">Running pipeline...</span>
+            </div>
+          </div>
+          <button class="run-btn" id="runBtn"><span>▶</span> Run Intelligence Engine</button>
+        </div>
+      </div>
 
       <div class="section-header">
         <span class="section-title">Macro Regime</span>
@@ -5405,7 +5592,7 @@
       initFiiDiiChart();
       const _tickerInterval = setInterval(() => { if (!document.hidden) loadTicker(); }, 300000);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) loadTicker(); });
-      initNav(); initSidebar();
+      initNav(); initSidebar(); initLensPanel();
     }
 
     async function loadProfile() {
@@ -5418,7 +5605,6 @@
         document.getElementById('userName').textContent = name.split(' ')[0] || name;
         document.getElementById('userAvatar').textContent = initials;
         if (_profile.tier === 'admin') {
-          document.getElementById('adminNavBtn').style.display = 'block';
           const adminNavLink = document.getElementById('adminNavLink');
           if (adminNavLink) adminNavLink.style.display = 'block';
           const bell = document.getElementById('adminBell');
@@ -7227,6 +7413,7 @@
           if (notConf) notConf.style.display = 'block';
         }
       }
+      updateLensCondensedText();
     }
 
     function setSegment(field, value) {
@@ -7236,6 +7423,7 @@
     function markUnsaved() {
       const hint = document.getElementById('profileSaveHint'); hint.textContent = 'unsaved'; hint.style.color = 'var(--amber)';
       document.getElementById('savePrefsBtn').classList.remove('saved');
+      updateLensCondensedText();
     }
 
     async function savePreferences() {
@@ -7721,6 +7909,66 @@
         document.getElementById('bellDropdown').style.display = 'none';
       }
     });
+
+    // ── Settings dropdown (Group B: thresholds, WhatsApp, PDF delivery, report tone) ──
+    let _settingsOpen = false;
+
+    function toggleSettingsDropdown() {
+      _settingsOpen = !_settingsOpen;
+      document.getElementById('settingsDropdownPanel').classList.toggle('open', _settingsOpen);
+    }
+
+    document.addEventListener('click', function(e) {
+      const wrap = document.getElementById('settingsDropdown');
+      if (wrap && !wrap.contains(e.target) && _settingsOpen) {
+        _settingsOpen = false;
+        document.getElementById('settingsDropdownPanel').classList.remove('open');
+      }
+    });
+
+    // ── Portfolio lens panel: condensed sticky strip + overlay re-expand ──
+    const _LENS_CLIENT_LABEL = { young_accumulator: 'Young Accumulator', mid_career: 'Mid-Career', pre_retirement: 'Pre-Retirement', hni_preservation: 'HNI' };
+    const _LENS_RISK_LABEL = { conservative: 'Conservative', moderate: 'Moderate', aggressive: 'Aggressive' };
+    const _LENS_HORIZON_LABEL = { short: 'Short Horizon', medium: 'Medium Horizon', long: 'Long Horizon' };
+    const _LENS_MANDATE_LABEL = { equity: 'Equity', balanced: 'Balanced', debt: 'Debt-Heavy', multi_asset: 'Multi-Asset' };
+
+    function updateLensCondensedText() {
+      const getSegVal = field => document.querySelector(`.segment-btn[data-field="${field}"].active`)?.dataset.val;
+      const client = _LENS_CLIENT_LABEL[document.getElementById('clientProfile')?.value] || '—';
+      const risk = _LENS_RISK_LABEL[getSegVal('risk_tolerance')] || '—';
+      const horizon = _LENS_HORIZON_LABEL[getSegVal('investment_horizon')] || '—';
+      const mandate = _LENS_MANDATE_LABEL[document.getElementById('mandateType')?.value] || '—';
+      const el = document.getElementById('lensStickyText');
+      if (el) el.textContent = `${client} · ${risk} · ${horizon} · ${mandate}`;
+    }
+
+    function toggleLensOverlay() {
+      const panel = document.getElementById('lensPanel');
+      const backdrop = document.getElementById('lensOverlayBackdrop');
+      const chevron = document.getElementById('lensStickyChevron');
+      const open = !panel.classList.contains('overlay-mode');
+      panel.classList.toggle('overlay-mode', open);
+      backdrop.classList.toggle('visible', open);
+      chevron.classList.toggle('open', open);
+    }
+
+    function collapseLensOverlay() {
+      document.getElementById('lensPanel').classList.remove('overlay-mode');
+      document.getElementById('lensOverlayBackdrop').classList.remove('visible');
+      document.getElementById('lensStickyChevron').classList.remove('open');
+    }
+
+    function initLensPanel() {
+      const panel = document.getElementById('lensPanel');
+      const sticky = document.getElementById('lensSticky');
+      if (!panel || !sticky) return;
+      updateLensCondensedText();
+      window.addEventListener('scroll', () => {
+        const pastPanel = panel.getBoundingClientRect().bottom <= parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'), 10);
+        sticky.classList.toggle('visible', pastPanel);
+        if (!pastPanel) collapseLensOverlay();
+      }, { passive: true });
+    }
 
     async function loadBellPending() {
       const list = document.getElementById('bellList');
