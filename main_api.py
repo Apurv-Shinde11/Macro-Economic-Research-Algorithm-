@@ -3223,6 +3223,27 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         )
         regime = rep.repair(regime, REGIME_SCHEMA)
 
+        # ── Global linkage inputs ──────────────────────────────────────────
+        # Explains when India's regime read is being driven by imported
+        # conditions, not just domestic ones. Both values are already
+        # fetched above in this same pipeline run (yield_curve.py's
+        # analyse_curve() for the carry spread, _fetch_vol_term_structure()
+        # for the risk-appetite proxy) — no new fetchers, real thresholds
+        # already baked into those functions. Injected post-repair so
+        # build_sentinel_intelligence_object() can fold them into
+        # signals[] as a GLOBAL_LINKAGE category.
+        regime.setdefault("inputs", {})
+        try:
+            _carry_spread = _yc_analysis.get("india_us_spread_10y")
+            if _carry_spread is not None:
+                regime["inputs"]["india_us_carry_spread"] = float(_carry_spread)
+        except Exception:
+            pass
+        _vol_term_snap = nse_snapshot.get("vol_term_structure") or {}
+        if _vol_term_snap.get("score") is not None:
+            regime["inputs"]["global_risk_appetite_score"] = _vol_term_snap["score"]
+            regime["inputs"]["global_risk_appetite_shape"] = _vol_term_snap.get("shape")
+
         # ── Confidence gate ──────────────────────────────────────────────
         _briefing_allowed = regime.get("briefing_allowed", True)
         _briefing_blocked_reason = regime.get("briefing_blocked_reason", None)
