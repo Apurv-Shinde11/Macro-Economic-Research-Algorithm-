@@ -3484,11 +3484,11 @@
 
     .signal-dot-label {
       font-family: var(--font-sans);
-      font-size: 8px;
+      font-size: 9px;
       color: var(--text-2);
       text-align: center;
-      line-height: 1.2;
-      max-width: 64px;
+      line-height: 1.3;
+      max-width: 100%;
     }
 
     .signal-dot-expand {
@@ -6891,8 +6891,10 @@
 
       const fiiEl = document.getElementById('fiiNet');
       fiiEl.textContent = fmt(fiiNet); fiiEl.className = 'flow-amount ' + (fiiNet >= 0 ? 'positive' : 'negative');
+      fiiEl.dataset.fiiNet = fiiNet;
       const diiEl = document.getElementById('diiNet');
       diiEl.textContent = fmt(diiNet); diiEl.className = 'flow-amount ' + (diiNet >= 0 ? 'positive' : 'negative');
+      diiEl.dataset.diiNet = diiNet;
       const fiiSigText = (fiiRaw.fii_signal && fiiRaw.fii_signal !== 'UNKNOWN') ? fiiRaw.fii_signal : (fiiNet > 0 ? 'NET BUY' : fiiNet < 0 ? 'NET SELL' : '—');
       document.getElementById('fiiSignal').textContent = fiiSigText;
       document.getElementById('fiiSignal').className = 'flow-signal ' + (fiiNet > 0 ? 'risk-on' : fiiNet < 0 ? 'risk-off' : 'neutral');
@@ -7226,8 +7228,17 @@
     }
 
     function renderFiiDiiChart(canvas, labels, fiiVals, diiVals) {
-      const fiiColors = fiiVals.map(v => v >= 0 ? 'rgba(79,131,255,0.75)' : 'rgba(248,113,113,0.75)');
-      const diiColors = diiVals.map(v => v >= 0 ? 'rgba(16,212,138,0.75)' : 'rgba(248,113,113,0.75)');
+      // Colors resolved from the live --green/--red/--blue tokens (not
+      // hardcoded rgba) so this tracks the actual dark/light theme values
+      // rather than one theme's literals. FII is direction-colored (green
+      // buying, red selling); DII is always blue -- a single identity
+      // color, not direction-colored, matching the reference pattern.
+      const rootStyle = getComputedStyle(document.documentElement);
+      const greenColor = rootStyle.getPropertyValue('--green').trim();
+      const redColor = rootStyle.getPropertyValue('--red').trim();
+      const blueColor = rootStyle.getPropertyValue('--blue').trim();
+      const fiiColors = fiiVals.map(v => v >= 0 ? greenColor : redColor);
+      const diiColors = diiVals.map(() => blueColor);
       const isDark = !document.documentElement.classList.contains('light');
       const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
       const tickColor = isDark ? 'rgba(122,139,170,0.8)' : 'rgba(74,88,114,0.8)';
@@ -8522,44 +8533,74 @@
         };
       }
 
-      // Short 2-word label for dot
-      function shortLabel(label) {
-        const map = {
-          'CALM':             'CALM',
-          'NORMAL':           'NORMAL',
-          'ELEVATED':         'ELEVATED',
-          'STRESSED':         'STRESSED',
-          'SUPPORTIVE':       'SUPPORT',
-          'NEUTRAL':          'NEUTRAL',
-          'NEGATIVE':         'NEGATIVE',
-          'FLAT_LATE_CYCLE':  'Flat Rate Curve',
-          'STRONG_EXPANSION': 'Strong Growth',
-          'EXPANSION':        'EXPAND',
-          'MODERATE':         'MODERATE',
-          'WEAK':             'WEAK',
-          'FAIR_VALUE':       'FAIR',
-          'STRETCHED':        'PRICY',
-          'UNDERVALUED':      'CHEAP',
-          'LOW_FALLING':      'Low, Falling',
-          'LOW_STABLE':       'Low, Stable',
-          'LOW_RISING':       'Low, Rising',
-          'MODERATE_FALLING': 'MOD↓',
-          'HIGH_RISING':      'HIGH↑',
-          'BUILDING':         'Growing',
-          'MODERATE_EXPANSION': 'Moderate Growth',
-          'STABLE':           'STABLE',
-          'CONTRACTING':      'SHRINK',
-          'BUYING':           'BUYING',
-          'SELLING':          'SELLING',
-          'TIGHT':            'TIGHT',
-          'WIDE':             'WIDE',
-          'VERY_WIDE':        'V.WIDE',
-          'EXPANSIONARY':     'HEALTHY',
-          'MODERATE_GROWTH':  'MODERATE',
-          'CONTRACTION':      'SHRINK',
-          'SLOWDOWN':         'SLOW',
-        };
-        return map[label] || label.slice(0, 7);
+      // Plain-English state phrase per signal, keyed on the real enum
+      // token each signal's own scoring logic already assigns (see
+      // regime_engine.py's _compute_leading_score band thresholds).
+      // Keyed by [indicator name][enum token] rather than a flat map of
+      // enum -> phrase, because several signals share the same token
+      // (e.g. India VIX and India Yield Curve both have a "NORMAL"
+      // state) with different real meanings -- a flat map would force
+      // one phrase to cover both incorrectly.
+      const _SIGNAL_STATE_PHRASES = {
+        'INDIA VIX': {
+          CALM: 'Market calm', NORMAL: 'Normal volatility',
+          ELEVATED: 'Volatility elevated', FEAR: 'Fear building',
+        },
+        'CRUDE OIL': {
+          SUPPORTIVE: 'Prices supportive', NEUTRAL: 'Prices steady',
+          STRESS: 'Prices elevated', EXTREME_STRESS: 'Prices very high',
+        },
+        'FII FLOWS': {
+          STRONG_BUYING: 'Foreigners buying heavily', BUYING: 'Foreigners buying',
+          NEUTRAL: 'Flows flat', SELLING: 'Foreigners selling',
+          HEAVY_SELLING: 'Foreigners selling heavily',
+        },
+        'INDIA YIELD CURVE': {
+          STEEP_PRO_GROWTH: 'Curve steep, pro-growth', NORMAL: 'Curve normal',
+          FLAT_LATE_CYCLE: 'Curve flattening', INVERTED_WARNING: 'Curve inverted',
+        },
+        'MANUFACTURING PMI': {
+          STRONG_EXPANSION: 'Strong growth', HEALTHY_EXPANSION: 'Healthy growth',
+          MARGINAL_EXPANSION: 'Growth slowing', CONTRACTION: 'Activity contracting',
+        },
+        'NIFTY P/E RATIO': {
+          CHEAP: 'Valuations cheap', FAIR_VALUE: 'Fairly valued',
+          STRETCHED: 'Valuations stretched', EXPENSIVE: 'Valuations expensive',
+          BUBBLE_RISK: 'Bubble risk',
+        },
+        'VOL FORECAST (GARCH)': {
+          LOW_STABLE: 'Low, stable volatility', LOW_FALLING: 'Volatility easing',
+          LOW_RISING: 'Volatility ticking up', MODERATE_STABLE: 'Moderate, steady volatility',
+          MODERATE_FALLING: 'Volatility cooling', MODERATE_RISING: 'Volatility building',
+          HIGH_STABLE: 'High, steady volatility', HIGH_FALLING: 'High but easing',
+          HIGH_RISING: 'Volatility spiking',
+        },
+        'CREDIT IMPULSE': {
+          BUILDING: 'Credit expanding', STABLE: 'Credit steady',
+          CONTRACTING: 'Credit tightening',
+        },
+        'FII TREND (7D)': {
+          BUYING: 'Sustained buying', SELLING: 'Sustained selling',
+          MIXED: 'No clear trend',
+        },
+        'CREDIT SPREAD (AAA-GSEC)': {
+          TIGHT: 'Spreads tight', WIDE: 'Spreads widening',
+          VERY_WIDE: 'Spreads very wide', UNKNOWN: 'Spread data unavailable',
+        },
+        'IS-LM COMPOSITE': {
+          EXPANSIONARY: 'Economy expanding', MODERATE_GROWTH: 'Moderate growth',
+          NEUTRAL: 'Economy steady', SLOWDOWN: 'Growth slowing',
+          CONTRACTION: 'Economy contracting',
+        },
+      };
+
+      function signalPhrase(name, label) {
+        const perSignal = _SIGNAL_STATE_PHRASES[(name || '').toUpperCase()];
+        if (perSignal && perSignal[label]) return perSignal[label];
+        // Fallback for any real state not yet authored above -- still the
+        // actual server-computed token, just sentence-cased instead of a
+        // raw enum constant. Never an invented adjective.
+        return (label || '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
       }
 
       // Short signal name (2 words max)
@@ -8630,7 +8671,7 @@
             ${pct}
           </div>
           <div class="signal-dot-name">${shortName(name)}</div>
-          <div class="signal-dot-label" style="color:${colors.text}">${shortLabel(label)}</div>
+          <div class="signal-dot-label" style="color:${colors.text}">${signalPhrase(name, label)}</div>
         `;
 
         cell.addEventListener('click', () => {
