@@ -400,14 +400,97 @@
     .footer-logo { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-2); }
     .footer-sources { font-size: 11px; color: var(--text-2); }
 
+    /* ══ EVIDENCE VIEW TOGGLE ══ */
+    .evidence-toolbar {
+      max-width: 1160px; margin: 0 auto 18px; padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .view-toggle {
+      display: inline-flex; background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 3px; gap: 2px;
+    }
+    .view-toggle-btn {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 6px 14px; border-radius: 5px; border: none;
+      background: transparent; color: var(--text-2);
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .view-toggle-btn.active { background: var(--blue-dim); color: var(--blue); }
+    .view-caption {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      letter-spacing: 0.02em;
+    }
+
+    /* ══ MAP VIEW ══ */
+    .map-view-wrap {
+      max-width: 1160px; margin: 0 auto 32px; padding: 0 20px;
+      display: grid; grid-template-columns: 240px 1fr 300px; gap: 16px;
+    }
+    .map-theme-list {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 10px; height: fit-content;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .map-theme-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      font-size: 11px; color: var(--text-2); line-height: 1.3;
+      transition: background 0.15s, color 0.15s;
+    }
+    .map-theme-row:hover { background: var(--bg-3); }
+    .map-theme-row.selected { background: var(--blue-dim); color: var(--text); }
+    .map-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .map-svg-panel {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 12px; position: relative;
+      min-height: 340px; display: flex; align-items: center; justify-content: center;
+    }
+    .map-svg-panel svg { width: 100%; height: auto; }
+    .country-path {
+      fill: var(--bg-4); stroke: var(--border-2); stroke-width: 0.5;
+    }
+    .theme-pin {
+      cursor: pointer; stroke: var(--bg); stroke-width: 1.5;
+      transition: filter 0.15s, stroke-width 0.15s;
+    }
+    .theme-pin.selected {
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 2px currentColor);
+    }
+    .map-loading-note {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-3);
+    }
+    .map-detail-panel {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px; height: fit-content;
+    }
+    .map-detail-empty {
+      font-size: 12px; color: var(--text-3); text-align: center; padding: 20px 0;
+    }
+    .map-detail-place {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;
+    }
+    .map-detail-label {
+      font-family: var(--font-serif); font-size: 17px; font-weight: 600;
+      color: var(--text); line-height: 1.3; margin-bottom: 8px;
+    }
+
     /* ══ RESPONSIVE ══ */
     @media (max-width: 1000px) {
       .themes-grid { grid-template-columns: repeat(2, 1fr); }
+      .map-view-wrap { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .themes-grid { grid-template-columns: 1fr; }
       .nav { padding: 0 16px; }
       .themes-section { padding: 0 12px; }
+      .map-view-wrap { padding: 0 12px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -470,8 +553,32 @@
       <p class="page-subtitle">10 ongoing global themes and what they mean for the Indian economy. Updated every 3 days.</p>
     </div>
 
+    <!-- ══ EVIDENCE TOOLBAR ══ -->
+    <div class="evidence-toolbar">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="mapViewBtn" onclick="setEvidenceView('map')">Map</button>
+        <button class="view-toggle-btn" id="listViewBtn" onclick="setEvidenceView('list')">List</button>
+      </div>
+      <span class="view-caption">One representative location per theme — not incident-level geolocation.</span>
+    </div>
+
+    <!-- ══ MAP VIEW ══ -->
+    <div class="map-view-wrap" id="mapViewWrap">
+      <div class="map-theme-list" id="mapThemeList"></div>
+      <div class="map-svg-panel" id="mapSvgPanel">
+        <div class="map-loading-note" id="mapLoadingNote">Loading map…</div>
+        <svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg" style="display:none;" id="geoSvg">
+          <g id="geo-countries-group"></g>
+          <g id="geo-pins-group"></g>
+        </svg>
+      </div>
+      <div class="map-detail-panel" id="mapDetailPanel">
+        <div class="map-detail-empty">Select a theme to see details.</div>
+      </div>
+    </div>
+
     <!-- ══ THEMES GRID ══ -->
-    <section class="themes-section">
+    <section class="themes-section" id="themesSection" style="display:none;">
       <div class="themes-grid" id="themes-grid">
         <!-- Skeleton placeholders while loading -->
         <div class="skeleton-card">
@@ -555,6 +662,176 @@
     function esc(s) {
       if (!s) return '';
       return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ══ GEO MAP (reuses Atlas's GeoJSON country-shape approach from
+    // global_macro.html: same dataset, same equirectangular projection,
+    // same fetch-with-fallback). One representative lat/lon per theme --
+    // the real place tied to that theme's subject (a strait, a capital,
+    // a policy center), not an incident location, per the approved caption.
+    const GEO_URL    = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson';
+    const GEO_URL_FB = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+
+    const THEME_LOCATIONS = {
+      us_iran_hormuz:            { lat: 26.60,  lon: 56.25,   place: 'Strait of Hormuz' },
+      russia_ukraine_europe:     { lat: 50.45,  lon: 30.52,   place: 'Kyiv, Ukraine' },
+      indo_pacific_china:        { lat: 15.00,  lon: 114.00,  place: 'South China Sea' },
+      india_eu_trade:            { lat: 50.85,  lon: 4.35,    place: 'Brussels, EU' },
+      critical_minerals:         { lat: 39.90,  lon: 116.40,  place: 'Beijing, China' },
+      nato_g7_coordination:      { lat: 50.88,  lon: 4.42,    place: 'NATO HQ, Brussels' },
+      red_sea_maritime:          { lat: 12.60,  lon: 43.30,   place: 'Bab-el-Mandeb Strait' },
+      quad_india_japan:          { lat: 35.68,  lon: 139.65,  place: 'Tokyo, Japan' },
+      fragmentation_decoupling:  { lat: 38.90,  lon: -77.03,  place: 'Washington, D.C.' },
+      climate_indian_ocean:     { lat: -20.16,  lon: 57.50,   place: 'Port Louis, Mauritius' },
+    };
+
+    const STATUS_COLOR_VAR = { ESCALATING: '--red', STABLE: '--blue', DE_ESCALATING: '--green' };
+
+    function projectPoint(lon, lat) {
+      const x = (lon + 180) * (1000 / 360);
+      const y = (90 - lat) * (500 / 180);
+      return [x, y];
+    }
+
+    function featureToPath(feature) {
+      const geom = feature.geometry;
+      if (!geom || !geom.coordinates) return '';
+      const polygons = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+      let d = '';
+      for (const polygon of polygons) {
+        for (const ring of polygon) {
+          d += ring.map((pt, i) => {
+            const [x, y] = projectPoint(pt[0], pt[1]);
+            return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+          }).join(' ') + ' Z ';
+        }
+      }
+      return d;
+    }
+
+    let _geoThemes = [];
+    let selectedThemeKey = null;
+
+    async function renderGeoMap(themes) {
+      _geoThemes = themes;
+
+      const listEl = document.getElementById('mapThemeList');
+      listEl.innerHTML = themes.map(t => {
+        const colorVar = STATUS_COLOR_VAR[t.status] || '--blue';
+        return `
+          <div class="map-theme-row" data-theme-key="${esc(t.theme_key)}" onclick="selectTheme('${esc(t.theme_key)}')">
+            <span class="map-dot" style="background:var(${colorVar})"></span>
+            <span>${esc(t.theme_label || '')}</span>
+          </div>
+        `;
+      }).join('');
+
+      let geojson = null;
+      try {
+        const res = await fetch(GEO_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        geojson = await res.json();
+      } catch {
+        try {
+          const res = await fetch(GEO_URL_FB);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          geojson = await res.json();
+        } catch { /* geojson stays null -- handled below */ }
+      }
+
+      const note = document.getElementById('mapLoadingNote');
+      const svg = document.getElementById('geoSvg');
+
+      if (!geojson) {
+        note.textContent = 'Map unavailable — showing list view instead.';
+        setEvidenceView('list');
+        document.getElementById('mapViewBtn').disabled = true;
+        return;
+      }
+
+      const countriesGrp = document.getElementById('geo-countries-group');
+      const frag = document.createDocumentFragment();
+      const NS = 'http://www.w3.org/2000/svg';
+
+      for (const feature of geojson.features) {
+        const props = feature.properties || {};
+        if ((props.NAME || props.ADMIN || '') === 'Antarctica') continue;
+        const d = featureToPath(feature);
+        if (!d.trim()) continue;
+        const el = document.createElementNS(NS, 'path');
+        el.setAttribute('d', d);
+        el.setAttribute('class', 'country-path');
+        frag.appendChild(el);
+      }
+      countriesGrp.innerHTML = '';
+      countriesGrp.appendChild(frag);
+
+      const pinsGrp = document.getElementById('geo-pins-group');
+      pinsGrp.innerHTML = '';
+      themes.forEach(t => {
+        const loc = THEME_LOCATIONS[t.theme_key];
+        if (!loc) return;
+        const [x, y] = projectPoint(loc.lon, loc.lat);
+        const colorVar = STATUS_COLOR_VAR[t.status] || '--blue';
+        const circle = document.createElementNS(NS, 'circle');
+        circle.setAttribute('cx', x.toFixed(1));
+        circle.setAttribute('cy', y.toFixed(1));
+        circle.setAttribute('r', 6);
+        circle.setAttribute('class', 'theme-pin');
+        circle.setAttribute('data-theme-key', t.theme_key);
+        circle.style.fill = `var(${colorVar})`;
+        circle.style.color = `var(${colorVar})`;
+        circle.addEventListener('click', () => selectTheme(t.theme_key));
+        pinsGrp.appendChild(circle);
+      });
+
+      note.style.display = 'none';
+      svg.style.display = '';
+    }
+
+    function selectTheme(key) {
+      selectedThemeKey = key;
+
+      document.querySelectorAll('.map-theme-row').forEach(el => {
+        el.classList.toggle('selected', el.getAttribute('data-theme-key') === key);
+      });
+      document.querySelectorAll('.theme-pin').forEach(el => {
+        el.classList.toggle('selected', el.getAttribute('data-theme-key') === key);
+      });
+
+      const theme = _geoThemes.find(t => t.theme_key === key);
+      const panel = document.getElementById('mapDetailPanel');
+      if (!theme) {
+        panel.innerHTML = '<div class="map-detail-empty">Select a theme to see details.</div>';
+        return;
+      }
+      const loc = THEME_LOCATIONS[key];
+      const status = theme.status || 'STABLE';
+      panel.innerHTML = `
+        ${loc ? `<div class="map-detail-place">${esc(loc.place)}</div>` : ''}
+        <div class="map-detail-label">${esc(theme.theme_label || '')}</div>
+        <span class="status-badge status-${status}">${statusLabel(status)}</span>
+        <div class="card-summary" style="margin-top:12px;">${esc(theme.headline_summary || '')}</div>
+        <div class="card-context">${esc(theme.context || '')}</div>
+        <div class="card-divider"></div>
+        <div class="linkage-block">
+          <div class="linkage-eyebrow">India Linkage</div>
+          <span class="channel-pill">${channelLabel(theme.india_transmission_channel || 'MULTIPLE')}</span>
+          <div class="linkage-text">${esc(theme.india_linkage || '')}</div>
+        </div>
+      `;
+    }
+
+    function setEvidenceView(view) {
+      const mapWrap = document.getElementById('mapViewWrap');
+      const listSection = document.getElementById('themesSection');
+      const mapBtn = document.getElementById('mapViewBtn');
+      const listBtn = document.getElementById('listViewBtn');
+      const isMap = view === 'map';
+      mapWrap.style.display = isMap ? '' : 'none';
+      listSection.style.display = isMap ? 'none' : '';
+      mapBtn.classList.toggle('active', isMap);
+      listBtn.classList.toggle('active', !isMap);
     }
 
     function renderCard(theme, idx) {
@@ -666,6 +943,10 @@
         }
 
         grid.innerHTML = themes.map((t, i) => renderCard(t, i)).join('');
+
+        renderGeoMap(themes).then(() => {
+          if (themes.length) selectTheme(themes[0].theme_key);
+        });
 
         if (data.page_updated_at) {
           metaText.textContent = `Page data as of ${relTime(data.page_updated_at)} · refreshes every 3 days`;
