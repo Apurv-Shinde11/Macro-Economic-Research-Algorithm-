@@ -5590,6 +5590,10 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
             confidence = confidence,
         )
 
+        # Built separately from the reinterpret() call below so a
+        # personalization failure doesn't also take down the WHY /
+        # WHAT DESERVES ATTENTION sections, which read intelligence_object
+        # directly and have nothing to do with any one viewer's profile.
         try:
             _pe_intelligence_object = build_pe_intelligence_object(
                 regime           = current_regime,
@@ -5598,22 +5602,37 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
                 cost_of_capital  = cost_of_capital,
                 briefing_allowed = briefing_allowed,
             )
-            guidance = reinterpret_profile_guidance(_pe_intelligence_object, profile)
+        except Exception as _io_err:
+            print(f"[PE] build_pe_intelligence_object failed: {_io_err}", flush=True)
+            _pe_intelligence_object = None
+
+        try:
+            guidance = (
+                reinterpret_profile_guidance(_pe_intelligence_object, profile)
+                if _pe_intelligence_object is not None
+                else {"status": "withheld", "reason": "no intelligence object"}
+            )
         except Exception as _guidance_err:
             print(f"[PE] profile_guidance.reinterpret failed: {_guidance_err}", flush=True)
             guidance = {"status": "withheld", "reason": "guidance generation failed"}
 
         return {
-            "regime":          current_regime,
-            "confidence":      confidence,
-            "conviction":      conviction,
-            "run_at":          run_at,
-            "repo_rate":       repo_rate,
-            "cost_of_capital": cost_of_capital,
-            "sector_cycles":   sector_cycles,
-            "deal_flow":       PE_DEAL_FLOW,
-            "deal_flow_meta":  PE_DEAL_FLOW_META,
-            "guidance":        guidance,
+            "regime":              current_regime,
+            "confidence":          confidence,
+            "conviction":          conviction,
+            "run_at":              run_at,
+            "repo_rate":           repo_rate,
+            "cost_of_capital":     cost_of_capital,
+            "sector_cycles":       sector_cycles,
+            "deal_flow":           PE_DEAL_FLOW,
+            "deal_flow_meta":      PE_DEAL_FLOW_META,
+            "guidance":            guidance,
+            # Real WHY-section input (convergence/contradictions/signals) --
+            # see build_pe_intelligence_object(). Same honest-null pattern
+            # dashboard.html's fromHistory branch already uses for Sentinel:
+            # the frontend must treat a missing/None value as "nothing to
+            # show" rather than assuming a shape.
+            "intelligence_object": _pe_intelligence_object,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PE overview failed: {e}")

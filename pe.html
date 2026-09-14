@@ -340,15 +340,73 @@
     .env-exit-badge.neutral  { background: var(--blue-dim);  color: var(--blue); }
     .env-exit-badge.negative { background: var(--red-dim);   color: var(--red); }
     .env-exit-badge.closed   { background: var(--amber-dim); color: var(--amber); }
-    .env-guidance {
-      margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border, rgba(255,255,255,0.08));
-      font-size: 13px; line-height: 1.6; color: var(--text-2);
+
+    /* ══ STORY ARC (WHAT'S HAPPENING / WHY / SO WHAT / WHAT DESERVES
+       ATTENTION / WHAT COULD CHANGE THIS) — same section vocabulary and
+       class names as dashboard.html (Sentinel) and global_macro.html
+       (Atlas), so the pattern reads identically across the product. ══ */
+    .story-arc { padding: 0 0 8px; }
+    .story-section { padding: 36px 0 0; border-top: 1px solid var(--border); margin-top: 36px; }
+    .story-section:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+    .story-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--blue); }
+    .story-eyebrow.amber { color: var(--amber); }
+    .story-section-title { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 1.3; color: var(--text); max-width: 640px; margin: 8px 0 8px; }
+    .story-section-sub { font-family: var(--font-sans); font-size: 14px; line-height: 1.65; color: var(--text-2); max-width: 640px; margin-bottom: 20px; }
+    .story-support { font-family: var(--font-sans); font-size: 14px; line-height: 1.65; color: var(--text-2); max-width: 620px; margin-top: 14px; }
+
+    /* "paused" (confidence gate) / "unavailable" (attempted, failed) --
+       same distinction dashboard.html's story arc makes. */
+    .story-state-note { font-family: var(--font-sans); font-size: 13px; line-height: 1.6; font-style: italic; color: var(--text-2); padding: 10px 14px; border-left: 3px solid var(--border-2); }
+    .story-state-note.paused { border-left-color: var(--blue); }
+    .story-state-note.unavailable { border-left-color: var(--amber); }
+
+    /* Honest "not built yet" box -- WHAT'S HAPPENING / WHAT COULD CHANGE
+       THIS, which depend on a story-generation layer PE Intel doesn't
+       have. Distinct look from .story-state-note on purpose: this isn't
+       a runtime failure, it's a feature that hasn't shipped. */
+    .placeholder-block { border: 1px dashed var(--border-2); border-radius: 12px; padding: 18px 20px; margin-top: 12px; }
+    .placeholder-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); background: var(--bg-3); padding: 4px 9px; border-radius: 4px; margin-bottom: 10px; }
+    .placeholder-text { font-family: var(--font-sans); font-size: 13px; line-height: 1.6; color: var(--text-3); font-style: italic; }
+
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+    .why-card.contradiction { border-color: var(--amber-dim, var(--border)); }
+    .why-tag { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; }
+    .why-tag.convergence { background: var(--green-dim); color: var(--green); }
+    .why-tag.contradiction { background: var(--amber-dim); color: var(--amber); }
+    .why-card-name { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--text); }
+    .why-card-body { font-family: var(--font-sans); font-size: 13px; line-height: 1.65; color: var(--text-2); margin-top: 10px; }
+    .why-card-signals { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .why-sig-chip { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; padding: 4px 8px; border-radius: 4px; background: var(--bg-3); color: var(--text-2); }
+
+    /* ── Data-quality caveats (WHAT DESERVES ATTENTION) ── */
+    .attention-row { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .attention-row:last-child { border-bottom: none; }
+    .attention-rail { flex: 0 0 5px; align-self: stretch; border-radius: 3px; background: var(--amber); }
+    .attention-rail.ok { background: var(--green); }
+    .attention-body { font-family: var(--font-sans); font-size: 13px; line-height: 1.65; color: var(--text-2); }
+    .attention-body strong { color: var(--text); font-weight: 600; }
+
+    /* ── Mandate / risk / horizon selector (SO WHAT) -- same field
+       names + values as dashboard.html's Portfolio Profile panel
+       (mandate_type/risk_tolerance/investment_horizon on the shared
+       `profiles` row), just a compact inline control instead of a full
+       sidebar. Changing it here changes the same saved profile Sentinel
+       and Atlas read. ── */
+    .segment-btn {
+      padding: 6px 10px; border-radius: 5px; cursor: pointer;
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em;
+      background: var(--bg-2); border: 1px solid var(--border-2); color: var(--text-2);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .env-guidance-label {
-      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;
-    }
-    .env-guidance.unavailable { color: var(--text-3); font-style: italic; }
+    .segment-btn:hover:not(.active):not(:disabled) { border-color: var(--blue); color: var(--text); }
+    .segment-btn.active { background: var(--blue); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(79,131,255,0.25); }
+    .segment-btn:disabled { opacity: 0.6; cursor: default; }
+    .mandate-selector { margin-top: 18px; padding: 16px 18px; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 14px; }
+    .mandate-selector-row { display: flex; flex-direction: column; gap: 6px; }
+    .mandate-selector-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+    .mandate-selector-opts { display: flex; gap: 4px; flex-wrap: wrap; }
+    .mandate-selector-status { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); letter-spacing: 0.04em; line-height: 1.6; }
 
     /* ══ EMERGING SECTORS ══ */
     .emerging-grid {
@@ -860,6 +918,87 @@
       </div>
     </div>
 
+    <!-- STORY ARC: What's happening / Why / So what / What deserves attention /
+         What could change this. Same section vocabulary as Sentinel and Atlas.
+         WHY, SO WHAT and WHAT DESERVES ATTENTION are real, wired to
+         build_pe_intelligence_object()'s output and profile_guidance.reinterpret()
+         via /api/pe/overview. WHAT'S HAPPENING and WHAT COULD CHANGE THIS both
+         depend on a story-generation (LLM) layer that doesn't exist for PE Intel
+         yet -- honest "coming soon" placeholders, not fabricated narrative. -->
+    <div class="story-arc" id="peStoryArc">
+
+      <!-- 1. WHAT'S HAPPENING -->
+      <div class="story-section">
+        <span class="story-eyebrow">What's happening</span>
+        <div class="placeholder-block">
+          <span class="placeholder-badge">Narrative layer coming soon</span>
+          <div class="placeholder-text">PE Intel has no story-generation layer yet, so there's no written headline connecting today's read into a single narrative. Why, So What, and What Deserves Attention below are real and deterministic — see those, and the evidence further down the page, for today's actual signals.</div>
+        </div>
+      </div>
+
+      <!-- 2. WHY -->
+      <div class="story-section">
+        <span class="story-eyebrow">Why</span>
+        <div class="story-section-title">Signal relationships behind today's cost-of-capital read.</div>
+        <div class="story-section-sub" id="peWhyIntro">Loading today's signal relationships…</div>
+        <div class="why-grid" id="peWhyGrid"></div>
+      </div>
+
+      <!-- 3. SO WHAT -->
+      <div class="story-section">
+        <span class="story-eyebrow">So what</span>
+        <div class="story-section-title" style="margin-top:8px;font-size:22px;">For your mandate</div>
+        <div id="peSoWhat" class="story-support">Loading…</div>
+        <div class="mandate-selector" id="peMandateSelector">
+          <div class="mandate-selector-row">
+            <span class="mandate-selector-label">Mandate type</span>
+            <div class="mandate-selector-opts" data-field="mandate_type">
+              <button class="segment-btn" data-val="equity">Equity Long-Only</button>
+              <button class="segment-btn" data-val="balanced">Balanced</button>
+              <button class="segment-btn" data-val="debt">Debt-Heavy</button>
+              <button class="segment-btn" data-val="multi_asset">Multi-Asset</button>
+            </div>
+          </div>
+          <div class="mandate-selector-row">
+            <span class="mandate-selector-label">Risk tolerance</span>
+            <div class="mandate-selector-opts" data-field="risk_tolerance">
+              <button class="segment-btn" data-val="conservative">Conservative</button>
+              <button class="segment-btn" data-val="moderate">Moderate</button>
+              <button class="segment-btn" data-val="aggressive">Aggressive</button>
+            </div>
+          </div>
+          <div class="mandate-selector-row">
+            <span class="mandate-selector-label">Investment horizon</span>
+            <div class="mandate-selector-opts" data-field="investment_horizon">
+              <button class="segment-btn" data-val="short">Short · 3–6m</button>
+              <button class="segment-btn" data-val="medium">Medium · 6–18m</button>
+              <button class="segment-btn" data-val="long">Long · 18m+</button>
+            </div>
+          </div>
+          <div class="mandate-selector-status" id="peMandateStatus">This is your saved portfolio profile — shared with Sentinel and Atlas. Changing it here updates it everywhere.</div>
+        </div>
+      </div>
+
+      <!-- 4. WHAT DESERVES ATTENTION -->
+      <div class="story-section">
+        <span class="story-eyebrow amber">What deserves attention</span>
+        <div class="story-section-title" style="margin-top:8px;font-size:22px;">Data-quality caveats on today's read.</div>
+        <div id="peAttention" style="margin-top:8px;">Loading…</div>
+      </div>
+
+      <!-- 5. WHAT COULD CHANGE THIS -->
+      <div class="story-section">
+        <span class="story-eyebrow">What could change this</span>
+        <div class="placeholder-block">
+          <span class="placeholder-badge">Narrative layer coming soon</span>
+          <div class="placeholder-text">Quantified change-trigger levels are composed by the same story-generation layer as What's Happening, which hasn't shipped for PE Intel yet. Watch the signals in Why above, and the raw cost-of-capital numbers below, in the meantime.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+
     <!-- SECTION 1: Deal-Making Environment -->
     <div class="section-header">
       <span class="section-title">Current Deal-Making Environment</span>
@@ -964,6 +1103,11 @@
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
     let _token = null;
+    // Full row from the shared `profiles` table -- same fields (mandate_type/
+    // risk_tolerance/investment_horizon) dashboard.html's Portfolio Profile
+    // panel reads and writes. Populated once in init(); kept in sync locally
+    // whenever the mandate selector below writes a change.
+    let _profile = null;
 
     /* ── Init ── */
     async function init() {
@@ -971,15 +1115,17 @@
       if (!session) { window.location.href = 'login.html'; return; }
       _token = session.access_token;
 
-      // Nav user
+      // Nav user + shared portfolio profile (drives the mandate selector)
       try {
         const res = await api('/api/profile');
-        const p   = res.profile || {};
-        const name = p.full_name || p.email || '';
+        _profile   = res.profile || {};
+        const name = _profile.full_name || _profile.email || '';
         const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '—';
         document.getElementById('userName').textContent   = name.split(' ')[0] || name;
         document.getElementById('userAvatar').textContent = initials;
       } catch(e) { /* non-fatal */ }
+
+      initMandateSelector();
 
       // Theme
       const saved = localStorage.getItem('sentinel-theme');
@@ -1061,6 +1207,11 @@
       const dealFlowMeta   = data.deal_flow_meta  || null;
       const runAt          = data.run_at;
       const repoRate       = data.repo_rate;
+      // Real WHY-section input -- build_pe_intelligence_object()'s output,
+      // see main_api.py's get_pe_overview(). null on a backend-side failure
+      // (see the try/except around its construction there) -- the frontend
+      // must treat that as "nothing to show," not assume a shape.
+      const intelligenceObject = data.intelligence_object || null;
 
       // Meta labels
       const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -1072,7 +1223,8 @@
           'Engine run: ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
       }
 
-      renderEnvCard(costOfCapital, regime, data.guidance);
+      renderPEStory(intelligenceObject, data.guidance);
+      renderEnvCard(costOfCapital, regime);
       renderSectors(sectorCycles);
       initSectorCards();
       renderCapMetrics(costOfCapital);
@@ -1109,7 +1261,7 @@
     }
 
     /* ── Environment card ── */
-    function renderEnvCard(coc, regime, guidance) {
+    function renderEnvCard(coc, regime) {
       const env    = coc.environment   || 'NEUTRAL';
       const call   = coc.dry_powder_call || '';
       const rate   = coc.repo_rate_trend || '—';
@@ -1120,14 +1272,6 @@
       const envColour = _envColour(env);
       const exitCls   = _exitClass(exit);
       const regimeLabel = regime.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-
-      // Personalized, deterministic (no LLM) -- see profile_guidance.py.
-      // Distinct from the shared dry_powder_call quoted above: that's the
-      // same read every viewer sees, this reinterprets it per mandate.
-      const g = (guidance && guidance.status) ? guidance : { status: 'withheld' };
-      const guidanceHtml = g.status === 'ok'
-        ? `<div class="env-guidance"><div class="env-guidance-label">For Your Mandate</div>${_escPE(g.so_what)}</div>`
-        : `<div class="env-guidance unavailable"><div class="env-guidance-label">For Your Mandate</div>Personalized guidance isn't available for this read.</div>`;
 
       document.getElementById('envCard').innerHTML = `
         <div class="env-header">
@@ -1152,11 +1296,10 @@
             <div class="env-label">Exit Environment</div>
             <div class="env-value"><span class="env-exit-badge ${exitCls}">${exit.split('—')[0].trim()}</span></div>
           </div>
-        </div>
-        ${guidanceHtml}`;
+        </div>`;
     }
 
-    function _escPE(s) {
+    function _esc(s) {
       const div = document.createElement('div');
       div.textContent = s == null ? '' : s;
       return div.innerHTML;
@@ -1176,6 +1319,208 @@
       if (e.startsWith('CLOSED') || e.startsWith('VERY DIFFICULT')) return 'negative';
       if (e.startsWith('DIFFICULT')) return 'closed';
       return 'neutral';
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       STORY ARC — WHY / SO WHAT / WHAT DESERVES ATTENTION.
+       WHY and WHAT DESERVES ATTENTION read intelligence_object directly
+       (build_pe_intelligence_object()'s output -- same shared read every
+       viewer sees). SO WHAT reads guidance (profile_guidance.reinterpret()'s
+       output for the current viewer's saved profile). Both come from
+       /api/pe/overview -- see loadPE(). WHAT'S HAPPENING and WHAT COULD
+       CHANGE THIS are static placeholders in the HTML (no story-generation
+       layer exists for PE Intel yet), not rendered from here.
+       ══════════════════════════════════════════════════════════════ */
+
+    function renderPEStory(io, guidance) {
+      renderPEWhy(io);
+      renderPESoWhat(guidance);
+      renderPEAttention(io);
+    }
+
+    /* ── WHY: convergence/contradiction cards, same shape and same
+       .why-card/.why-tag markup dashboard.html's Sentinel briefing and
+       global_macro.html's Atlas WHY section already use. PE Intel's
+       intelligence object currently carries at most one signal per
+       category (policy_rate/credit_spread/exit_environment) -- see
+       build_pe_intelligence_object() -- so convergence (which needs 2+
+       signals IN THE SAME category) will rarely if ever fire here;
+       contradictions (compared pairwise ACROSS categories) can. That's
+       a real property of today's PE signal set, not a rendering bug --
+       the empty state below is the honest state most days. ── */
+    function renderPEWhy(io) {
+      const grid  = document.getElementById('peWhyGrid');
+      const intro = document.getElementById('peWhyIntro');
+      if (!grid || !intro) return;
+      grid.innerHTML = '';
+
+      if (io === null) {
+        intro.textContent = "Unable to load today's signal relationships — see the evidence below for the raw numbers.";
+        return;
+      }
+
+      const hasCards = io && ((io.convergence && io.convergence.length) || (io.contradictions && io.contradictions.length));
+      if (!hasCards) {
+        intro.textContent = "No convergence or contradiction detected across today's policy-rate, credit-spread and exit-environment signals.";
+        return;
+      }
+
+      intro.textContent = 'Where the policy-rate, credit-spread and exit-environment signals agree, and where they disagree.';
+      const cards = [
+        ...(io.convergence || []).map(c => Object.assign({ kind: 'Convergence' }, c)),
+        ...(io.contradictions || []).map(c => Object.assign({ kind: 'Contradiction' }, c)),
+      ];
+      cards.forEach(c => {
+        const isC = c.kind === 'Contradiction';
+        const card = document.createElement('div');
+        card.className = 'why-card' + (isC ? ' contradiction' : '');
+        const sigIds   = c.signal_ids || [];
+        const catLabel = (c.category || '').replace(/_/g, ' ');
+        const chips = sigIds.map(s => `<span class="why-sig-chip">${String(s).replace(/_/g, ' ').toUpperCase()}</span>`).join('');
+        card.innerHTML =
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+            `<span class="why-tag ${isC ? 'contradiction' : 'convergence'}">${c.kind}</span>` +
+            (catLabel ? `<span class="why-card-name">${catLabel}</span>` : '') +
+          '</div>' +
+          `<div class="why-card-body">${_esc(c.description || '')}</div>` +
+          `<div class="why-card-signals">${chips}</div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    /* ── SO WHAT: profile_guidance.reinterpret()'s output for the
+       viewer's saved mandate/risk/horizon. "withheld" covers both a
+       paused briefing and a genuinely missing read -- profile_guidance.py
+       returns a `reason` either way, which drives which message shows. ── */
+    function renderPESoWhat(guidance) {
+      const el = document.getElementById('peSoWhat');
+      if (!el) return;
+      const g = (guidance && guidance.status) ? guidance : { status: 'withheld', reason: null };
+      if (g.status === 'ok') {
+        el.className = 'story-support';
+        el.textContent = g.so_what;
+      } else {
+        el.className = 'story-state-note ' + (g.reason === 'briefing paused for this run' ? 'paused' : 'unavailable');
+        el.textContent = g.reason === 'briefing paused for this run'
+          ? 'Briefing paused for this run — see What Deserves Attention below for today\'s real caveats.'
+          : 'Personalized guidance isn\'t available for this read.';
+      }
+    }
+
+    /* ── WHAT DESERVES ATTENTION: data-quality caveats, built directly
+       from intelligence_object.confidence -- NOT from guidance, since
+       this section is the same shared read every viewer sees regardless
+       of mandate, and it must still show up even when guidance itself is
+       withheld (e.g. a logged-in-but-unpersonalized view). Every line
+       here maps to a real field: briefing_allowed, the 70-80% CAUTION
+       band note (verbatim -- see reliability()'s wording constraint in
+       intelligence_object.py, do not paraphrase it), a LOW confidence
+       band, and any signal reading STRESSED on its own outside of a
+       named contradiction. No narrative is invented beyond that. ── */
+    function renderPEAttention(io) {
+      const el = document.getElementById('peAttention');
+      if (!el) return;
+
+      if (io === null) {
+        el.innerHTML = '<div class="story-state-note unavailable">Unable to load today\'s confidence read — see the evidence below for the raw cost-of-capital numbers.</div>';
+        return;
+      }
+
+      const conf = io.confidence || {};
+      const rows = [];
+
+      if (conf.briefing_allowed === false) {
+        rows.push('<strong>Briefing paused for this run.</strong> The underlying signal read was judged too uncertain to narrate with confidence — the cost-of-capital numbers below are real, but treat any read of them cautiously until the next engine run.');
+      }
+      if (conf.reliability_flag === 'CAUTION' && conf.reliability_note) {
+        rows.push(_esc(conf.reliability_note));
+      } else if (conf.band === 'LOW') {
+        const pct = conf.score != null ? Math.round(conf.score * 100) + '%' : 'unknown';
+        rows.push(`<strong>Confidence on this read is LOW (${pct}).</strong> The signals feeding today's cost-of-capital read don't agree strongly with each other — treat Why above as the operative content, not the headline call.`);
+      }
+
+      const contradictionIds = new Set((io.contradictions || []).flatMap(c => c.signal_ids || []));
+      (io.signals || [])
+        .filter(s => s.stance === 'STRESSED' && !contradictionIds.has(s.id))
+        .forEach(s => {
+          rows.push(`<strong>${_esc(s.label)}</strong> reads STRESSED on its own (${_esc(String(s.value))}) — it isn't part of a broader contradiction, but it's worth watching in isolation.`);
+        });
+
+      if (!rows.length) {
+        el.innerHTML = `<div class="attention-row"><div class="attention-rail ok"></div><div class="attention-body">No data-quality caveats for this read — confidence is in the normal range and today's signals don't show any isolated stress.</div></div>`;
+        return;
+      }
+      el.innerHTML = rows.map(html =>
+        `<div class="attention-row"><div class="attention-rail"></div><div class="attention-body">${html}</div></div>`
+      ).join('');
+    }
+
+    /* ── Mandate / risk / horizon selector -- writes directly to the
+       same shared `profiles` row dashboard.html's Portfolio Profile
+       panel writes to (mandate_type/risk_tolerance/investment_horizon),
+       the same way dashboard.html's savePreferences() does: a direct
+       Supabase update, not a dedicated backend endpoint (there isn't
+       one for these three fields -- see savePreferences() in
+       dashboard.html). require_access re-reads the profile fresh on
+       every request, so the very next /api/pe/overview call picks up
+       the change automatically. ── */
+    function initMandateSelector() {
+      document.querySelectorAll('#peMandateSelector .mandate-selector-opts').forEach(group => {
+        const field = group.dataset.field;
+        group.querySelectorAll('.segment-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (btn.disabled || btn.classList.contains('active')) return;
+            _updateProfileField(field, btn.dataset.val);
+          });
+        });
+      });
+      renderMandateSelectorState();
+    }
+
+    function renderMandateSelectorState() {
+      const p = _profile || {};
+      const current = {
+        mandate_type:       p.mandate_type       || 'equity',
+        risk_tolerance:     p.risk_tolerance     || 'moderate',
+        investment_horizon: p.investment_horizon || 'medium',
+      };
+      document.querySelectorAll('#peMandateSelector .mandate-selector-opts').forEach(group => {
+        const field = group.dataset.field;
+        group.querySelectorAll('.segment-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.val === current[field]);
+        });
+      });
+    }
+
+    async function _updateProfileField(field, val) {
+      const statusEl  = document.getElementById('peMandateStatus');
+      const allBtns   = document.querySelectorAll('#peMandateSelector .segment-btn');
+      allBtns.forEach(b => b.disabled = true);
+      statusEl.textContent = 'Saving…';
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('no session');
+        const { error } = await sb.from('profiles').update({ [field]: val }).eq('id', session.user.id);
+        if (error) throw error;
+        if (_profile) _profile[field] = val;
+        renderMandateSelectorState();
+        statusEl.textContent = 'Saved — this is your shared portfolio profile, used across Sentinel, Atlas and PE Intel.';
+        await refreshPEGuidance();
+      } catch (e) {
+        statusEl.textContent = 'Could not save that change — try again.';
+      } finally {
+        allBtns.forEach(b => b.disabled = false);
+      }
+    }
+
+    /* Re-fetches guidance only (not sectors/deal-flow/cap-metrics, which
+       don't depend on the viewer's profile) so a mandate change updates
+       So What without a full-page skeleton flash. */
+    async function refreshPEGuidance() {
+      try {
+        const data = await api('/api/pe/overview');
+        renderPEStory(data.intelligence_object || null, data.guidance);
+      } catch (e) { /* non-fatal -- last-known guidance stays visible */ }
     }
 
     /* ── Sector detail data ── */
@@ -1545,7 +1890,7 @@
 
     /* ── Error state ── */
     function showError(msg) {
-      ['envCard','emergingGrid','sectorGrid','capMetrics','capNarrative','dealList'].forEach(id => {
+      ['envCard','emergingGrid','sectorGrid','capMetrics','capNarrative','dealList','peWhyIntro','peSoWhat','peAttention'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = `<div style="color:var(--red);font-family:var(--font-mono);font-size:11px;padding:16px 0;">${msg}</div>`;
       });
