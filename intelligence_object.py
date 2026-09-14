@@ -568,6 +568,7 @@ def build_pe_intelligence_object(
     repo_rate: float | None,
     cost_of_capital: dict,
     briefing_allowed: bool = True,
+    conviction: str | None = None,
 ) -> dict:
     """
     regime/confidence_score/repo_rate: the same fields already read off
@@ -583,6 +584,18 @@ def build_pe_intelligence_object(
     Intel respects the same pause discipline Sentinel does rather than
     speaking confidently over a read the system itself judged too
     uncertain to narrate.
+    conviction: the SAME `runs.conviction` field (strategy_engine.py's
+    dispersion-adjusted HIGH/MEDIUM/LOW classifier) that pe.html's page
+    header already renders as "N% confidence · X conviction" -- passed
+    through here so confidence.band uses that exact value instead of
+    independently re-deriving a LOW/MODERATE/HIGH bucket from the raw
+    score via confidence_band(). The two are genuinely different
+    formulas (conviction discounts for cross-scenario dispersion; the
+    generic confidence_band() doesn't), and letting both reach the user
+    produced the header and What Deserves Attention disagreeing on the
+    SAME 54% score (MEDIUM conviction vs. LOW band) on one page. When
+    conviction is omitted (e.g. a caller with no runs row) this falls
+    back to confidence_band() so the field stays populated.
 
     Pure reshape -- computes no new judgment, just categorises fields
     _build_live_cost_of_capital() already produced.
@@ -641,7 +654,12 @@ def build_pe_intelligence_object(
         },
         "confidence": {
             "score":                    confidence_score,
-            "band":                     confidence_band(confidence_score),
+            # Reuses the page's existing conviction classifier rather than
+            # confidence_band()'s independent raw-score bucket -- see the
+            # docstring above. reliability_flag/note below is deliberately
+            # NOT changed: that's pegged to the original 70-80% backtest
+            # band on raw score and must stay that way (see reliability()).
+            "band":                     (conviction.upper() if conviction else confidence_band(confidence_score)),
             "reliability_flag":         rel_flag,
             "reliability_note":         rel_note,
             "briefing_allowed":         briefing_allowed,
