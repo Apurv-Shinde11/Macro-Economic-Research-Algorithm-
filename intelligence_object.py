@@ -556,3 +556,103 @@ def build_atlas_intelligence_object(india_record: dict) -> dict:
         "convergence":     detect_convergence(signals),
         "contradictions":  detect_contradictions(signals),
     }
+
+
+# ══════════════════════════════════════════════════════════════════
+# LAYER 2c — PE INTEL-SPECIFIC MAPPING
+# ══════════════════════════════════════════════════════════════════
+
+def build_pe_intelligence_object(
+    regime: str,
+    confidence_score: float | None,
+    repo_rate: float | None,
+    cost_of_capital: dict,
+    briefing_allowed: bool = True,
+) -> dict:
+    """
+    regime/confidence_score/repo_rate: the same fields already read off
+    the user's latest `runs` row by main_api.py's /api/pe/overview --
+    PE Intel has never had its own independent signal computation, it's
+    a PE-flavoured reshape of the same regime read Sentinel scores.
+    cost_of_capital: one entry of main_api.py's COST_OF_CAPITAL (or
+    _build_live_cost_of_capital()'s output for that regime) --
+    {"credit_spread": ..., "exit_environment": ..., "dry_powder_call": ...}.
+    briefing_allowed: not a column on `runs` (only ever lived on the
+    transient job result) -- callers derive this from that same run's
+    persisted `story.status != "paused"` and pass it through, so PE
+    Intel respects the same pause discipline Sentinel does rather than
+    speaking confidently over a read the system itself judged too
+    uncertain to narrate.
+
+    Pure reshape -- computes no new judgment, just categorises fields
+    _build_live_cost_of_capital() already produced.
+    """
+    rel_flag, rel_note = reliability(confidence_score)
+
+    signals = []
+
+    if repo_rate is not None:
+        # Same [5.0, 7.0] bounds as Atlas's own policy_rate signal --
+        # same instrument, same thresholds, not a new judgment call.
+        _rate_bounds = [5.0, 7.0]
+        r_score = 1.0 if repo_rate <= 5.0 else 0.0 if repo_rate >= 7.0 else 0.5
+        signals.append({
+            "id": "policy_rate", "label": "RBI Policy Rate", "category": "POLICY",
+            "value": repo_rate, "stance": stance(r_score), "score": r_score,
+            "distance_to_threshold": _nearest_boundary_distance(repo_rate, _rate_bounds),
+            "nearest_boundary": _nearest_boundary(repo_rate, _rate_bounds),
+        })
+
+    # credit_spread / exit_environment are categorical reads from
+    # COST_OF_CAPITAL, not numbers -- distance_to_threshold/
+    # nearest_boundary stay honestly None, same pattern Atlas already
+    # uses for currency/yield (no numeric boundary exists, so none is
+    # claimed).
+    _spread = (cost_of_capital or {}).get("credit_spread", "")
+    if _spread:
+        cs_score = (
+            1.0 if "COMPRESSING" in _spread else
+            0.0 if "WIDENING" in _spread or "SPIKING" in _spread else
+            0.5
+        )
+        signals.append({
+            "id": "credit_spread", "label": "Credit Spread", "category": "DOMESTIC_LIQUIDITY",
+            "value": _spread, "stance": stance(cs_score), "score": cs_score,
+            "distance_to_threshold": None, "nearest_boundary": None,
+        })
+
+    _exit = (cost_of_capital or {}).get("exit_environment", "")
+    if _exit:
+        ex_score = (
+            1.0 if _exit.startswith("POSITIVE") or _exit.startswith("BUILDING") else
+            0.0 if _exit.startswith("DIFFICULT") or _exit.startswith("CLOSED") or _exit.startswith("VERY") else
+            0.5
+        )
+        signals.append({
+            "id": "exit_environment", "label": "Exit Environment", "category": "FLOWS",
+            "value": _exit, "stance": stance(ex_score), "score": ex_score,
+            "distance_to_threshold": None, "nearest_boundary": None,
+        })
+
+    return {
+        "module": "pe",
+        "theme": {
+            "label": (regime or "").replace("_", " ").title(),
+        },
+        "confidence": {
+            "score":                    confidence_score,
+            "band":                     confidence_band(confidence_score),
+            "reliability_flag":         rel_flag,
+            "reliability_note":         rel_note,
+            "briefing_allowed":         briefing_allowed,
+            "briefing_blocked_reason":  None,
+        },
+        # dry_powder_call is PE's own derived conclusion (DEPLOY /
+        # SELECTIVE / PRESERVE / HOLD), not an input signal -- treating
+        # it as one would be circular. It plays the same structural
+        # role Sentinel's leading_intelligence.trend plays for momentum.
+        "momentum": (cost_of_capital or {}).get("dry_powder_call"),
+        "signals": signals,
+        "convergence":     detect_convergence(signals),
+        "contradictions":  detect_contradictions(signals),
+    }
