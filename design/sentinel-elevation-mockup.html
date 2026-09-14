@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sentinel Elevation Pass</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  /* ══════════════════════════════════════════════════════════
+     DESIGN TOKENS
+     Dark-first (product default). html.light overrides below,
+     mirroring the real product's own toggle mechanism exactly.
+     ══════════════════════════════════════════════════════════ */
+  :root {
+    /* ---- surface / semantic (unchanged from shipped system) ---- */
+    --bg:          #04060f;
+    --bg-2:        #080d1c;
+    --bg-3:        #0d1428;
+    --bg-4:        #111d38;
+    --bg-glass:    rgba(8, 13, 28, 0.72);
+    --border:      rgba(99, 132, 255, 0.10);
+    --border-2:    rgba(99, 132, 255, 0.22);
+    --text:        #e8eeff;
+    --text-2:      #7a8baa;
+    --text-3:      #2e3d58;
+    --blue:        #4f83ff;
+    --blue-light:  #7aa3ff;
+    --blue-dim:    rgba(79, 131, 255, 0.10);
+    --indigo:      #6366f1;
+    --violet:      #8b5cf6;
+    --cyan:        #22d3ee;
+    --green:       #10d48a;
+    --green-dim:   rgba(16, 212, 138, 0.10);
+    --amber:       #fbbf24;
+    --amber-dim:   rgba(251, 191, 36, 0.10);
+    --red:         #f87171;
+    --red-dim:     rgba(248, 113, 113, 0.10);
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06);
+    --radius:      8px;
+    --radius-lg:   14px;
+
+    /* ---- motion system: the reusable part ----
+       Same tokens are meant to be dropped into Atlas / PE Intel /
+       Geopolitical Watch unchanged — only the content that rides
+       them differs per surface. */
+    --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
+    --dur-instant:     150ms;
+    --dur-fast:        260ms;
+    --dur-reveal:      760ms;
+    --dur-ring:        1400ms;
+    --stagger-step:    90ms;
+
+    /* ---- typography system A: "Pushed Classic" ----
+       Same three families already shipped, pushed harder:
+       bigger scale contrast, bolder weight, more dramatic
+       headline treatment. No new typefaces introduced. */
+    --a-display:   'Cormorant Garamond', Georgia, serif;
+    --a-body:      'DM Sans', -apple-system, sans-serif;
+    --a-mono:      'JetBrains Mono', 'Courier New', monospace;
+    --a-hero-size: clamp(42px, 6.4vw, 68px);
+    --a-hero-wt:   700;
+    --a-hero-ls:   -0.022em;
+    --a-lead-size: clamp(32px, 4.4vw, 47px);
+    --a-lead-wt:   600;
+    --a-label-ls:  0.22em;
+    --a-data-size: 15px;
+
+    /* ---- typography system B: "Newsreader System" ----
+       A genuine alternative trio: Newsreader (serif built for
+       on-screen long-form reading — reads like a serious digital
+       publication, not a magazine), Archivo (sturdy grotesk with
+       a financial-report character), IBM Plex Mono (engineering /
+       terminal pedigree, calmer than a code-editor mono). */
+    --b-display:   'Newsreader', Georgia, serif;
+    --b-body:      'Archivo', -apple-system, sans-serif;
+    --b-mono:      'IBM Plex Mono', 'Courier New', monospace;
+    --b-hero-size: clamp(40px, 5.8vw, 60px);
+    --b-hero-wt:   500;
+    --b-hero-ls:   -0.012em;
+    --b-lead-size: clamp(30px, 4.1vw, 43px);
+    --b-lead-wt:   500;
+    --b-label-ls:  0.14em;
+    --b-data-size: 14px;
+  }
+
+  html.light {
+    --bg:        #ffffff;
+    --bg-2:      #ffffff;
+    --bg-3:      #eaf0fb;
+    --bg-4:      #dde8f8;
+    --bg-glass:  rgba(255,255,255,0.82);
+    --border:    rgba(79,131,255,0.12);
+    --border-2:  rgba(79,131,255,0.22);
+    --text:      #0d1120;
+    --text-2:    #4a5872;
+    --text-3:    #9aaabb;
+    --blue:      #2563eb;
+    --blue-light:#3b82f6;
+    --blue-dim:  rgba(37,99,235,0.08);
+    --indigo:    #4f46e5;
+    --violet:    #7c3aed;
+    --cyan:      #0891b2;
+    --green:     #059669;
+    --green-dim: rgba(5,150,105,0.09);
+    --amber:     #b45309;
+    --amber-dim: rgba(180,83,9,0.08);
+    --red:       #dc2626;
+    --red-dim:   rgba(220,38,38,0.08);
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(79,131,255,0.08);
+  }
+
+  /* Active option's tokens — swapped by [data-type] on <html> */
+  html[data-type="1"] {
+    --font-display: var(--a-display);
+    --font-body:    var(--a-body);
+    --font-mono:    var(--a-mono);
+    --hero-size:    var(--a-hero-size);
+    --hero-wt:      var(--a-hero-wt);
+    --hero-ls:      var(--a-hero-ls);
+    --lead-size:    var(--a-lead-size);
+    --lead-wt:      var(--a-lead-wt);
+    --label-ls:     var(--a-label-ls);
+    --data-size:    var(--a-data-size);
+  }
+  html[data-type="2"] {
+    --font-display: var(--b-display);
+    --font-body:    var(--b-body);
+    --font-mono:    var(--b-mono);
+    --hero-size:    var(--b-hero-size);
+    --hero-wt:      var(--b-hero-wt);
+    --hero-ls:      var(--b-hero-ls);
+    --lead-size:    var(--b-lead-size);
+    --lead-wt:      var(--b-lead-wt);
+    --label-ls:     var(--b-label-ls);
+    --data-size:    var(--b-data-size);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 0 20px 80px;
+    transition: background var(--dur-fast) var(--ease-out-quart), color var(--dur-fast) var(--ease-out-quart);
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; }
+  ::selection { background: var(--blue-dim); color: var(--text); }
+
+  /* ambient backdrop — extremely slow, low-amplitude drift */
+  .ambient-field {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(600px 420px at 14% -6%, var(--blue-dim), transparent 60%),
+      radial-gradient(520px 380px at 92% 8%, rgba(139,92,246,0.07), transparent 60%);
+    animation: ambientDrift 46s var(--ease-out-quart) infinite alternate;
+  }
+  @keyframes ambientDrift {
+    from { background-position: 0% 0%, 0% 0%; opacity: 0.9; }
+    to   { background-position: 3% 2%, -2% 3%; opacity: 1; }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     CONTROL BAR
+     ══════════════════════════════════════════════════════════ */
+  .control-bar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    margin: 0 -20px; padding: 14px 20px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-bottom: 1px solid var(--border);
+  }
+  .control-title { font-family: var(--a-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-2); }
+  .control-title b { color: var(--text); font-weight: 600; }
+  .control-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .seg { display: inline-flex; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; gap: 2px; }
+  .seg button {
+    font-family: var(--a-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 7px 13px; border-radius: 5px; border: none; background: transparent; color: var(--text-2);
+    cursor: pointer; transition: background var(--dur-instant), color var(--dur-instant);
+  }
+  .seg button.active { background: var(--blue-dim); color: var(--blue-light); }
+  .btn-ghost {
+    font-family: var(--a-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--border-2); background: transparent; color: var(--text-2);
+    cursor: pointer; transition: border-color var(--dur-instant), color var(--dur-instant);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--blue); }
+
+  /* ══════════════════════════════════════════════════════════
+     INTRO
+     ══════════════════════════════════════════════════════════ */
+  .intro { max-width: 900px; margin: 48px auto 0; }
+  .intro-eyebrow { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--blue-light); margin-bottom: 14px; }
+  .intro h1 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(32px, 4.6vw, 48px); line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 16px; text-wrap: balance; }
+  .intro p { font-size: 15px; color: var(--text-2); line-height: 1.7; max-width: 640px; margin: 0 0 10px; }
+
+  /* ══════════════════════════════════════════════════════════
+     TYPE COMPARISON — side by side, always visible, not tied to toggle
+     ══════════════════════════════════════════════════════════ */
+  .compare-wrap { max-width: 1240px; margin: 48px auto 0; }
+  .compare-label { font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 16px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 30px 28px; box-shadow: var(--card-shadow); }
+  .compare-tag { display: inline-flex; align-items: center; gap: 8px; font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue-light); background: var(--blue-dim); padding: 5px 11px; border-radius: 20px; margin-bottom: 20px; }
+  .compare-fonts { font-family: var(--a-mono); font-size: 10px; color: var(--text-3); margin-bottom: 22px; letter-spacing: 0.02em; }
+
+  .cmp-headline-1 { font-family: var(--a-display); font-weight: var(--a-hero-wt); font-size: clamp(30px, 3.6vw, 42px); letter-spacing: var(--a-hero-ls); line-height: 1.05; text-wrap: balance; margin-bottom: 14px; }
+  .cmp-headline-2 { font-family: var(--b-display); font-weight: var(--b-hero-wt); font-size: clamp(28px, 3.4vw, 39px); letter-spacing: var(--b-hero-ls); line-height: 1.08; text-wrap: balance; margin-bottom: 14px; }
+  .cmp-headline-1 em, .cmp-headline-2 em { font-style: italic; color: var(--blue-light); }
+  .cmp-body-1 { font-family: var(--a-body); font-size: 15px; line-height: 1.7; color: var(--text-2); margin-bottom: 18px; max-width: 46ch; }
+  .cmp-body-2 { font-family: var(--b-body); font-size: 14.5px; line-height: 1.7; color: var(--text-2); margin-bottom: 18px; max-width: 46ch; }
+  .cmp-data-row { display: flex; gap: 22px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .cmp-data-item .cmp-data-lbl { font-family: var(--a-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .cmp-data-item.b .cmp-data-lbl { font-family: var(--b-mono); }
+  .cmp-data-item .cmp-data-val { font-family: var(--a-mono); font-size: 20px; font-weight: 700; color: var(--text); }
+  .cmp-data-item.b .cmp-data-val { font-family: var(--b-mono); font-weight: 600; }
+  .cmp-data-item .cmp-data-val.pos { color: var(--green); }
+  .cmp-data-item .cmp-data-val.warn { color: var(--amber); }
+
+  /* Per-option local token scope so BOTH options can render simultaneously
+     in the comparison panels below, independent of the html[data-type]
+     toggle used by the full-experience section further down. Everything
+     inside .opt-a / .opt-b reuses the SAME component classes as the full
+     mockup (.why-card, .attention-row, .signal-card, .confidence-ring…)
+     so the comparison is pixel-honest, not a re-drawn approximation. */
+  .opt-a {
+    --font-display: var(--a-display); --font-body: var(--a-body); --font-mono: var(--a-mono);
+    --hero-wt: var(--a-hero-wt); --hero-ls: var(--a-hero-ls);
+    --lead-wt: var(--a-lead-wt); --label-ls: var(--a-label-ls);
+  }
+  .opt-b {
+    --font-display: var(--b-display); --font-body: var(--b-body); --font-mono: var(--b-mono);
+    --hero-wt: var(--b-hero-wt); --hero-ls: var(--b-hero-ls);
+    --lead-wt: var(--b-lead-wt); --label-ls: var(--b-label-ls);
+  }
+
+  .cmp-section { margin-top: 26px; padding-top: 22px; border-top: 1px dashed var(--border-2); }
+  .cmp-section-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-bottom: 14px; }
+  .mini-regime-name { font-family: var(--font-display); font-weight: var(--hero-wt); letter-spacing: var(--hero-ls); font-size: clamp(24px, 3vw, 32px); line-height: 1.05; margin: 0 0 8px; text-wrap: balance; }
+  .mini-regime-name em { font-style: italic; color: var(--blue-light); }
+  .mini-hero-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  .mini-ring { position: relative; width: 78px; height: 78px; flex-shrink: 0; }
+  .mini-ring svg { transform: rotate(-90deg); }
+  .attention-title { font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--text); margin-bottom: 4px; }
+  .cmp-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (max-width: 560px) { .cmp-mini-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ══════════════════════════════════════════════════════════
+     REVEAL SYSTEM (page-load sequencing)
+     ══════════════════════════════════════════════════════════ */
+  .reveal {
+    opacity: 0; transform: translateY(18px);
+    transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo);
+  }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  noscript, .no-js-fallback { }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+  html.force-reduced .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+
+  /* ══════════════════════════════════════════════════════════
+     LIVE MOCKUP SHELL
+     ══════════════════════════════════════════════════════════ */
+  .mockup-shell { max-width: 1240px; margin: 56px auto 0; }
+  .mockup-frame {
+    border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+    background: var(--bg); box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+  }
+
+  .m-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
+    background: var(--bg-glass); backdrop-filter: blur(20px);
+  }
+  .m-nav-left { display: flex; align-items: center; gap: 26px; }
+  .m-logo { font-family: var(--a-mono); font-weight: 700; font-size: 14px; letter-spacing: 0.14em; }
+  .m-nav-links { display: flex; gap: 4px; }
+  .m-nav-links span { font-family: var(--a-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--text-2); padding: 6px 10px; border-radius: 6px; }
+  .m-nav-links span.active { background: var(--bg-4); color: var(--text); }
+  .live-pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--a-mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green); background: var(--green-dim); padding: 5px 11px; border-radius: 20px; border: 1px solid rgba(16,212,138,0.22); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: livePulse 2.6s ease-in-out infinite; }
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(0.82); }
+  }
+  html.force-reduced .live-dot, .reduced .live-dot { animation: none; opacity: 1; }
+
+  .m-body { padding: 34px 28px 8px; }
+
+  /* -- regime hero -- */
+  .regime-hero { position: relative; padding-bottom: 30px; margin-bottom: 30px; border-bottom: 1px solid var(--border); }
+  .regime-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
+  .regime-left { flex: 1 1 420px; min-width: 280px; }
+  .regime-eyebrow-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .regime-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: var(--label-ls); text-transform: uppercase; color: var(--text-3); }
+  .regime-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: livePulse 2.6s ease-in-out infinite; }
+  html.force-reduced .regime-status-dot, .reduced .regime-status-dot { animation: none; }
+  .regime-name { font-family: var(--font-display); font-weight: var(--hero-wt); font-size: var(--hero-size); letter-spacing: var(--hero-ls); line-height: 1.0; text-wrap: balance; margin: 0 0 12px; }
+  .regime-name em { font-style: italic; color: var(--blue-light); }
+  .regime-verdict { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--green); margin-bottom: 10px; }
+  .regime-narrative { font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--text-2); max-width: 60ch; }
+
+  .regime-right { display: flex; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0; }
+  .confidence-ring { position: relative; width: 108px; height: 108px; }
+  .confidence-ring svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--bg-3); stroke-width: 7; }
+  .ring-fill { fill: none; stroke: url(#confGrad); stroke-width: 7; stroke-linecap: round; }
+  .confidence-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .confidence-pct { font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .confidence-lbl { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); letter-spacing: 0.14em; margin-top: 2px; }
+  .conf-sub { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--text-3); text-align: center; }
+
+  /* -- story arc -- */
+  .story-block { padding: 26px 0; border-bottom: 1px solid var(--border); }
+  .story-block:last-of-type { border-bottom: none; }
+  .story-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: var(--label-ls); text-transform: uppercase; color: var(--text-3); margin-bottom: 14px; }
+  .story-eyebrow.amber { color: var(--amber); }
+  .story-lead { font-family: var(--font-display); font-weight: var(--lead-wt); font-size: var(--lead-size); line-height: 1.22; letter-spacing: var(--hero-ls); text-wrap: balance; max-width: 780px; margin-bottom: 14px; }
+  .story-support { font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--text-2); max-width: 680px; }
+  .reliability-chip { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 12px; border-radius: 6px; background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.22); margin-top: 16px; }
+  .reliability-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .so-what-body { font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--text); max-width: 680px; }
+
+  .attention-row { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .attention-row:last-child { border-bottom: none; }
+  .attention-rail { flex: 0 0 4px; align-self: stretch; border-radius: 3px; background: var(--amber); }
+  .attention-text { font-family: var(--font-body); font-size: 14.5px; line-height: 1.65; color: var(--text-2); }
+
+  .change-trigger { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; }
+  .change-trigger-num { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-3); flex: 0 0 auto; padding-top: 1px; }
+  .change-trigger-text { font-family: var(--font-body); font-size: 14.5px; color: var(--text-2); line-height: 1.6; }
+
+  /* -- evidence toggle -- */
+  .evidence-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 22px 0 8px; }
+  .evidence-toggle-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue-light); background: none; border: none; cursor: pointer; padding: 6px 0; }
+  .evidence-caret { transition: transform var(--dur-fast) var(--ease-out-quart); display: inline-block; }
+  .evidence-caret.open { transform: rotate(90deg); }
+  .evidence-body { overflow: hidden; max-height: 0; transition: max-height var(--dur-reveal) var(--ease-out-expo); }
+  .evidence-body.open { max-height: 3200px; }
+  .evidence-inner { padding: 12px 0 30px; }
+
+  /* -- WHY cards -- */
+  .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 34px; }
+  .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; opacity: 0; transform: translateY(14px) scale(0.985); transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
+  .why-card.contradiction { border-color: rgba(251,191,36,0.22); }
+  .evidence-body.open .why-card.wc-in { opacity: 1; transform: translateY(0) scale(1); }
+  html.force-reduced .why-card, .reduced .why-card { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .why-tag { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; margin-bottom: 12px; }
+  .why-tag.convergence { background: var(--green-dim); color: var(--green); }
+  .why-tag.contradiction { background: var(--amber-dim); color: var(--amber); }
+  .why-name { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .why-body { font-family: var(--font-body); font-size: 13.5px; line-height: 1.65; color: var(--text-2); margin-bottom: 14px; }
+  .why-signals { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border); }
+  .why-sig-chip { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; padding: 4px 8px; border-radius: 4px; background: var(--bg-3); color: var(--text-2); }
+
+  /* -- signal visual summary (donut + counts) -- */
+  .signal-summary { display: flex; align-items: center; gap: 30px; padding: 22px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 26px; flex-wrap: wrap; }
+  .signal-donut-wrap { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+  .signal-donut { transform: rotate(-90deg); }
+  .signal-count-row { display: flex; gap: 26px; flex-wrap: wrap; }
+  .signal-count-item { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .signal-count-top { display: flex; align-items: center; gap: 6px; }
+  .signal-count-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: var(--green); } .dot-red { background: var(--red); } .dot-amber { background: var(--amber); }
+  .signal-count-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .signal-count-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+
+  /* -- signal grid -- */
+  .signal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 900px) { .signal-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .signal-grid { grid-template-columns: 1fr; } }
+  .signal-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; padding: 16px 10px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; }
+  .signal-dot { width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .signal-name { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-2); }
+  .signal-label { font-family: var(--font-body); font-size: 11.5px; line-height: 1.3; max-width: 100%; }
+
+  /* -- honesty mechanisms showcase -- */
+  .honesty-wrap { margin-top: 40px; padding-top: 30px; border-top: 1px dashed var(--border-2); }
+  .honesty-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-bottom: 18px; }
+  .honesty-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  .delta-card { position: relative; background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; overflow: hidden; }
+  .delta-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--amber); }
+  .delta-eyebrow { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--text-3); text-transform: uppercase; margin-bottom: 6px; }
+  .delta-headline { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .delta-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+
+  .honesty-note-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .honesty-note-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+  .story-state-note { font-family: var(--font-body); font-size: 13.5px; line-height: 1.6; font-style: italic; color: var(--text-2); padding: 8px 0 8px 14px; border-left: 3px solid var(--border-2); }
+  .story-state-note.paused { border-left-color: var(--blue); }
+  .story-state-note.unavailable { border-left-color: var(--amber); }
+
+  .placeholder-block { border: 1px dashed var(--border-2); border-radius: 12px; padding: 16px 18px; }
+  .placeholder-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); background: var(--bg-3); padding: 4px 9px; border-radius: 4px; margin-bottom: 10px; }
+  .placeholder-text { font-family: var(--font-body); font-size: 13.5px; line-height: 1.6; color: var(--text-3); font-style: italic; }
+
+  /* ══════════════════════════════════════════════════════════
+     TOKEN REFERENCE PANEL
+     ══════════════════════════════════════════════════════════ */
+  .tokens-wrap { max-width: 1240px; margin: 60px auto 0; }
+  .tokens-panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 30px 28px; }
+  .tokens-panel h2 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 24px; margin: 0 0 10px; }
+  .tokens-panel p { font-size: 13.5px; color: var(--text-2); line-height: 1.7; max-width: 700px; margin: 0 0 20px; }
+  .token-code { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.8; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; overflow-x: auto; white-space: pre; }
+  .tc-prop { color: var(--blue-light); }
+  .tc-val { color: var(--green); }
+  .tc-cmt { color: var(--text-3); }
+
+  footer.mockup-footer { max-width: 1240px; margin: 40px auto 0; padding: 20px 0; border-top: 1px solid var(--border); font-family: var(--a-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--text-3); }
+</style>
+</head>
+<body>
+
+<div class="ambient-field" aria-hidden="true"></div>
+
+<div class="control-bar">
+  <div class="control-title">SENTINEL ELEVATION PASS · <b>typography &amp; motion review</b></div>
+  <div class="control-group">
+    <div class="seg" role="group" aria-label="Typography option">
+      <button id="btnType1" class="active" onclick="setType(1)">Option 1 · Pushed Classic</button>
+      <button id="btnType2" onclick="setType(2)">Option 2 · Newsreader System</button>
+    </div>
+    <div class="seg" role="group" aria-label="Theme">
+      <button id="btnDark" class="active" onclick="setTheme('dark')">Dark</button>
+      <button id="btnLight" onclick="setTheme('light')">Light</button>
+    </div>
+    <button class="btn-ghost" id="btnReduced" onclick="toggleReduced()">Simulate reduced motion</button>
+    <button class="btn-ghost" onclick="replayIntro()">↺ Replay intro</button>
+  </div>
+</div>
+
+<div class="intro">
+  <div class="intro-eyebrow">Design Review — Not Shipped Code</div>
+  <h1>Two typefaces, one motion system, on real Sentinel content.</h1>
+  <p>This mockup answers two questions with the same underlying data: which type system reads as more elevated, and does the motion feel confident on a professional advisory product rather than decorative. Everything below — the regime hero, the story arc, the evidence grid, the caution/paused/placeholder states — mirrors the shipped structure so the comparison is honest.</p>
+  <p>The motion tokens and both type stacks are written as swappable CSS custom properties, not page-specific styling — the same set is meant to extend to Atlas, PE Intel and Geopolitical Watch without re-deriving the system per surface. See the reference panel at the bottom.</p>
+</div>
+
+<div class="compare-wrap">
+  <div class="compare-label">Compare across the full page — both options, identical content, side by side. Prose, the hero card, WHY cards, the attention list, and the signal grid all render in each typeface below.</div>
+  <div class="compare-grid">
+    <div class="compare-panel opt-a">
+      <span class="compare-tag">Option 1 — Pushed Classic</span>
+      <div class="compare-fonts">Cormorant Garamond · DM Sans · JetBrains Mono</div>
+      <div class="cmp-headline-1">Stable <em>Growth</em></div>
+      <div class="cmp-body-1">Manufacturing activity is expanding, inflation is contained, and foreign flows have turned net positive for a second consecutive week.</div>
+      <div class="cmp-data-row">
+        <div class="cmp-data-item"><div class="cmp-data-lbl">Confidence</div><div class="cmp-data-val pos">82%</div></div>
+        <div class="cmp-data-item"><div class="cmp-data-lbl">Equity Bias</div><div class="cmp-data-val pos">Overweight</div></div>
+        <div class="cmp-data-item"><div class="cmp-data-lbl">FII Flow</div><div class="cmp-data-val">+₹1,240 Cr</div></div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Hero card</div>
+        <div class="mini-hero-row">
+          <div>
+            <div class="regime-eyebrow" style="margin-bottom:9px;">Today's Economic Environment</div>
+            <div class="mini-regime-name">Stable <em>Growth</em></div>
+            <div class="regime-verdict" style="font-size:13px;">Add exposure — conditions support continued equity allocation.</div>
+          </div>
+          <div class="mini-ring">
+            <svg viewBox="0 0 78 78" width="78" height="78">
+              <circle class="ring-bg" cx="39" cy="39" r="33" stroke-width="6" />
+              <circle class="ring-fill" id="cmpRing1" cx="39" cy="39" r="33" stroke-width="6" stroke-dasharray="207.3" stroke-dashoffset="207.3" />
+            </svg>
+            <div class="confidence-ring-text">
+              <span class="confidence-pct" id="cmpPct1" style="font-size:16px;">0%</span>
+              <span class="confidence-lbl" style="font-size:7.5px;">CONF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Why cards</div>
+        <div class="why-grid" style="margin-bottom:0;">
+          <div class="why-card" style="opacity:1;transform:none;">
+            <span class="why-tag convergence">Convergence</span>
+            <div class="why-name">Growth + Flows aligning</div>
+            <div class="why-body">Manufacturing PMI's move into Healthy Expansion coincides with FII Flows turning to sustained buying.</div>
+            <div class="why-signals"><span class="why-sig-chip">MANUFACTURING PMI</span><span class="why-sig-chip">FII TREND (7D)</span></div>
+          </div>
+          <div class="why-card contradiction" style="opacity:1;transform:none;">
+            <span class="why-tag contradiction">Contradiction</span>
+            <div class="why-name">Valuation vs. regime</div>
+            <div class="why-body">Nifty P/E sits in Stretched territory even as the regime reads Stable Growth.</div>
+            <div class="why-signals"><span class="why-sig-chip">NIFTY P/E RATIO</span><span class="why-sig-chip">IS-LM COMPOSITE</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">What deserves attention</div>
+        <div class="attention-row" style="padding-top:0;">
+          <div class="attention-rail"></div>
+          <div><div class="attention-title">Valuations stretched</div><div class="attention-text">Nifty trades above its five-year average P/E — new positions warrant tighter entry discipline.</div></div>
+        </div>
+        <div class="attention-row" style="padding-bottom:0;">
+          <div class="attention-rail"></div>
+          <div><div class="attention-title">Credit spreads widening</div><div class="attention-text">AAA-GSec spread moved 18bps since Friday — the fastest weekly move in six weeks.</div></div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Signal grid</div>
+        <div class="cmp-mini-grid">
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">India VIX</div><div class="signal-label">Market calm</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">FII Flows</div><div class="signal-label">Foreigners buying</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Nifty P/E Ratio</div><div class="signal-label">Valuations stretched</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Manufacturing PMI</div><div class="signal-label">Healthy growth</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Credit Spread (AAA-Gsec)</div><div class="signal-label">Spreads widening</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--red-dim);color:var(--red);border:1.5px solid var(--red);">●</div><div class="signal-name">IS-LM Composite</div><div class="signal-label">Growth slowing</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-panel opt-b">
+      <span class="compare-tag">Option 2 — Newsreader System</span>
+      <div class="compare-fonts">Newsreader · Archivo · IBM Plex Mono</div>
+      <div class="cmp-headline-2">Stable <em>Growth</em></div>
+      <div class="cmp-body-2">Manufacturing activity is expanding, inflation is contained, and foreign flows have turned net positive for a second consecutive week.</div>
+      <div class="cmp-data-row">
+        <div class="cmp-data-item b"><div class="cmp-data-lbl">Confidence</div><div class="cmp-data-val pos">82%</div></div>
+        <div class="cmp-data-item b"><div class="cmp-data-lbl">Equity Bias</div><div class="cmp-data-val pos">Overweight</div></div>
+        <div class="cmp-data-item b"><div class="cmp-data-lbl">FII Flow</div><div class="cmp-data-val">+₹1,240 Cr</div></div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Hero card</div>
+        <div class="mini-hero-row">
+          <div>
+            <div class="regime-eyebrow" style="margin-bottom:9px;">Today's Economic Environment</div>
+            <div class="mini-regime-name">Stable <em>Growth</em></div>
+            <div class="regime-verdict" style="font-size:13px;">Add exposure — conditions support continued equity allocation.</div>
+          </div>
+          <div class="mini-ring">
+            <svg viewBox="0 0 78 78" width="78" height="78">
+              <circle class="ring-bg" cx="39" cy="39" r="33" stroke-width="6" />
+              <circle class="ring-fill" id="cmpRing2" cx="39" cy="39" r="33" stroke-width="6" stroke-dasharray="207.3" stroke-dashoffset="207.3" />
+            </svg>
+            <div class="confidence-ring-text">
+              <span class="confidence-pct" id="cmpPct2" style="font-size:16px;">0%</span>
+              <span class="confidence-lbl" style="font-size:7.5px;">CONF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Why cards</div>
+        <div class="why-grid" style="margin-bottom:0;">
+          <div class="why-card" style="opacity:1;transform:none;">
+            <span class="why-tag convergence">Convergence</span>
+            <div class="why-name">Growth + Flows aligning</div>
+            <div class="why-body">Manufacturing PMI's move into Healthy Expansion coincides with FII Flows turning to sustained buying.</div>
+            <div class="why-signals"><span class="why-sig-chip">MANUFACTURING PMI</span><span class="why-sig-chip">FII TREND (7D)</span></div>
+          </div>
+          <div class="why-card contradiction" style="opacity:1;transform:none;">
+            <span class="why-tag contradiction">Contradiction</span>
+            <div class="why-name">Valuation vs. regime</div>
+            <div class="why-body">Nifty P/E sits in Stretched territory even as the regime reads Stable Growth.</div>
+            <div class="why-signals"><span class="why-sig-chip">NIFTY P/E RATIO</span><span class="why-sig-chip">IS-LM COMPOSITE</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">What deserves attention</div>
+        <div class="attention-row" style="padding-top:0;">
+          <div class="attention-rail"></div>
+          <div><div class="attention-title">Valuations stretched</div><div class="attention-text">Nifty trades above its five-year average P/E — new positions warrant tighter entry discipline.</div></div>
+        </div>
+        <div class="attention-row" style="padding-bottom:0;">
+          <div class="attention-rail"></div>
+          <div><div class="attention-title">Credit spreads widening</div><div class="attention-text">AAA-GSec spread moved 18bps since Friday — the fastest weekly move in six weeks.</div></div>
+        </div>
+      </div>
+
+      <div class="cmp-section">
+        <div class="cmp-section-label">Signal grid</div>
+        <div class="cmp-mini-grid">
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">India VIX</div><div class="signal-label">Market calm</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">FII Flows</div><div class="signal-label">Foreigners buying</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Nifty P/E Ratio</div><div class="signal-label">Valuations stretched</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Manufacturing PMI</div><div class="signal-label">Healthy growth</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Credit Spread (AAA-Gsec)</div><div class="signal-label">Spreads widening</div></div>
+          <div class="signal-card"><div class="signal-dot" style="background:var(--red-dim);color:var(--red);border:1.5px solid var(--red);">●</div><div class="signal-name">IS-LM Composite</div><div class="signal-label">Growth slowing</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup-shell">
+  <div class="compare-label" style="margin-bottom:14px;">Full experience — toggle Option 1/2 above to feel it in context</div>
+  <div class="mockup-frame">
+
+    <div class="m-nav">
+      <div class="m-nav-left">
+        <span class="m-logo">ECONIQ</span>
+        <div class="m-nav-links">
+          <span class="active">Sentinel</span><span>Atlas</span><span>PE Intel</span><span>Geopolitical Watch</span>
+        </div>
+      </div>
+      <span class="live-pill"><span class="live-dot"></span>Live · updated 4m ago</span>
+    </div>
+
+    <div class="m-body">
+
+      <!-- REGIME HERO -->
+      <div class="regime-hero reveal" id="revHero">
+        <svg width="0" height="0" style="position:absolute;">
+          <defs><linearGradient id="confGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4f83ff" /><stop offset="100%" stop-color="#8b5cf6" />
+          </linearGradient></defs>
+        </svg>
+        <div class="regime-top">
+          <div class="regime-left">
+            <div class="regime-eyebrow-row">
+              <span class="regime-eyebrow">Today's Economic Environment</span>
+              <span class="regime-status-dot"></span>
+            </div>
+            <div class="regime-name">Stable <em>Growth</em></div>
+            <div class="regime-verdict">Add exposure — conditions support continued equity allocation.</div>
+            <div class="regime-narrative">Manufacturing activity is expanding, inflation is contained, and foreign flows have turned net positive for a second consecutive week. The regime engine's confidence has strengthened over the last three sessions.</div>
+          </div>
+          <div class="regime-right">
+            <div class="confidence-ring">
+              <svg viewBox="0 0 108 108" width="108" height="108">
+                <circle class="ring-bg" cx="54" cy="54" r="47" />
+                <circle class="ring-fill" id="confRing" cx="54" cy="54" r="47" stroke-dasharray="295.3" stroke-dashoffset="295.3" />
+              </svg>
+              <div class="confidence-ring-text">
+                <span class="confidence-pct" id="confPct">0%</span>
+                <span class="confidence-lbl">CONFIDENCE</span>
+              </div>
+            </div>
+            <div class="conf-sub">↑ 4pts vs. yesterday</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHAT'S HAPPENING -->
+      <div class="story-block reveal" id="revWhat">
+        <span class="story-eyebrow">What's happening</span>
+        <div class="story-lead">Growth signals strengthened this week while inflation stayed contained.</div>
+        <div class="story-support">The regime engine moved from Moderate Growth to Stable Growth on Tuesday's PMI print, and foreign institutional flows have now been net positive for five straight sessions.</div>
+        <div class="reliability-chip"><span class="reliability-dot"></span>High reliability · confirmed across 9 of 11 signals</div>
+      </div>
+
+      <!-- SO WHAT -->
+      <div class="story-block reveal" id="revSoWhat">
+        <span class="story-eyebrow">So what</span>
+        <div class="so-what-body">For a moderate-risk, medium-horizon mandate: this supports adding to existing equity positions on dips rather than waiting for a clearer signal. Keep new entries disciplined — valuations are not cheap even though the regime is favorable.</div>
+      </div>
+
+      <!-- WHAT DESERVES ATTENTION -->
+      <div class="story-block reveal" id="revAttention">
+        <span class="story-eyebrow amber">What deserves attention</span>
+        <div class="attention-row">
+          <div class="attention-rail"></div>
+          <div class="attention-text">Nifty valuations are stretched relative to the five-year average — new positions warrant tighter entry discipline.</div>
+        </div>
+        <div class="attention-row">
+          <div class="attention-rail"></div>
+          <div class="attention-text">Credit spreads have widened 18bps since last Friday — not yet a regime signal, but the fastest move in six weeks.</div>
+        </div>
+      </div>
+
+      <!-- WHAT COULD CHANGE THIS -->
+      <div class="story-block reveal" id="revChange">
+        <span class="story-eyebrow">What could change this</span>
+        <div class="change-trigger"><span class="change-trigger-num">1</span><span class="change-trigger-text">RBI's next policy statement (Oct 9) — a hawkish surprise would pressure the rate-sensitive sectors currently favoured.</span></div>
+        <div class="change-trigger"><span class="change-trigger-num">2</span><span class="change-trigger-text">FII flows reversing for more than three consecutive sessions.</span></div>
+        <div class="change-trigger"><span class="change-trigger-num">3</span><span class="change-trigger-text">Crude oil sustaining above $90/bbl for a full week.</span></div>
+      </div>
+
+      <!-- EVIDENCE TOGGLE -->
+      <div class="evidence-toggle-row">
+        <button class="evidence-toggle-btn" onclick="toggleEvidence()">
+          <span class="evidence-caret" id="evCaret">▶</span> Show me the evidence
+        </button>
+      </div>
+      <div class="evidence-body" id="evBody">
+        <div class="evidence-inner">
+
+          <div class="why-grid" id="whyGrid">
+            <div class="why-card">
+              <span class="why-tag convergence">Convergence</span>
+              <div class="why-name">Growth + Flows aligning</div>
+              <div class="why-body">Manufacturing PMI's move into Healthy Expansion coincides with FII Flows turning to sustained buying — two independent signals pointing the same direction reinforces this regime call.</div>
+              <div class="why-signals"><span class="why-sig-chip">MANUFACTURING PMI</span><span class="why-sig-chip">FII TREND (7D)</span></div>
+            </div>
+            <div class="why-card contradiction">
+              <span class="why-tag contradiction">Contradiction</span>
+              <div class="why-name">Valuation vs. regime</div>
+              <div class="why-body">Nifty P/E sits in Stretched territory even as the regime reads Stable Growth — valuation and macro momentum are not telling the same story right now.</div>
+              <div class="why-signals"><span class="why-sig-chip">NIFTY P/E RATIO</span><span class="why-sig-chip">IS-LM COMPOSITE</span></div>
+            </div>
+          </div>
+
+          <div class="signal-summary">
+            <div class="signal-donut-wrap">
+              <svg class="signal-donut" viewBox="0 0 76 76" width="76" height="76">
+                <circle cx="38" cy="38" r="32" fill="none" stroke="var(--bg-3)" stroke-width="9" />
+                <circle id="donutGreen" cx="38" cy="38" r="32" fill="none" stroke="var(--green)" stroke-width="9" stroke-dasharray="201.1" stroke-dashoffset="201.1" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="signal-count-row">
+              <div class="signal-count-item"><div class="signal-count-top"><span class="signal-count-dot dot-green"></span></div><div class="signal-count-num" data-count="8">0</div><div class="signal-count-label">Supportive</div></div>
+              <div class="signal-count-item"><div class="signal-count-top"><span class="signal-count-dot dot-amber"></span></div><div class="signal-count-num" data-count="2">0</div><div class="signal-count-label">Neutral</div></div>
+              <div class="signal-count-item"><div class="signal-count-top"><span class="signal-count-dot dot-red"></span></div><div class="signal-count-num" data-count="1">0</div><div class="signal-count-label">Stressed</div></div>
+            </div>
+          </div>
+
+          <div class="signal-grid">
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">India VIX</div><div class="signal-label">Market calm</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Crude Oil</div><div class="signal-label">Prices supportive</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">FII Flows</div><div class="signal-label">Foreigners buying</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">India Yield Curve</div><div class="signal-label">Curve normal</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Manufacturing PMI</div><div class="signal-label">Healthy growth</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Nifty P/E Ratio</div><div class="signal-label">Valuations stretched</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Vol Forecast (GARCH)</div><div class="signal-label">Low, stable volatility</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">Credit Impulse</div><div class="signal-label">Credit steady</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--green-dim);color:var(--green);border:1.5px solid var(--green);">●</div><div class="signal-name">FII Trend (7D)</div><div class="signal-label">Sustained buying</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--amber-dim);color:var(--amber);border:1.5px solid var(--amber);">●</div><div class="signal-name">Credit Spread (AAA-Gsec)</div><div class="signal-label">Spreads widening</div></div>
+            <div class="signal-card"><div class="signal-dot" style="background:var(--red-dim);color:var(--red);border:1.5px solid var(--red);">●</div><div class="signal-name">IS-LM Composite</div><div class="signal-label">Growth slowing</div></div>
+          </div>
+
+          <div class="honesty-wrap">
+            <div class="honesty-title">Honesty mechanisms — shown together for review only; not a real simultaneous state</div>
+            <div class="honesty-grid">
+              <div class="delta-card">
+                <div class="delta-eyebrow">Signal Caution</div>
+                <div class="delta-headline">Credit growth deceleration flagged</div>
+                <span class="delta-badge">Caution</span>
+              </div>
+              <div class="honesty-note-card">
+                <div class="honesty-note-label">Paused state</div>
+                <div class="story-state-note paused">Briefing paused today — see the WHY section above and the raw evidence below for today's real signals.</div>
+              </div>
+              <div class="honesty-note-card">
+                <div class="honesty-note-label">Unavailable state</div>
+                <div class="story-state-note unavailable">Personalized guidance isn't available for this read — see What Deserves Attention above for the shared read.</div>
+              </div>
+              <div class="placeholder-block">
+                <span class="placeholder-badge">Coming Soon</span>
+                <div class="placeholder-text">Sector rotation forecasting is in development and will appear here once validated against three months of backtested data.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tokens-wrap">
+  <div class="tokens-panel">
+    <h2>Motion &amp; type tokens</h2>
+    <p>Written to extend past Sentinel unchanged: Atlas, PE Intel and Geopolitical Watch import the same custom-property block and the same <code>.reveal</code> / ring-draw / count-up / pulse mechanics, and swap in their own content. Only <code>--font-*</code> and the honesty-state colors are surface-specific by design.</p>
+    <div class="token-code"><span class="tc-cmt">/* motion — identical across every surface */</span>
+<span class="tc-prop">--ease-out-expo</span>:  <span class="tc-val">cubic-bezier(0.16, 1, 0.3, 1)</span>;
+<span class="tc-prop">--dur-reveal</span>:     <span class="tc-val">760ms</span>;   <span class="tc-cmt">/* section stagger-in */</span>
+<span class="tc-prop">--dur-ring</span>:       <span class="tc-val">1400ms</span>;  <span class="tc-cmt">/* confidence ring draw + count-up */</span>
+<span class="tc-prop">--stagger-step</span>:   <span class="tc-val">90ms</span>;    <span class="tc-cmt">/* per-item delay in a reveal group */</span>
+
+<span class="tc-cmt">/* typography — the swappable half */</span>
+<span class="tc-prop">--font-display</span>:   <span class="tc-val">'Cormorant Garamond'</span> | <span class="tc-val">'Newsreader'</span>;
+<span class="tc-prop">--font-body</span>:      <span class="tc-val">'DM Sans'</span>          | <span class="tc-val">'Archivo'</span>;
+<span class="tc-prop">--font-mono</span>:      <span class="tc-val">'JetBrains Mono'</span>   | <span class="tc-val">'IBM Plex Mono'</span>;
+
+<span class="tc-cmt">@media (prefers-reduced-motion: reduce) { .reveal, .why-card, .live-dot { animation/transition: none } }</span></div>
+  </div>
+</div>
+
+<footer class="mockup-footer">EconIQ · Sentinel — internal design review, not shipped code</footer>
+
+<script>
+  function prefersReducedMotion() {
+    return document.documentElement.classList.contains('force-reduced') ||
+           window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function setType(n) {
+    document.documentElement.setAttribute('data-type', n);
+    document.getElementById('btnType1').classList.toggle('active', n === 1);
+    document.getElementById('btnType2').classList.toggle('active', n === 2);
+  }
+  function setTheme(t) {
+    document.documentElement.classList.toggle('light', t === 'light');
+    document.getElementById('btnDark').classList.toggle('active', t === 'dark');
+    document.getElementById('btnLight').classList.toggle('active', t === 'light');
+  }
+  function toggleReduced() {
+    const on = document.documentElement.classList.toggle('force-reduced');
+    document.getElementById('btnReduced').style.color = on ? 'var(--blue-light)' : '';
+    document.getElementById('btnReduced').style.borderColor = on ? 'var(--blue)' : '';
+  }
+
+  function ease(t) { return 1 - Math.pow(1 - t, 4); } // quart-out, matches --ease-out-quart family
+
+  function animateRingById(ringId, pctId, pct, circ, dur) {
+    const ring = document.getElementById(ringId);
+    const pctEl = document.getElementById(pctId);
+    if (!ring || !pctEl) return;
+    if (prefersReducedMotion()) {
+      ring.style.strokeDashoffset = circ - (pct / 100) * circ;
+      pctEl.textContent = pct + '%';
+      return;
+    }
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const e = ease(t);
+      ring.style.strokeDashoffset = circ - e * (pct / 100) * circ;
+      pctEl.textContent = Math.round(e * pct) + '%';
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateCompareRings() {
+    animateRingById('cmpRing1', 'cmpPct1', 82, 207.3, 1300);
+    animateRingById('cmpRing2', 'cmpPct2', 82, 207.3, 1300);
+  }
+
+  function animateRing(pct) {
+    animateRingById('confRing', 'confPct', pct, 295.3, 1400);
+  }
+
+  function animateDonut() {
+    const el = document.getElementById('donutGreen');
+    const CIRC = 201.1;
+    const pct = 8 / 11;
+    if (prefersReducedMotion()) { el.style.strokeDashoffset = CIRC - pct * CIRC; return; }
+    const start = performance.now(); const dur = 1100;
+    function frame(now) {
+      const t = Math.min(1, (now - start) / dur); const e = ease(t);
+      el.style.strokeDashoffset = CIRC - e * pct * CIRC;
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateCounts() {
+    document.querySelectorAll('.signal-count-num').forEach(el => {
+      const target = parseInt(el.getAttribute('data-count'), 10);
+      if (prefersReducedMotion()) { el.textContent = target; return; }
+      const start = performance.now(); const dur = 900;
+      function frame(now) {
+        const t = Math.min(1, (now - start) / dur); const e = ease(t);
+        el.textContent = Math.round(e * target);
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function runIntro() {
+    const order = ['revHero', 'revWhat', 'revSoWhat', 'revAttention', 'revChange'];
+    order.forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.remove('in');
+      void el.offsetWidth; // restart transition
+      const delay = prefersReducedMotion() ? 0 : i * 130;
+      setTimeout(() => el.classList.add('in'), delay);
+    });
+    const ringDelay = prefersReducedMotion() ? 0 : 260;
+    setTimeout(() => animateRing(82), ringDelay);
+  }
+
+  function replayIntro() {
+    document.getElementById('confPct').textContent = '0%';
+    document.getElementById('confRing').style.strokeDashoffset = '295.3';
+    document.getElementById('cmpPct1').textContent = '0%';
+    document.getElementById('cmpRing1').style.strokeDashoffset = '207.3';
+    document.getElementById('cmpPct2').textContent = '0%';
+    document.getElementById('cmpRing2').style.strokeDashoffset = '207.3';
+    runIntro();
+    animateCompareRings();
+  }
+
+  let evOpen = false;
+  let evAnimated = false;
+  function toggleEvidence() {
+    evOpen = !evOpen;
+    document.getElementById('evBody').classList.toggle('open', evOpen);
+    document.getElementById('evCaret').classList.toggle('open', evOpen);
+    if (evOpen) {
+      const cards = document.querySelectorAll('#whyGrid .why-card');
+      cards.forEach(c => c.classList.remove('wc-in'));
+      cards.forEach((c, i) => {
+        const delay = prefersReducedMotion() ? 0 : 150 + i * 110;
+        setTimeout(() => c.classList.add('wc-in'), delay);
+      });
+      if (!evAnimated) { animateDonut(); animateCounts(); evAnimated = true; }
+    }
+  }
+
+  runIntro();
+  animateCompareRings();
+</script>
+
+</body>
+</html>
