@@ -51,6 +51,7 @@ SIGNAL_CATEGORIES = {
     "FLOWS",               # capital flow trend signals distinct from spot FII level
     "VALUATION",           # P/E and valuation-level signals
     "COMPOSITE",           # signals that are themselves already a blend (e.g. IS-LM)
+    "GLOBAL_LINKAGE",      # signals explaining when India's read is imported, not domestic
 }
 
 # Confidence bands + the flagged-unreliable range. This range is a
@@ -345,6 +346,55 @@ def _hard_inputs_to_generic(regime_output: dict) -> list[dict]:
     return out
 
 
+def _global_inputs_to_generic(regime_output: dict) -> list[dict]:
+    """
+    Folds in global-context inputs — data that explains when India's
+    regime read is being driven by imported conditions rather than
+    purely domestic ones. Both values are pre-computed elsewhere in the
+    pipeline (yield_curve.py's analyse_curve() carry signal;
+    main_api.py's _fetch_vol_term_structure() global risk proxy) and
+    injected into regime_output["inputs"] before this function runs —
+    no new fetchers, no invented thresholds.
+    """
+    inputs = regime_output.get("inputs", {}) or {}
+    out = []
+
+    carry_spread = inputs.get("india_us_carry_spread")
+    if carry_spread is not None:
+        # 2.5/3.5 mirror yield_curve.py::analyse_curve()'s own carry_signal
+        # bands (FII_OUTFLOW_RISK / NEUTRAL_CARRY / STRONG_FII_MAGNET) —
+        # keep in sync if those move.
+        c_score = 1.0 if carry_spread > 3.5 else 0.5 if carry_spread > 2.5 else 0.0
+        out.append({
+            "id": "india_us_carry_spread", "label": "India-US 10Y Carry Spread",
+            "category": "GLOBAL_LINKAGE",
+            "value": carry_spread, "stance": stance(c_score), "score": c_score,
+            "distance_to_threshold": _nearest_boundary_distance(carry_spread, [2.5, 3.5]),
+            "nearest_boundary": _nearest_boundary(carry_spread, [2.5, 3.5]),
+            "weight": None,
+        })
+
+    risk_score = inputs.get("global_risk_appetite_score")
+    if risk_score is not None:
+        # Pre-scored 0.85/0.50/0.10 tiers come straight from
+        # main_api.py::_fetch_vol_term_structure()'s own CONTANGO/FLAT/
+        # INVERTED classification — no raw-value band table to mirror
+        # here, same treatment as this file's other pre-scored composite
+        # indicators (see SENTINEL_LEADING_INDICATOR_MAP's None-boundary
+        # entries above).
+        out.append({
+            "id": "global_risk_appetite", "label": "Global Risk Appetite (VIX Term Structure)",
+            "category": "GLOBAL_LINKAGE",
+            "value": inputs.get("global_risk_appetite_shape"),
+            "stance": stance(risk_score), "score": risk_score,
+            "distance_to_threshold": None,  # pre-scored, no numeric band
+            "nearest_boundary": None,
+            "weight": None,
+        })
+
+    return out
+
+
 def build_sentinel_intelligence_object(regime_output: dict) -> dict:
     """
     regime_output: the full dict returned by MacroRegimeEngine.detect_regime().
@@ -356,6 +406,7 @@ def build_sentinel_intelligence_object(regime_output: dict) -> dict:
 
     signals = [_leading_signal_to_generic(s) for s in leading_signals]
     signals += _hard_inputs_to_generic(regime_output)
+    signals += _global_inputs_to_generic(regime_output)
 
     rel_flag, rel_note = reliability(confidence_score)
 

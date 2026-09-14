@@ -31,6 +31,7 @@ from intel_aggregator     import IntelAggregator
 from intelligence_object  import build_sentinel_intelligence_object, build_atlas_intelligence_object, build_pe_intelligence_object
 from story_generation     import generate_story
 from profile_guidance     import reinterpret as reinterpret_profile_guidance
+from geopolitical_relevance import rank_geopolitical_themes
 from scenario_engine      import ScenarioEngine
 from trigger_engine       import TriggerEngine
 from asset_impact_engine  import AssetImpactEngine
@@ -3223,6 +3224,27 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         )
         regime = rep.repair(regime, REGIME_SCHEMA)
 
+        # ── Global linkage inputs ──────────────────────────────────────────
+        # Explains when India's regime read is being driven by imported
+        # conditions, not just domestic ones. Both values are already
+        # fetched above in this same pipeline run (yield_curve.py's
+        # analyse_curve() for the carry spread, _fetch_vol_term_structure()
+        # for the risk-appetite proxy) — no new fetchers, real thresholds
+        # already baked into those functions. Injected post-repair so
+        # build_sentinel_intelligence_object() can fold them into
+        # signals[] as a GLOBAL_LINKAGE category.
+        regime.setdefault("inputs", {})
+        try:
+            _carry_spread = _yc_analysis.get("india_us_spread_10y")
+            if _carry_spread is not None:
+                regime["inputs"]["india_us_carry_spread"] = float(_carry_spread)
+        except Exception:
+            pass
+        _vol_term_snap = nse_snapshot.get("vol_term_structure") or {}
+        if _vol_term_snap.get("score") is not None:
+            regime["inputs"]["global_risk_appetite_score"] = _vol_term_snap["score"]
+            regime["inputs"]["global_risk_appetite_shape"] = _vol_term_snap.get("shape")
+
         # ── Confidence gate ──────────────────────────────────────────────
         _briefing_allowed = regime.get("briefing_allowed", True)
         _briefing_blocked_reason = regime.get("briefing_blocked_reason", None)
@@ -5773,12 +5795,45 @@ def _fetch_fred_series_raw(base_url: str, params: dict) -> dict:
     return r.json()
 
 
-def _fetch_fred_rates() -> dict:
+def _fetch_one_fred_rate(code: str, series_id: str, fred_key: str) -> tuple[str, float | None]:
+    """
+    One blocking FRED HTTP call (via _fetch_fred_series_raw, unchanged --
+    still has its own 8s timeout and @_HTTP_RETRY). Runs inside
+    asyncio.to_thread() (see _fetch_fred_rates()) so all series fetch
+    concurrently instead of one at a time.
+    """
+    base_url = "https://api.stlouisfed.org/fred/series/observations"
+    try:
+        params = {
+            "series_id":         series_id,
+            "api_key":           fred_key if fred_key else "anonymoususer",
+            "file_type":         "json",
+            "sort_order":        "desc",
+            "observation_start": "2024-01-01",
+            "limit":             1,
+        }
+        data = _fetch_fred_series_raw(base_url, params)
+        obs  = data.get("observations", [])
+        if obs and obs[0].get("value") != ".":
+            val = round(float(obs[0]["value"]), 2)
+            print(f"  [FRED] {code}: {val}% ({series_id})", flush=True)
+            return code, val
+    except Exception as _e:
+        print(f"  [FRED] {code} fetch failed: {_e}", flush=True)
+    return code, None
+
+
+async def _fetch_fred_rates() -> dict:
     """
     Fetches major central bank policy rates from FRED API.
     Cached for 24 hours since rates change infrequently.
     Returns dict of {country_code: rate_pct}.
     Falls back to {} if FRED is unavailable or key is missing.
+
+    Was a plain sequential for-loop over up to 28 series, one blocking
+    HTTP call at a time -- same class of bug as _fetch_live_economy_data()
+    (see its docstring), fixed the same way: asyncio.to_thread + gather
+    runs every series concurrently instead of serially.
     """
     global _fred_rate_cache
 
@@ -5788,35 +5843,12 @@ def _fetch_fred_rates() -> dict:
         return _fred_rate_cache["data"]
 
     fred_key = os.environ.get("FRED_API_KEY", "")
-    base_url = "https://api.stlouisfed.org/fred/series/observations"
 
-    result = {}
-
-    for code, series_id in _FRED_RATE_SERIES.items():
-        try:
-            params = {
-                "series_id":         series_id,
-                "api_key":           fred_key if fred_key else "anonymoususer",
-                "file_type":         "json",
-                "sort_order":        "desc",
-                "observation_start": "2024-01-01",
-                "limit":             1,
-            }
-            data = _fetch_fred_series_raw(base_url, params)
-            obs  = data.get("observations", [])
-            if obs and obs[0].get("value") != ".":
-                val           = float(obs[0]["value"])
-                result[code]  = round(val, 2)
-                print(
-                    f"  [FRED] {code}: {val}% ({series_id})",
-                    flush=True
-                )
-
-        except Exception as _e:
-            print(
-                f"  [FRED] {code} fetch failed: {_e}",
-                flush=True
-            )
+    fetched = await asyncio.gather(*[
+        asyncio.to_thread(_fetch_one_fred_rate, code, series_id, fred_key)
+        for code, series_id in _FRED_RATE_SERIES.items()
+    ])
+    result = {code: val for code, val in fetched if val is not None}
 
     if result:
         _fred_rate_cache = {"data": result, "fetched_at": time.time()}
@@ -6213,7 +6245,7 @@ def _get_theme_cached(
                 datetime.now(timezone.utc)
                 - datetime.fromisoformat(row["fetched_at"])
             ).total_seconds() / 3600
-            if age_hours < 0:  # TEMP: force refresh
+            if age_hours < 72:
                 return row
     except Exception as e:
         print(f"[GEOWATCH] Cache read failed {theme_key}: {e}", flush=True)
@@ -6770,27 +6802,57 @@ def _derive_macro_signal(gdp: float | None, inflation: float | None) -> str:
     return "STABLE_GROWTH"
 
 
-def _fetch_live_economy_data():
+def _fetch_yf_ticker_close(sym: str, decimals: int) -> float | None:
+    """
+    One blocking yfinance call. Runs inside asyncio.to_thread() (see
+    _fetch_live_economy_data()) so up to 100 of these -- 2 tickers x 50
+    economies -- execute concurrently instead of one at a time.
+    """
     import yfinance as _yf
-    currency_map = {}
-    yield_map = {}
+    try:
+        h = _yf.Ticker(sym).history(period="2d", interval="1d")
+        if len(h) >= 1:
+            return round(float(h["Close"].iloc[-1]), decimals)
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] yfinance fetch failed {sym}: {_e}", flush=True)
+    return None
+
+
+async def _fetch_live_economy_data():
+    """
+    Currency + yield levels via yfinance.
+
+    Was a plain sequential for-loop making up to 100 blocking calls (2
+    tickers x 50 economies) one at a time, with no timeout at all on any
+    individual call -- confirmed via live Render testing (2026-09-11) to
+    be the dominant cause of /api/global-macro hanging past even a
+    raised 20s client timeout on a cold cache: yfinance has no async
+    API, so each call blocked the event loop in turn, serially, for the
+    entire request. Now runs all ~100 concurrently via asyncio.to_thread
+    + gather -- the same pattern _fetch_one() already uses for World
+    Bank data lower in this same endpoint, not a new approach.
+    """
+    tasks = []
+    task_keys = []  # (economy_code, "currency" | "yield"), same order as tasks
     for eco in _ECONOMIES:
         sym = eco.get("ticker_currency")
         if sym:
-            try:
-                h = _yf.Ticker(sym).history(period="2d", interval="1d")
-                if len(h) >= 1:
-                    currency_map[eco["code"]] = round(float(h["Close"].iloc[-1]), 4)
-            except Exception as _e:
-                print(f"[GLOBAL_MACRO] Currency fetch failed {sym}: {_e}", flush=True)
+            tasks.append(asyncio.to_thread(_fetch_yf_ticker_close, sym, 4))
+            task_keys.append((eco["code"], "currency"))
         sym = eco.get("ticker_yield")
         if sym:
-            try:
-                h = _yf.Ticker(sym).history(period="2d", interval="1d")
-                if len(h) >= 1:
-                    yield_map[eco["code"]] = round(float(h["Close"].iloc[-1]), 2)
-            except Exception as _e:
-                print(f"[GLOBAL_MACRO] Yield fetch failed {sym}: {_e}", flush=True)
+            tasks.append(asyncio.to_thread(_fetch_yf_ticker_close, sym, 2))
+            task_keys.append((eco["code"], "yield"))
+
+    results = await asyncio.gather(*tasks) if tasks else []
+
+    currency_map = {}
+    yield_map = {}
+    for (code, kind), value in zip(task_keys, results):
+        if value is None:
+            continue
+        (currency_map if kind == "currency" else yield_map)[code] = value
+
     india_yc = _yc_cache.get("data") or {}
     india_yields = india_yc.get("india_yields", {})
     if india_yields.get("10Y"):
@@ -6946,8 +7008,16 @@ def _with_atlas_intelligence_and_story(result: dict) -> dict:
 @app.get("/api/global-macro")
 async def get_global_macro():
     global _global_macro_cache_mem
+    # Timing instrumentation added 2026-09-11 while chasing a >75s client
+    # timeout on this endpoint -- root cause found to be _fetch_live_
+    # economy_data()'s and _fetch_fred_rates()'s sequential blocking calls
+    # (now parallelized, see their docstrings). Left in place so the next
+    # slowdown shows up in Render's logs with real numbers instead of
+    # needing to be re-diagnosed from scratch.
+    _t0 = time.time()
     cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
     if _global_macro_cache_mem.get("data") and cache_age < 21600:
+        print(f"[GLOBAL_MACRO][TIMING] mem-cache hit, {time.time() - _t0:.2f}s", flush=True)
         return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
     # Check Supabase full-blob cache (24h)
     try:
@@ -6969,6 +7039,7 @@ async def get_global_macro():
                     f"[GLOBAL_MACRO] Serving from cache (age: {age_hours:.1f}h)",
                     flush=True
                 )
+                print(f"[GLOBAL_MACRO][TIMING] blob-cache hit, {time.time() - _t0:.2f}s", flush=True)
                 import json
                 return _with_atlas_intelligence(json.loads(cached["data"]))
     except Exception as e:
@@ -7029,6 +7100,7 @@ async def get_global_macro():
                     }
                     result = _with_atlas_intelligence_and_story(result)
                     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+                    print(f"[GLOBAL_MACRO][TIMING] per-row-cache fallback, {time.time() - _t0:.2f}s", flush=True)
                     return result
 
             except Exception as _e:
@@ -7036,17 +7108,19 @@ async def get_global_macro():
 
     print("[GLOBAL_MACRO] Cache miss — fetching fresh data for 50 economies...", flush=True)
     try:
-        currency_map, yield_map = _fetch_live_economy_data()
+        currency_map, yield_map = await _fetch_live_economy_data()
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Live data fetch failed: {_e}", flush=True)
         currency_map, yield_map = {}, {}
+    print(f"[GLOBAL_MACRO][TIMING] yfinance currency/yield fetch done, {time.time() - _t0:.2f}s elapsed", flush=True)
 
     # Fetch live policy rates from FRED
     try:
-        live_rates = _fetch_fred_rates()
+        live_rates = await _fetch_fred_rates()
     except Exception as _e:
         print(f"[GLOBAL_MACRO] FRED rate fetch failed: {_e}", flush=True)
         live_rates = {}
+    print(f"[GLOBAL_MACRO][TIMING] FRED fetch done, {time.time() - _t0:.2f}s elapsed", flush=True)
 
     # Caps concurrent World Bank requests across the whole 50-economy x
     # 5-indicator batch (up to 250 requests). Well under the httpx
@@ -7132,6 +7206,7 @@ async def get_global_macro():
         wb_results = await asyncio.gather(
             *[_fetch_one(eco, client) for eco in _ECONOMIES]
         )
+    print(f"[GLOBAL_MACRO][TIMING] World Bank gather done, {time.time() - _t0:.2f}s elapsed", flush=True)
 
     economies = []
     for (eco, gdp, gdp_year, inflation, inf_year,
@@ -7169,6 +7244,16 @@ async def get_global_macro():
             print(f"[GLOBAL_MACRO] Supabase upsert failed {eco['code']}: {_e}", flush=True)
         print(f"[GLOBAL_MACRO] {eco['code']} — gdp={gdp} inf={inflation} signal: {record['macro_signal']}", flush=True)
 
+    # Per-economy loop above calls _get_country_news_cached() (blocking
+    # Supabase select, sometimes a news fetch + upsert) and a blocking
+    # per-row Supabase upsert, sequentially, 50 times -- a smaller,
+    # lower-priority instance of the same class of bug just fixed for
+    # yfinance/FRED. Not parallelized yet; this timing line exists so
+    # its real contribution is visible with hard numbers rather than
+    # guessed at, if it turns out to still matter after the two larger
+    # fixes above.
+    print(f"[GLOBAL_MACRO][TIMING] per-economy loop (news cache + upserts) done, {time.time() - _t0:.2f}s elapsed", flush=True)
+
     result = {
         "economies":       economies,
         "page_updated_at": datetime.now(timezone.utc).isoformat(),
@@ -7186,6 +7271,7 @@ async def get_global_macro():
     except Exception as _ce:
         print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+    print(f"[GLOBAL_MACRO][TIMING] TOTAL request time, {time.time() - _t0:.2f}s", flush=True)
     return result
 
 
@@ -7219,7 +7305,7 @@ async def get_policy_rates():
     Returns latest central bank policy rates.
     FRED-sourced where available, hardcoded fallback otherwise.
     """
-    live_rates = _fetch_fred_rates()
+    live_rates = await _fetch_fred_rates()
 
     # Merge live rates over hardcoded fallback
     merged = dict(_POLICY_RATES)
@@ -7756,15 +7842,11 @@ async def get_india_activity():
 
 @app.get("/api/geopolitical-watch")
 async def get_geopolitical_watch():
-    print("[GEOWATCH] Endpoint called", flush=True)
-    print(f"[GEOWATCH] Theme count: {len(GEOPOLITICAL_THEMES)}", flush=True)
-    for key, meta in GEOPOLITICAL_THEMES.items():
-        print(f"[GEOWATCH] Processing {key}", flush=True)
-    row = _get_theme_cached(...)
     """
     Returns all 10 geopolitical theme analyses with 72h cache TTL.
     Free endpoint — no auth required, same tier as /api/global-macro.
     """
+    print("[GEOWATCH] Endpoint called", flush=True)
     nlp_engine = IndianMacroNLP()
     if not nlp_engine:
         print(
@@ -7788,3 +7870,23 @@ async def get_geopolitical_watch():
             default=None,
         ),
     }
+
+
+@app.get("/api/geopolitical-watch/ranked")
+async def get_geopolitical_watch_ranked(profile: dict = Depends(require_access)):
+    """
+    Same 10 theme cards as /api/geopolitical-watch, reordered by
+    relevance to this profile's mandate_type/investment_horizon -- no
+    new text, see geopolitical_relevance.py. Deliberately a separate,
+    authenticated endpoint rather than a change to /api/geopolitical-
+    watch itself, which stays free/unauthenticated -- same reasoning as
+    /api/global-macro/guidance for Atlas.
+    """
+    result = await get_geopolitical_watch()
+    themes = result.get("themes", [])
+    try:
+        ranked = rank_geopolitical_themes(themes, profile)
+    except Exception as _rank_err:
+        print(f"[GEOWATCH] rank_geopolitical_themes failed: {_rank_err}", flush=True)
+        ranked = themes
+    return {**result, "themes": ranked}
