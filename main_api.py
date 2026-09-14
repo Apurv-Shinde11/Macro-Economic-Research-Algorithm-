@@ -5601,6 +5601,7 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
                 repo_rate        = repo_rate,
                 cost_of_capital  = cost_of_capital,
                 briefing_allowed = briefing_allowed,
+                conviction       = conviction,
             )
         except Exception as _io_err:
             print(f"[PE] build_pe_intelligence_object failed: {_io_err}", flush=True)
