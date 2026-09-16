@@ -51,6 +51,12 @@
       --radius: 8px;
       --radius-lg: 14px;
       --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
+      /* ── State-system motion tokens (loading/empty/error) — theme-independent ── */
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 150ms;
+      --duration-base: 220ms;
+      --duration-shimmer: 1.8s;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -359,9 +365,9 @@
     .map-loading {
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
+      background: linear-gradient(90deg, var(--bg-3) 25%, var(--blue-dim) 50%, var(--bg-3) 75%);
       background-size: 400% 100%;
-      animation: mapSkeleton 1.6s ease infinite;
+      animation: mapSkeleton var(--duration-shimmer) ease infinite;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -399,7 +405,7 @@
       stroke: var(--country-stroke, var(--border));
       stroke-width: 1.5;
       cursor: pointer;
-      transition: fill 0.15s, filter 0.15s, stroke-width 0.15s;
+      transition: fill var(--duration-base) var(--ease-out-expo), filter var(--duration-fast), stroke-width var(--duration-fast);
     }
 
     .country-path.highlighted:hover {
@@ -425,15 +431,19 @@
       background: var(--bg-2);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 40px;
+      padding: 40px 28px;
       text-align: center;
       color: var(--text-2);
       font-size: 14px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
     }
+    .detail-empty.error { border-color: rgba(248,113,113,0.22); background: linear-gradient(180deg, var(--red-dim), var(--bg-2) 60%); }
+    .detail-empty h3 { font-family: var(--font-serif); font-weight: 600; font-size: 17px; color: var(--text); }
+    .detail-empty p { font-family: var(--font-sans); font-size: 13px; line-height: 1.55; color: var(--text-2); max-width: 34ch; }
 
     .detail-inner {
       background: var(--bg-2);
@@ -1346,6 +1356,42 @@
     .story-state-note.paused { border-left-color: var(--blue); }
     .story-state-note.unavailable { border-left-color: var(--amber); }
 
+    /* ══════════════════════════════════════════════════════════════
+       STATE SYSTEM — loading / empty / error. Portable across Sentinel,
+       Atlas, PE Intel, Geopolitical Watch (approved design mockup).
+       Deliberately NOT .story-state-note: those two (paused/unavailable)
+       are the engine's own honest calls about a real run; the three
+       below are the page's, about whether it could load anything at all.
+       No border-left accent stripe (see DESIGN.md — that technique is
+       flagged legacy on .story-state-note and not to be extended).
+       ══════════════════════════════════════════════════════════════ */
+    @keyframes esShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .es-skel { background: linear-gradient(90deg, var(--bg-3) 25%, var(--blue-dim) 50%, var(--bg-3) 75%); background-size: 240% 100%; animation: esShimmer var(--duration-shimmer) infinite; border-radius: 4px; }
+    .es-skel-eyebrow { height: 10px; width: 130px; border-radius: 3px; }
+    .es-skel-title { height: 26px; width: 65%; border-radius: 5px; margin-top: 10px; }
+    .es-skel-sub { height: 14px; width: 45%; border-radius: 4px; margin-top: 10px; }
+    .es-skel-cell { height: 56px; border-radius: 8px; }
+    .es-skel-row { height: 40px; border-radius: 6px; }
+
+    .es-state-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 22px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--bg-2); width: 100%; }
+    .es-state-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+    .es-state-card.empty .es-state-icon { background: var(--bg-3); border: 1px solid var(--border-2); color: var(--text-3); }
+    .es-state-card.error { border-color: rgba(248,113,113,0.22); background: linear-gradient(180deg, var(--red-dim), var(--bg-2) 60%); }
+    .es-state-card.error .es-state-icon { background: rgba(248,113,113,0.16); color: var(--red); }
+    .es-state-card h3 { font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+    .es-state-card p { font-family: var(--font-sans); font-size: 13px; line-height: 1.55; color: var(--text-2); max-width: 34ch; }
+    .es-state-card .es-actions { display: flex; gap: 8px; margin-top: 2px; flex-wrap: wrap; justify-content: center; }
+
+    .es-btn-retry { font-family: var(--font-sans); font-size: 12.5px; font-weight: 500; border-radius: var(--radius); padding: 8px 16px; cursor: pointer; background: transparent; color: var(--text-2); border: 1px solid rgba(248,113,113,0.32); transition: color var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast); }
+    .es-btn-retry:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
+
+    .es-progress-cap { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-2); }
+    .es-pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: esPulse 1.4s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes esPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .es-progress-track { height: 3px; width: 100%; border-radius: 999px; background: var(--bg-3); overflow: hidden; margin-top: 8px; }
+    .es-progress-sweep { height: 100%; width: 34%; border-radius: 999px; background: linear-gradient(90deg, transparent, var(--blue), transparent); animation: esSweep 2.1s var(--ease-standard) infinite; }
+    @keyframes esSweep { 0% { transform: translateX(-115%); } 100% { transform: translateX(315%); } }
+
     .change-trigger { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
     .change-trigger-num { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-3); padding-top: 2px; flex: 0 0 auto; }
     .change-trigger-body { font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--text-2); }
@@ -1442,8 +1488,10 @@
         <section class="detail-panel">
           <div id="detail-content">
             <div class="detail-empty">
-              <span style="font-size:18px;">←</span>
-              <span>Select an economy on the map to view macro details</span>
+              <div class="es-state-icon" style="background:var(--bg-3);border:1px solid var(--border-2);color:var(--text-3);" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="m20 20-3.8-3.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </div>
+              <p>Select an economy on the map to view macro details.</p>
             </div>
           </div>
         </section>
@@ -2788,32 +2836,53 @@
       });
     }
 
-    async function loadMacroData() {
-      if (!Object.keys(economiesData).length) {
-        document.getElementById('detail-content').innerHTML = `
-          <div class="detail-empty">
-            <span style="font-size:18px;">⏳</span>
-            <span>Fetching data for 50 economies, this may take up to 15 seconds on first load</span>
+    // Shape-matched skeleton for #detail-content -- mirrors renderDetail()'s
+    // real markup (flag+name strip, then a grid of detail-cards) so nothing
+    // jumps when the real economy data lands.
+    function _detailSkeletonHtml() {
+      return `
+        <div class="detail-inner">
+          <div class="detail-strip">
+            <div class="detail-left" style="display:flex;align-items:center;gap:12px;">
+              <div class="es-skel" style="width:34px;height:34px;border-radius:50%;"></div>
+              <div>
+                <div class="es-skel es-skel-title" style="width:140px;margin-top:0;"></div>
+                <div class="es-skel es-skel-sub" style="width:100px;"></div>
+              </div>
+            </div>
           </div>
-        `;
+          <div class="detail-primary" style="margin-top:20px;">
+            <div class="es-skel es-skel-cell"></div>
+            <div class="es-skel es-skel-cell"></div>
+            <div class="es-skel es-skel-cell"></div>
+            <div class="es-skel es-skel-cell"></div>
+          </div>
+          <div class="es-progress-cap" style="margin-top:18px;">
+            <span class="es-pulse-dot"></span>
+            Fetching 50 economies — typically 10–15s
+          </div>
+          <div class="es-progress-track"><div class="es-progress-sweep"></div></div>
+        </div>
+      `;
+    }
+
+    function _economyListSkeletonHtml() {
+      return Array.from({ length: 8 }).map((_, i) =>
+        `<div class="es-skel es-skel-row" style="margin-bottom:8px;animation-delay:${i * 40}ms;"></div>`
+      ).join('');
+    }
+
+    async function loadMacroData() {
+      const detailEl = document.getElementById('detail-content');
+      const firstLoad = !Object.keys(economiesData).length;
+      if (firstLoad && detailEl) {
+        detailEl.innerHTML = _detailSkeletonHtml();
       }
       const listEl = document.getElementById('economyList')
         || document.getElementById('countryList')
         || document.getElementById('economy-size-section');
-      if (listEl) {
-        listEl.innerHTML = `
-          <div style="
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--text-2);
-            padding: 20px;
-            text-align: center;
-            letter-spacing: 0.08em;
-          ">
-            Loading 50 economies...
-          </div>
-        `;
-      }
+      if (listEl) listEl.innerHTML = _economyListSkeletonHtml();
+
       try {
         const res = await fetchWithTimeout(`${RAIL}/api/global-macro`);
         const data = await res.json();
@@ -2830,11 +2899,13 @@
         const last = localStorage.getItem('econiq_selected_economy');
         const code = (last && economiesData[last]) ? last : (economiesData['IN'] ? 'IN' : null);
         if (code) selectEconomy(code);
-        else {
-          document.getElementById('detail-content').innerHTML = `
+        else if (detailEl) {
+          detailEl.innerHTML = `
             <div class="detail-empty">
-              <span style="font-size:18px;">←</span>
-              <span>Select an economy on the map to view macro details</span>
+              <div class="es-state-icon" style="background:var(--bg-3);border:1px solid var(--border-2);color:var(--text-3);" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="m20 20-3.8-3.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </div>
+              <p>Select an economy on the map to view macro details.</p>
             </div>
           `;
         }
@@ -2843,12 +2914,21 @@
         const introEl = document.getElementById('atlasWhyIntro');
         if (introEl) introEl.textContent = 'Signal relationships unavailable — the data fetch failed. Please refresh.';
         renderAtlasStory(null);
-        document.getElementById('detail-content').innerHTML = `
-          <div class="detail-empty">
-            <span style="font-size:18px;">⚠</span>
-            <span>Failed to load macro data, please refresh</span>
-          </div>
-        `;
+        if (detailEl) {
+          detailEl.innerHTML = `
+            <div class="detail-empty error">
+              <div class="es-state-icon" style="background:rgba(248,113,113,0.16);color:var(--red);" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.4" r="0.9" fill="currentColor"/><path d="M10.6 3.6a1.6 1.6 0 0 1 2.8 0l8.3 14.6a1.6 1.6 0 0 1-1.4 2.4H3.7a1.6 1.6 0 0 1-1.4-2.4l8.3-14.6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              </div>
+              <h3>Couldn't reach the feed</h3>
+              <p>Map shapes are ready — indicator data failed to load.</p>
+              <div class="es-actions">
+                <button class="es-btn-retry" type="button" onclick="loadMacroData()">Retry</button>
+              </div>
+            </div>
+          `;
+        }
+        if (listEl) listEl.innerHTML = '';
       }
     }
 
