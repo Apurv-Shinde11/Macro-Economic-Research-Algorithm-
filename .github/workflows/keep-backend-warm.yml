@@ -1,0 +1,57 @@
+name: Keep Render backend warm
+
+# Pings the Render backend's health root every 10 minutes so the free-tier
+# dyno never sits idle long enough to sleep. Root cause: /api/global-macro
+# (Atlas) and Sentinel's endpoints all pay the same cold-start delay when
+# the dyno has slept -- this doesn't fix a code path, it prevents the sleep
+# that made a real page load look broken. See PR that added this workflow
+# for the investigation (ruled out a code-level dependency between
+# Sentinel's run and Atlas's endpoint before landing here).
+#
+# NOTE — GitHub disables scheduled workflows after 60 days with no commits
+# to the repository. This repo is active enough that it shouldn't hit that,
+# but it's the one failure mode that *won't* show up as a red run in the
+# Actions history below -- it shows up as an absence of runs, plus a
+# "This scheduled workflow is disabled" banner on this workflow's Actions
+# page. If Atlas/Sentinel ever go cold again, check there before
+# re-diagnosing this from scratch.
+
+on:
+  schedule:
+    # */10 rather than the ~12-14min ceiling discussed: GitHub Actions'
+    # free-tier scheduler can delay or occasionally skip a run under load,
+    # so this leaves headroom under Render's ~15min idle-sleep threshold --
+    # one missed run still leaves time for the next one to land before the
+    # dyno actually sleeps.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # manual run, e.g. to test after editing this file
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend root
+        run: |
+          url="https://macro-economic-research-algorithm.onrender.com/"
+          echo "Pinging $url"
+
+          # Generous timeout: a ping landing right after a deploy or a rare
+          # missed cycle may still hit a cold dyno and legitimately take
+          # ~80s to answer. That's fine and shouldn't fail the run -- only
+          # a genuinely unresponsive/broken backend should.
+          http_status=$(curl -sS -o /tmp/keepalive_response.json -w "%{http_code}" --max-time 90 "$url") || {
+            echo "::error::Keep-alive ping to $url did not complete (curl error) -- backend may be down, not just cold."
+            exit 1
+          }
+
+          echo "Response body:"
+          cat /tmp/keepalive_response.json
+          echo
+          echo "HTTP status: $http_status"
+
+          if [ "$http_status" -lt 200 ] || [ "$http_status" -ge 300 ]; then
+            echo "::error::Keep-alive ping to $url returned HTTP $http_status -- backend is reachable but unhealthy."
+            exit 1
+          fi
+
+          echo "Keep-alive ping succeeded ($http_status)."
