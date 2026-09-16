@@ -468,13 +468,6 @@
     .badge.sig-favourable   { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,212,138,0.2); }
     .badge.sig-neutral      { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
     .badge.sig-cautious     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
-    .sector-wind {
-      font-size: 11px; color: var(--text-2); margin-bottom: 6px; line-height: 1.5;
-    }
-    .sector-wind-label {
-      font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
-      letter-spacing: 0.08em; margin-bottom: 2px;
-    }
     .sector-entry {
       margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
       font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
@@ -1649,9 +1642,29 @@
       ],
     };
 
-    function _sectorDetailHtml(name) {
+    function _sectorDetailHtml(name, s) {
+      // Macro tailwind/headwind used to render unconditionally in the card
+      // body; now folded into this same expand panel (density redesign --
+      // stage/signal/action visible at rest, everything else on click) so
+      // there's one expand mechanic, not two. Built before the SECTOR_DETAIL_DATA
+      // early-return below so a sector without deep-dive data still gets its
+      // tailwind/headwind on expand instead of losing them.
+      const macroReadHtml = s ? `
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Macro Tailwind</div>
+            <div class="sector-detail-text">${s.macro_tailwind}</div>
+          </div>
+          <div class="sector-detail-section">
+            <div class="sector-detail-label">Macro Headwind</div>
+            <div class="sector-detail-text">${s.macro_headwind}</div>
+          </div>` : '';
+
       const d = SECTOR_DETAIL_DATA[name];
-      if (!d) return '';
+      if (!d) {
+        return macroReadHtml
+          ? `<div class="sector-detail"><div class="sector-detail-divider"></div>${macroReadHtml}</div>`
+          : '';
+      }
       const multiplesHtml = d.multiples.map(([label, val]) =>
         `<div class="sector-detail-multiple-item"><span>${label}</span><span>${val}</span></div>`
       ).join('');
@@ -1701,6 +1714,7 @@
       return `
         <div class="sector-detail">
           <div class="sector-detail-divider"></div>
+          ${macroReadHtml}
           <div class="sector-detail-section">
             <div class="sector-detail-label">Deal Environment</div>
             <div class="sector-detail-text">${d.dealEnv}</div>
@@ -1754,12 +1768,8 @@
             ${_signalBadge(s.pe_signal)}
           </div>
           ${s.regime_driven ? `<div class="pe-regime-badge">⚡ ${s.regime_note || 'Regime updated'}</div>` : ''}
-          <div class="sector-wind-label">▲ TAILWIND</div>
-          <div class="sector-wind">${s.macro_tailwind}</div>
-          <div class="sector-wind-label" style="margin-top:8px;">▼ HEADWIND</div>
-          <div class="sector-wind">${s.macro_headwind}</div>
           <div class="sector-entry">${s.entry_timing}</div>
-          ${_sectorDetailHtml(name)}
+          ${_sectorDetailHtml(name, s)}
         </div>`;
     }
 
@@ -1772,12 +1782,8 @@
             ${_signalBadge(s.pe_signal)}
           </div>
           ${s.regime_driven ? `<div class="pe-regime-badge">⚡ ${s.regime_note || 'Regime updated'}</div>` : ''}
-          <div class="sector-wind-label">▲ Tailwind</div>
-          <div class="sector-wind">${s.macro_tailwind}</div>
-          <div class="sector-wind-label" style="margin-top:6px;">▼ Headwind</div>
-          <div class="sector-wind">${s.macro_headwind}</div>
           <div class="sector-entry">${s.entry_timing}</div>
-          ${_sectorDetailHtml(name)}
+          ${_sectorDetailHtml(name, s)}
         </div>`;
     }
 
