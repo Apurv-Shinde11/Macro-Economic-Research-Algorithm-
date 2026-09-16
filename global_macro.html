@@ -527,28 +527,63 @@
       white-space: nowrap;
     }
 
-    /* Cards grid */
-    .detail-primary {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0;
+    /* ══ DENSE METRIC ROWS (economy detail panel) ══
+       Replaces the old .detail-primary/.detail-secondary card grid --
+       same 9 fields, same colors/sources/LIVE badges, reflowed into a
+       label:value list so all 9 read in one scan instead of a grid
+       hunt. See the approved EconIQ Density System mockup. */
+    .dense-list {
       border-bottom: 1px solid var(--border);
     }
 
-    .detail-secondary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0;
-      border-bottom: 1px solid var(--border);
+    .dense-row {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      padding: 10px 22px;
+      border-top: 1px solid var(--border);
+      transition: background 0.15s ease;
     }
 
-    .detail-card {
-      padding: 18px 22px;
-      border-right: 1px solid var(--border);
+    .dense-row:first-child {
+      border-top: none;
     }
 
-    .detail-card:last-child {
-      border-right: none;
+    .dense-row:hover {
+      background: var(--bg-3);
+    }
+
+    .dense-label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      flex: 0 0 150px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dense-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      flex: 0 0 auto;
+      min-width: 100px;
+    }
+
+    .dense-value.mono-sm {
+      font-size: 14px;
+    }
+
+    .dense-sub {
+      font-size: 10.5px;
+      color: var(--text-2);
+      margin-left: auto;
+      text-align: right;
+      line-height: 1.4;
     }
 
     .card-label {
@@ -754,23 +789,6 @@
         padding: 0 12px;
       }
 
-      .detail-primary {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .detail-primary .detail-card:nth-child(3) {
-        border-right: none;
-      }
-
-      .detail-primary .detail-card:nth-child(4),
-      .detail-primary .detail-card:nth-child(5) {
-        border-top: 1px solid var(--border);
-      }
-
-      .detail-secondary {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
       .card-value {
         font-size: 18px;
       }
@@ -783,20 +801,16 @@
         flex-direction: column;
         align-items: flex-start;
       }
-    }
 
-    @media (max-width: 520px) {
-      .detail-secondary {
-        grid-template-columns: repeat(1, 1fr);
+      .dense-row {
+        flex-wrap: wrap;
       }
 
-      .detail-secondary .detail-card {
-        border-right: none;
-        border-top: 1px solid var(--border);
-      }
-
-      .detail-secondary .detail-card:first-child {
-        border-top: none;
+      .dense-sub {
+        flex: 1 0 100%;
+        text-align: left;
+        margin-left: 0;
+        margin-top: 2px;
       }
     }
 
@@ -2395,31 +2409,31 @@
               ${gdpT != null ? `<span class="economy-size-badge">$${gdpT}T Economy</span>` : ''}
             </div>
           </div>
-          <div class="detail-primary">
-            <div class="detail-card">
-              <div class="card-label">GDP Growth</div>
-              <div class="card-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
-              <div class="card-sub"
+          <div class="dense-list">
+            <div class="dense-row">
+              <div class="dense-label">GDP Growth</div>
+              <div class="dense-value" style="color:${gdpColor(eco.gdp_growth)}">${fmt(eco.gdp_growth, 1, '%')}</div>
+              <div class="dense-sub"
                    title="${eco.data_sources?.gdp || ''}">
                 ${eco.data_sources?.gdp?.includes('World Bank')
                   ? `Source: World Bank · ${eco.gdp_growth_year ? eco.gdp_growth_year + ' (most recent available)' : 'most recent available'}`
                   : eco.data_sources?.gdp || 'Source: World Bank · Annual'}
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">Inflation</div>
-              <div class="card-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
-              <div class="card-sub"
+            <div class="dense-row">
+              <div class="dense-label">Inflation</div>
+              <div class="dense-value" style="color:${infColor(eco.inflation)}">${fmt(eco.inflation, 1, '%')}</div>
+              <div class="dense-sub"
                    title="${eco.data_sources?.inflation || ''}">
                 ${eco.data_sources?.inflation?.includes('World Bank')
                   ? `Source: World Bank · ${eco.inflation_year ? eco.inflation_year + ' (most recent available)' : 'most recent available'}`
                   : eco.data_sources?.inflation || 'CPI YoY'}
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">Policy Rate</div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.policy_rate, 2, '%')}</div>
-              <div class="card-sub"
+            <div class="dense-row">
+              <div class="dense-label">Policy Rate</div>
+              <div class="dense-value" style="color:var(--text)">${fmt(eco.policy_rate, 2, '%')}</div>
+              <div class="dense-sub"
                    title="${eco.data_sources?.policy_rate || ''}">
                 ${(meta && meta.cb) || 'Central Bank'}
                 <span style="
@@ -2435,10 +2449,10 @@
                 </span>
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">PMI</div>
-              <div class="card-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi, 1)}</div>
-              <div class="card-sub"
+            <div class="dense-row">
+              <div class="dense-label">PMI</div>
+              <div class="dense-value" style="color:${pmiColor(eco.pmi)}">${fmt(eco.pmi, 1)}</div>
+              <div class="dense-sub"
                    title="${eco.data_sources?.pmi || ''}">
                 Source: S&amp;P Global
                 <span style="
@@ -2450,10 +2464,10 @@
                 </span>
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">Nominal GDP</div>
-              <div class="card-value" style="color:var(--blue)">${eco.gdp_nominal_trillion != null ? '$' + eco.gdp_nominal_trillion + 'T' : '—'}</div>
-              <div class="card-sub">
+            <div class="dense-row">
+              <div class="dense-label">Nominal GDP</div>
+              <div class="dense-value" style="color:var(--blue)">${eco.gdp_nominal_trillion != null ? '$' + eco.gdp_nominal_trillion + 'T' : '—'}</div>
+              <div class="dense-sub">
                 World Bank · USD
                 <span style="
                   font-family:var(--font-mono);
@@ -2465,22 +2479,20 @@
               </div>
             </div>
             ${eco.forex_reserves_bn != null ? `
-            <div class="detail-card">
-              <div class="card-label">Forex Reserves</div>
-              <div class="card-value" style="color:var(--text)">$${eco.forex_reserves_bn}B</div>
-              <div class="card-sub" title="${eco.data_sources?.forex_reserves || ''}">
+            <div class="dense-row">
+              <div class="dense-label">Forex Reserves</div>
+              <div class="dense-value" style="color:var(--text)">$${eco.forex_reserves_bn}B</div>
+              <div class="dense-sub" title="${eco.data_sources?.forex_reserves || ''}">
                 ${eco.code === 'IN'
                   ? 'RBI · Weekly'
                   : `World Bank · ${eco.forex_reserves_year || 'latest'} (latest available)`}
               </div>
             </div>
             ` : ''}
-          </div>
-          <div class="detail-secondary">
-            <div class="detail-card">
-              <div class="card-label">Unemployment</div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
-              <div class="card-sub"
+            <div class="dense-row">
+              <div class="dense-label">Unemployment</div>
+              <div class="dense-value" style="color:var(--text)">${fmt(eco.unemployment, 1, '%')}</div>
+              <div class="dense-sub"
                    title="${eco.data_sources?.unemployment || ''}">
                 ILO · World Bank ·
                 ${eco.unemployment_year
@@ -2488,10 +2500,10 @@
                   : 'latest available'}
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">Currency</div>
-              <div class="card-value mono-sm" style="color:var(--text)">${fmtCurrency(eco)}</div>
-              <div class="card-sub">
+            <div class="dense-row">
+              <div class="dense-label">Currency</div>
+              <div class="dense-value mono-sm" style="color:var(--text)">${fmtCurrency(eco)}</div>
+              <div class="dense-sub">
                 vs USD
                 <span class="live-badge"
                       style="margin-left:4px;">
@@ -2499,10 +2511,10 @@
                 </span>
               </div>
             </div>
-            <div class="detail-card">
-              <div class="card-label">Yield 10Y <span class="live-badge">LIVE</span></div>
-              <div class="card-value" style="color:var(--text)">${fmt(eco.yield_10y, 2, '%')}</div>
-              <div class="card-sub">Government Bond</div>
+            <div class="dense-row">
+              <div class="dense-label">Yield 10Y <span class="live-badge">LIVE</span></div>
+              <div class="dense-value" style="color:var(--text)">${fmt(eco.yield_10y, 2, '%')}</div>
+              <div class="dense-sub">Government Bond</div>
             </div>
           </div>
           <div class="currency-chart-card" id="currencyChartCard" style="display:none;">
@@ -2851,11 +2863,13 @@
               </div>
             </div>
           </div>
-          <div class="detail-primary" style="margin-top:20px;">
-            <div class="es-skel es-skel-cell"></div>
-            <div class="es-skel es-skel-cell"></div>
-            <div class="es-skel es-skel-cell"></div>
-            <div class="es-skel es-skel-cell"></div>
+          <div class="dense-list" style="margin-top:20px;border-top:1px solid var(--border);">
+            ${Array.from({ length: 6 }).map(() => `
+            <div class="dense-row">
+              <div class="es-skel" style="width:110px;height:11px;border-radius:3px;"></div>
+              <div class="es-skel" style="width:70px;height:16px;border-radius:4px;"></div>
+              <div class="es-skel" style="width:90px;height:11px;border-radius:3px;margin-left:auto;"></div>
+            </div>`).join('')}
           </div>
           <div class="es-progress-cap" style="margin-top:18px;">
             <span class="es-pulse-dot"></span>
