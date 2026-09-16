@@ -5279,9 +5279,13 @@ PE_DEAL_FLOW = [
 ]
 
 PE_DEAL_FLOW_META = {
-    "last_updated":      "May 2026",
-    "last_updated_iso":  "2026-05-01",
-    "next_update_due":   "June 2026",
+    "last_updated":       "May 2026",
+    "last_updated_iso":   "2026-05-01",
+    "next_update_due":    "June 2026",
+    # ISO form of next_update_due, first working day of that month --
+    # lets the frontend compute overdue status with a real date
+    # comparison instead of parsing "June 2026" as a string.
+    "next_update_due_iso": "2026-06-01",
     "sources": [
         "SEBI public filings",
         "Company press releases",
@@ -5601,6 +5605,7 @@ async def get_pe_overview(profile: dict = Depends(require_access)):
                 repo_rate        = repo_rate,
                 cost_of_capital  = cost_of_capital,
                 briefing_allowed = briefing_allowed,
+                conviction       = conviction,
             )
         except Exception as _io_err:
             print(f"[PE] build_pe_intelligence_object failed: {_io_err}", flush=True)
