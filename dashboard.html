@@ -69,6 +69,12 @@
       --z-modal-backdrop: 900;
       --z-toast: 999;
       --z-modal: 1000;
+      /* ── State-system motion tokens (loading/empty/error) — theme-independent ── */
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-fast: 150ms;
+      --duration-base: 220ms;
+      --duration-shimmer: 1.8s;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -4356,6 +4362,44 @@
     .story-state-note.paused { border-left-color: var(--blue); }
     .story-state-note.unavailable { border-left-color: var(--amber); }
 
+    /* ══════════════════════════════════════════════════════════════
+       STATE SYSTEM — loading / empty / error. Portable across Sentinel,
+       Atlas, PE Intel, Geopolitical Watch (approved design mockup).
+       Deliberately NOT .story-state-note: those two (paused/unavailable)
+       are the engine's own honest calls about a real run; the three
+       below are the page's, about whether it could load anything at all.
+       No border-left accent stripe (see DESIGN.md — that technique is
+       flagged legacy on .story-state-note and not to be extended).
+       ══════════════════════════════════════════════════════════════ */
+    @keyframes esShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .es-skel { background: linear-gradient(90deg, var(--bg-3) 25%, var(--blue-dim) 50%, var(--bg-3) 75%); background-size: 240% 100%; animation: esShimmer var(--duration-shimmer) infinite; border-radius: 4px; }
+    .es-skel-headline-1 { height: 26px; width: 88%; border-radius: 5px; }
+    .es-skel-headline-2 { height: 26px; width: 58%; border-radius: 5px; margin-top: 10px; }
+    .es-skel-card { height: 96px; border-radius: 14px; }
+    .es-skel-row { height: 46px; border-radius: 8px; }
+
+    .es-state-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 40px 30px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--bg-2); }
+    .es-state-card.compact { padding: 22px 20px; gap: 8px; }
+    .es-state-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+    .es-state-card.compact .es-state-icon { width: 32px; height: 32px; }
+    .es-state-card.empty .es-state-icon { background: var(--bg-3); border: 1px solid var(--border-2); color: var(--text-3); }
+    .es-state-card.error { border-color: rgba(248,113,113,0.22); background: linear-gradient(180deg, var(--red-dim), var(--bg-2) 60%); }
+    .es-state-card.error .es-state-icon { background: rgba(248,113,113,0.16); color: var(--red); }
+    .es-state-card h3 { font-family: var(--font-serif); font-weight: 600; font-size: 19px; letter-spacing: -0.005em; }
+    .es-state-card.compact h3 { font-size: 15px; }
+    .es-state-card p { font-family: var(--font-sans); font-size: 13.5px; line-height: 1.6; color: var(--text-2); max-width: 44ch; }
+    .es-state-card .es-actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
+    .es-state-code { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--text-3); margin-top: 2px; }
+
+    .es-btn-retry { font-family: var(--font-sans); font-size: 12.5px; font-weight: 500; border-radius: var(--radius); padding: 9px 18px; cursor: pointer; background: transparent; color: var(--text-2); border: 1px solid rgba(248,113,113,0.32); transition: color var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast); }
+    .es-btn-retry:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
+    .es-btn-outline-sm { font-family: var(--font-sans); font-size: 12.5px; font-weight: 500; border-radius: var(--radius); padding: 9px 18px; cursor: pointer; background: transparent; color: var(--text-2); border: 1px solid var(--border-2); transition: color var(--duration-fast), border-color var(--duration-fast), background var(--duration-fast); }
+    .es-btn-outline-sm:hover { color: var(--text); border-color: var(--blue); background: var(--blue-dim); }
+
+    .es-progress-cap { display: flex; align-items: center; gap: 9px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-2); }
+    .es-pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: esPulse 1.4s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes esPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
     .attention-row { display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); }
     .attention-row:last-child { border-bottom: none; }
     .attention-rail { flex: 0 0 5px; align-self: stretch; border-radius: 3px; background: var(--amber); }
@@ -4767,9 +4811,10 @@
                 <span id="storyReliabilityLabel">—</span>
               </div>
               <div class="story-lead" id="storyLead">
-                <div class="skeleton" style="width:100%;height:36px;border-radius:6px;"></div>
+                <div class="es-skel es-skel-headline-1"></div>
+                <div class="es-skel es-skel-headline-2"></div>
               </div>
-              <div class="story-support placeholder-text" id="storySupport">Run the engine to generate today's briefing.</div>
+              <div class="story-support placeholder-text" id="storySupport" style="display:none;">Run the engine to generate today's briefing.</div>
               <div class="story-reliability-note" id="storyReliabilityNote" style="display:none;"></div>
             </div>
             <div class="story-conf-wrap">
@@ -4792,6 +4837,52 @@
             </div>
           </div>
         </div>
+
+        <!-- LOADING — shape-matched skeleton for sections 2-5 -->
+        <div class="story-section" id="storySkeletonRest">
+          <div class="es-progress-cap" style="margin-bottom:8px;">
+            <span class="es-pulse-dot"></span>
+            Reading today's regime…
+          </div>
+          <div class="why-grid" style="margin-top:24px;">
+            <div class="es-skel es-skel-card"></div>
+            <div class="es-skel es-skel-card"></div>
+          </div>
+          <div class="es-skel es-skel-row" style="margin-top:44px;"></div>
+          <div class="es-skel es-skel-row" style="margin-top:44px;"></div>
+        </div>
+
+        <!-- EMPTY — no run history yet. Compact: the onboarding card above
+             already owns the "welcome + Run Engine" CTA; this just explains
+             why the arc below it is blank instead of leaving four stray
+             copies of the same sentence across sections 2-5. -->
+        <div class="story-section" id="storyEmptyCard" hidden>
+          <div class="es-state-card empty compact" style="margin-top:8px;">
+            <div class="es-state-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 3v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+            </div>
+            <h3>Story arc becomes available after your first run</h3>
+            <p>Why, So What, and What Deserves Attention all read from today's regime signals — there's nothing to show until Sentinel has run once.</p>
+          </div>
+        </div>
+
+        <!-- ERROR — a real fetch failure, distinct from paused/unavailable
+             (the engine's own honest calls about a run that did happen). -->
+        <div class="story-section" id="storyErrorCard" hidden>
+          <div class="es-state-card error" style="margin-top:8px;">
+            <div class="es-state-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.4" r="0.9" fill="currentColor"/><path d="M10.6 3.6a1.6 1.6 0 0 1 2.8 0l8.3 14.6a1.6 1.6 0 0 1-1.4 2.4H3.7a1.6 1.6 0 0 1-1.4-2.4l8.3-14.6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Couldn't load today's briefing</h3>
+            <p>Sentinel didn't respond in time. Your run history further down the page may still be available once the connection recovers.</p>
+            <div class="es-actions">
+              <button class="es-btn-retry" type="button" onclick="loadDashboard()">Retry</button>
+            </div>
+            <div class="es-state-code">ERROR · DASHBOARD_FETCH_FAILED</div>
+          </div>
+        </div>
+
+        <div id="storyRealSections" hidden>
 
         <!-- 2. WHY -->
         <div class="story-section">
@@ -4867,6 +4958,8 @@
             </div>
           </div>
         </div>
+
+        </div><!-- /storyRealSections -->
 
         <!-- 6. SHOW ME THE EVIDENCE -->
         <div class="story-section">
@@ -5557,6 +5650,46 @@
       return conviction || '—';
     }
 
+    // ── Story-arc state machine (loading / empty / error / loaded) ──
+    // 'loaded' does nothing beyond un-hiding the real sections; renderStoryArc()
+    // (called from renderRunResult()) owns populating them. The other three
+    // are this function's responsibility end to end, and are deliberately
+    // never .story-state-note (paused/unavailable) -- those are the engine's
+    // own honest calls about a run that happened; these are about whether
+    // the page could reach the engine at all.
+    function setStoryArcState(state) {
+      const skel = document.getElementById('storySkeletonRest');
+      const empty = document.getElementById('storyEmptyCard');
+      const error = document.getElementById('storyErrorCard');
+      const real = document.getElementById('storyRealSections');
+      [skel, empty, error, real].forEach(el => { if (el) el.hidden = true; });
+      if (state === 'loading' && skel) skel.hidden = false;
+      else if (state === 'empty' && empty) empty.hidden = false;
+      else if (state === 'error' && error) error.hidden = false;
+      else if (real) real.hidden = false;
+
+      const leadEl = document.getElementById('storyLead');
+      const supportEl = document.getElementById('storySupport');
+      if (!leadEl) return;
+      if (state === 'loading') {
+        leadEl.className = 'story-lead';
+        leadEl.removeAttribute('style');
+        leadEl.innerHTML = '<div class="es-skel es-skel-headline-1"></div><div class="es-skel es-skel-headline-2"></div>';
+        if (supportEl) supportEl.style.display = 'none';
+      } else if (state === 'empty') {
+        leadEl.className = 'story-lead placeholder-text';
+        leadEl.removeAttribute('style');
+        leadEl.textContent = 'No regime read yet — run the engine above to generate today\'s briefing.';
+        if (supportEl) supportEl.style.display = 'none';
+      } else if (state === 'error') {
+        leadEl.className = 'story-lead';
+        leadEl.style.cssText = 'font-family:var(--font-serif);font-weight:600;font-size:18px;font-style:italic;color:var(--red);';
+        leadEl.textContent = 'Couldn\'t load today\'s briefing — see below.';
+        if (supportEl) supportEl.style.display = 'none';
+      }
+      // 'loaded': left alone -- renderStoryArc() fully repopulates storyLead.
+    }
+
     function setLoadingState() {
       const confEl = document.getElementById('confidenceValue');
       if (confEl) confEl.textContent = '—';
@@ -5565,46 +5698,11 @@
       if (regimeEl) regimeEl.textContent = 'Loading...';
 
       document.querySelectorAll('.regime-pill').forEach(el => el.classList.add('skeleton'));
-
-      const banner = document.createElement('div');
-      banner.id = 'loadingBanner';
-      banner.style.cssText = `
-        position: fixed;
-        top: 68px;
-        left: 0; right: 0;
-        background: rgba(79,131,255,0.12);
-        border-bottom: 1px solid rgba(79,131,255,0.25);
-        padding: 8px 20px;
-        font-family: var(--font-mono);
-        font-size: 11px;
-        color: var(--blue);
-        letter-spacing: 0.08em;
-        text-align: center;
-        z-index: var(--z-banner);
-      `;
-      banner.textContent = 'Connecting to Sentinel engine...';
-      document.body.appendChild(banner);
-
-      setTimeout(() => {
-        document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
-        const b = document.getElementById('loadingBanner');
-        if (b) {
-          b.style.background = 'rgba(251,191,36,0.12)';
-          b.style.borderBottomColor = 'rgba(251,191,36,0.25)';
-          b.style.color = 'var(--amber)';
-          b.textContent = 'Analysis is taking longer than usual. Please wait.';
-        }
-      }, 20000);
-    }
-
-    function removeLoadingBanner() {
-      const b = document.getElementById('loadingBanner');
-      if (b) b.remove();
+      setStoryArcState('loading');
     }
 
     function removeLoadingState() {
       document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
-      removeLoadingBanner();
     }
 
     async function init() {
@@ -5642,10 +5740,14 @@
           }
         }
         populateSidebar(_profile);
-      } catch (e) { console.error('Profile load failed:', e); }
+      } catch (e) {
+        console.error('Profile load failed:', e);
+        showToast('Profile failed to load — showing defaults.', 'error');
+      }
     }
 
     async function loadDashboard() {
+      setStoryArcState('loading');
       try {
         const { data: histData, error } = await sb
           .from('runs')
@@ -5665,6 +5767,7 @@
           if (history[0].regime) loadBacktest(history[0].regime);
           onboarding.classList.remove('visible');
         } else {
+          setStoryArcState('empty');
           onboarding.classList.add('visible');
           hero.style.opacity = '0.35';
         }
@@ -5672,7 +5775,11 @@
         renderConfidenceSparkline(history);
         renderConfArrow(history);
         removeLoadingState();
-      } catch (e) { console.error('Dashboard load failed:', e); }
+      } catch (e) {
+        console.error('Dashboard load failed:', e);
+        setStoryArcState('error');
+        removeLoadingState();
+      }
     }
 
     function initGreeting() {
@@ -6210,6 +6317,12 @@
     }
 
     function renderRunResult(data, fromHistory) {
+      // Un-hides storyRealSections regardless of caller (loadDashboard()'s
+      // success branch, the run-poll completion handler, and the admin
+      // "view latest" path all land here) -- this is the one function
+      // every real-data path shares, so it's the right place for this
+      // rather than duplicating the call at each of the three call sites.
+      setStoryArcState('loaded');
       window._lastRunResult = data;
       const regime = fromHistory ? { regime: data.regime, confidence: data.confidence } : data.regime;
       const strategy = fromHistory ? { conviction: data.conviction } : data.strategy;
