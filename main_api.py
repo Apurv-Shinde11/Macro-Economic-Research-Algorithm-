@@ -6842,6 +6842,29 @@ def _fetch_yf_ticker_close(sym: str, decimals: int) -> float | None:
     return None
 
 
+async def _fetch_yf_ticker_close_bounded(sym: str, decimals: int, timeout: float = 7.0) -> float | None:
+    """
+    Bounds a single _fetch_yf_ticker_close() call -- confirmed via live
+    Render testing (2026-09-14) to be the current cause of
+    /api/global-macro hanging: the 2026-09-11 fix parallelized all ~100
+    yfinance calls, but gather() still waits for every task, and
+    yfinance itself has no timeout on the underlying call. One stuck
+    ticker (Yahoo rate-limiting, a stalled connection) blocked the
+    entire batch indefinitely -- concurrency fixed the average case,
+    not the worst case. Same degrade-on-failure shape as
+    _fetch_yf_ticker_close() itself: a timeout here returns None for
+    just that one economy's field, same as any other exception would.
+    """
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_fetch_yf_ticker_close, sym, decimals),
+            timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        print(f"[GLOBAL_MACRO] yfinance fetch timed out {sym} (>{timeout}s)", flush=True)
+        return None
+
+
 async def _fetch_live_economy_data():
     """
     Currency + yield levels via yfinance.
@@ -6854,18 +6877,21 @@ async def _fetch_live_economy_data():
     API, so each call blocked the event loop in turn, serially, for the
     entire request. Now runs all ~100 concurrently via asyncio.to_thread
     + gather -- the same pattern _fetch_one() already uses for World
-    Bank data lower in this same endpoint, not a new approach.
+    Bank data lower in this same endpoint, not a new approach. Each
+    task is additionally bounded by _fetch_yf_ticker_close_bounded()
+    (see its docstring) so a single stuck ticker degrades to None for
+    that one economy's field instead of hanging the whole endpoint.
     """
     tasks = []
     task_keys = []  # (economy_code, "currency" | "yield"), same order as tasks
     for eco in _ECONOMIES:
         sym = eco.get("ticker_currency")
         if sym:
-            tasks.append(asyncio.to_thread(_fetch_yf_ticker_close, sym, 4))
+            tasks.append(_fetch_yf_ticker_close_bounded(sym, 4))
             task_keys.append((eco["code"], "currency"))
         sym = eco.get("ticker_yield")
         if sym:
-            tasks.append(asyncio.to_thread(_fetch_yf_ticker_close, sym, 2))
+            tasks.append(_fetch_yf_ticker_close_bounded(sym, 2))
             task_keys.append((eco["code"], "yield"))
 
     results = await asyncio.gather(*tasks) if tasks else []
