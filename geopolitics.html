@@ -45,6 +45,16 @@
       --radius:      8px;
       --radius-lg:   14px;
       --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(79, 131, 255, 0.06);
+      /* ── Elevation-pass motion tokens — same values as Sentinel/Landing/Atlas/PE Intel ── */
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --dur-reveal: 760ms;
+      --dur-ring:   1400ms;
+      --stagger-step: 90ms;
+      /* ── Type 1 — Pushed Classic weight/tracking treatment ── */
+      --hero-wt: 700; --hero-ls: -0.022em;
+      --lead-wt: 600; --lead-ls: -0.012em;
+      --label-ls: 0.20em;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -258,7 +268,10 @@
       gap: 20px;
     }
 
-    /* ══ THEME CARD ══ */
+    /* ══ THEME CARD ══
+       Entrance now uses the shared elevation-pass reveal system
+       (same tokens/mechanism as Sentinel, Landing, Atlas, PE Intel)
+       instead of the old standalone cardIn animation. */
     .theme-card {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -266,11 +279,18 @@
       padding: 22px 22px 18px;
       box-shadow: var(--card-shadow);
       display: flex; flex-direction: column; gap: 0;
-      animation: cardIn 0.3s ease both;
+      opacity: 0; transform: translateY(20px);
+      transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo);
     }
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .theme-card.in { opacity: 1; transform: translateY(0); }
+
+    /* General-purpose reveal, used by the map/list evidence toggle
+       (setEvidenceView) to fade in whichever view becomes visible. */
+    .reveal { opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); }
+    .reveal.in { opacity: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .theme-card, .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
     }
 
     .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
@@ -494,7 +514,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .aurora-blob, .skeleton, .theme-card { animation: none; }
+      .aurora-blob, .skeleton { animation: none; }
     }
   </style>
 </head>
@@ -832,6 +852,14 @@
       listSection.style.display = isMap ? 'none' : '';
       mapBtn.classList.toggle('active', isMap);
       listBtn.classList.toggle('active', !isMap);
+      // Reveal whichever view just became visible — same token-based
+      // transition as the rest of the page, retriggered on each switch.
+      const shown = isMap ? mapWrap : listSection;
+      shown.classList.add('reveal');
+      shown.classList.remove('in');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        shown.classList.add('in');
+      }));
     }
 
     function renderCard(theme, idx) {
@@ -840,10 +868,12 @@
       const confLabel  = conf.charAt(0).toUpperCase() + conf.slice(1) + ' confidence';
       const confClass  = conf === 'low' ? 'confidence-label low' : 'confidence-label';
       const srcCount   = Array.isArray(theme.source_headlines) ? theme.source_headlines.length : 0;
-      const delay      = (idx * 0.05).toFixed(2);
+      // Stagger step matches --stagger-step (90ms); capped so a full
+      // 10-theme grid doesn't take too long to finish revealing.
+      const delay      = Math.min(idx, 6) * 90;
 
       return `
-        <div class="theme-card" style="animation-delay:${delay}s">
+        <div class="theme-card" style="transition-delay:${delay}ms">
           <div class="card-header">
             <div class="card-label">${esc(theme.theme_label || '')}</div>
             <div class="card-badges">
@@ -943,6 +973,9 @@
         }
 
         grid.innerHTML = themes.map((t, i) => renderCard(t, i)).join('');
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          grid.querySelectorAll('.theme-card').forEach(el => el.classList.add('in'));
+        }));
 
         renderGeoMap(themes).then(() => {
           if (themes.length) selectTheme(themes[0].theme_key);
