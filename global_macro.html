@@ -57,6 +57,15 @@
       --duration-fast: 150ms;
       --duration-base: 220ms;
       --duration-shimmer: 1.8s;
+      /* ── Elevation-pass motion tokens — same values as Sentinel/Landing ── */
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --dur-reveal: 760ms;
+      --dur-ring: 1400ms;
+      --stagger-step: 90ms;
+      /* ── Type 1 — Pushed Classic weight/tracking treatment ── */
+      --hero-wt: 700; --hero-ls: -0.022em;
+      --lead-wt: 600; --lead-ls: -0.012em;
+      --label-ls: 0.20em;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -451,19 +460,9 @@
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--card-shadow);
-      animation: panelIn 0.25s ease;
-    }
-
-    @keyframes panelIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      /* Entrance now comes from the shared .reveal class (elevation-
+         pass system) applied alongside this class in renderDetail(),
+         not a standalone animation — replaces the old panelIn keyframe. */
     }
 
     /* Strip */
@@ -1235,7 +1234,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .aurora-blob, .live-badge, .skeleton, .map-loading, .detail-inner {
+      .aurora-blob, .live-badge, .skeleton, .map-loading {
         animation: none;
       }
     }
@@ -1346,8 +1345,24 @@
     .story-eyebrow.amber { color: var(--amber); }
     .story-section-title { font-family: var(--font-serif); font-weight: 600; font-size: 27px; line-height: 1.3; color: var(--text); max-width: 640px; margin: 8px 0 8px; }
     .story-section-sub { font-family: var(--font-sans); font-size: 15px; line-height: 1.65; color: var(--text-2); max-width: 640px; margin-bottom: 28px; }
-    .story-lead { font-family: var(--font-serif); font-weight: 600; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.22; color: var(--text); max-width: 700px; }
+    .story-lead { font-family: var(--font-serif); font-weight: var(--lead-wt, 600); letter-spacing: var(--lead-ls, normal); font-size: clamp(28px, 3.6vw, 40px); line-height: 1.22; color: var(--text); max-width: 700px; }
     .story-support { font-family: var(--font-sans); font-size: 16px; line-height: 1.65; color: var(--text-2); max-width: 660px; margin-top: 18px; }
+
+    /* ══ Elevation-pass reveal system — same tokens/mechanism as
+       Sentinel and Landing. Cards get .reveal on render; .in is added
+       a frame later so the transition plays. Map/detail-panel and the
+       economies list use the same class on their own triggers below. ══ */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .reveal.d1 { transition-delay: var(--stagger-step); }
+    .reveal.d2 { transition-delay: calc(var(--stagger-step) * 2); }
+    .reveal.d3 { transition-delay: calc(var(--stagger-step) * 3); }
+    .reveal.d4 { transition-delay: calc(var(--stagger-step) * 4); }
+    .reveal.d5 { transition-delay: calc(var(--stagger-step) * 5); }
+    .reveal.d6 { transition-delay: calc(var(--stagger-step) * 6); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
+    }
 
     .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
     .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
@@ -1488,7 +1503,7 @@
 
         <!-- ══ MAP ══ -->
         <section class="map-section">
-          <div class="map-wrap">
+          <div class="map-wrap reveal" id="map-wrap">
             <div class="map-loading" id="map-loading">Loading macro data…</div>
             <svg id="world-map" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
               <rect width="1000" height="500" fill="var(--bg)" />
@@ -2078,6 +2093,10 @@
       } finally {
         const el = document.getElementById('map-loading');
         if (el) el.style.display = 'none';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const wrap = document.getElementById('map-wrap');
+          if (wrap) wrap.classList.add('in');
+        }));
       }
     }
 
@@ -2195,9 +2214,13 @@
         <div class="economy-size-standalone-inner">
           <div class="economy-size-standalone-title">World's 50 Largest Economies by Size</div>
           <div class="economy-size-standalone-sub">Ranked by economic size (GDP). Click any country to see full details.</div>
-          <div class="economy-comparison">${rowsHtml}</div>
+          <div class="economy-comparison reveal">${rowsHtml}</div>
         </div>
       `;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const list = container.querySelector('.economy-comparison');
+        if (list) list.classList.add('in');
+      }));
     }
 
     async function renderAICapexPulse() {
@@ -2392,7 +2415,7 @@
       const gdpT = eco.gdp_nominal_trillion;
 
       document.getElementById('detail-content').innerHTML = `
-        <div class="detail-inner">
+        <div class="detail-inner reveal">
           <div class="detail-strip">
             <div class="detail-left">
               <span class="detail-flag">${eco.flag || ''}</span>
@@ -2639,6 +2662,10 @@
           ` : ''}
         </div>
       `;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const inner = document.querySelector('#detail-content .detail-inner');
+        if (inner) inner.classList.add('in');
+      }));
       loadCurrencyChart(eco.code);
     }
 
@@ -2830,10 +2857,11 @@
         ...(io.convergence || []).map(c => Object.assign({ kind: 'Convergence' }, c)),
         ...(io.contradictions || []).map(c => Object.assign({ kind: 'Contradiction' }, c)),
       ];
-      cards.forEach(c => {
+      cards.forEach((c, i) => {
         const isC = c.kind === 'Contradiction';
         const card = document.createElement('div');
-        card.className = 'why-card' + (isC ? ' contradiction' : '');
+        const stagger = 'd' + Math.min(i + 1, 6);
+        card.className = 'why-card reveal ' + stagger + (isC ? ' contradiction' : '');
         const sigIds = c.signal_ids || [];
         const catLabel = (c.category || '').replace(/_/g, ' ');
         const chips = sigIds.map(s => `<span class="why-sig-chip">${String(s).replace(/_/g, ' ').toUpperCase()}</span>`).join('');
@@ -2846,6 +2874,9 @@
           `<div class="why-card-signals">${chips}</div>`;
         grid.appendChild(card);
       });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        grid.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+      }));
     }
 
     // Shape-matched skeleton for #detail-content -- mirrors renderDetail()'s

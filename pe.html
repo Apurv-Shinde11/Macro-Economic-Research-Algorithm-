@@ -42,6 +42,16 @@
       --radius:     8px;
       --radius-lg:  14px;
       --card-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(79,131,255,0.06);
+      /* ── Elevation-pass motion tokens — same values as Sentinel/Landing/Atlas ── */
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --dur-reveal: 760ms;
+      --dur-ring:   1400ms;
+      --stagger-step: 90ms;
+      /* ── Type 1 — Pushed Classic weight/tracking treatment ── */
+      --hero-wt: 700; --hero-ls: -0.022em;
+      --lead-wt: 600; --lead-ls: -0.012em;
+      --label-ls: 0.20em;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -244,11 +254,14 @@
     }
     .live-dot {
       width: 6px; height: 6px; border-radius: 50%; background: var(--green);
-      animation: pulse-dot 2s ease-in-out infinite;
+      animation: pulse-dot 2.4s ease infinite;
     }
     @keyframes pulse-dot {
       0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: 0.5; transform: scale(0.7); }
+      50%      { opacity: 0.45; transform: scale(0.8); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot, .pe-live-dot { animation: none !important; opacity: 1 !important; transform: none !important; }
     }
 
     /* ══ SECTION HEADER ══ */
@@ -367,6 +380,24 @@
     .placeholder-block { border: 1px dashed var(--border-2); border-radius: 12px; padding: 18px 20px; margin-top: 12px; }
     .placeholder-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); background: var(--bg-3); padding: 4px 9px; border-radius: 4px; margin-bottom: 10px; }
     .placeholder-text { font-family: var(--font-sans); font-size: 13px; line-height: 1.6; color: var(--text-3); font-style: italic; }
+
+    /* ══ Elevation-pass reveal system — same tokens/mechanism as
+       Sentinel, Landing, and Atlas. Applied to WHY cards and the
+       sector-card grids below; .emerging-card's own decorative pulse
+       (emergingPulse) is untouched — this only adds an entrance on top. ══ */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .reveal.d1 { transition-delay: var(--stagger-step); }
+    .reveal.d2 { transition-delay: calc(var(--stagger-step) * 2); }
+    .reveal.d3 { transition-delay: calc(var(--stagger-step) * 3); }
+    .reveal.d4 { transition-delay: calc(var(--stagger-step) * 4); }
+    .reveal.d5 { transition-delay: calc(var(--stagger-step) * 5); }
+    .reveal.d6 { transition-delay: calc(var(--stagger-step) * 6); }
+    .reveal.d7 { transition-delay: calc(var(--stagger-step) * 7); }
+    .reveal.d8 { transition-delay: calc(var(--stagger-step) * 8); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
+    }
 
     .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
     .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
@@ -601,11 +632,11 @@
     .pe-live-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--green);
-      animation: pulse 2s infinite; flex-shrink: 0;
+      animation: pulse 2.4s ease infinite; flex-shrink: 0;
     }
     @keyframes pulse {
       0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: 0.4; transform: scale(0.7); }
+      50%      { opacity: 0.45; transform: scale(0.8); }
     }
     .pe-live-sep { color: var(--border-2); }
 
@@ -1375,10 +1406,11 @@
         ...(io.convergence || []).map(c => Object.assign({ kind: 'Convergence' }, c)),
         ...(io.contradictions || []).map(c => Object.assign({ kind: 'Contradiction' }, c)),
       ];
-      cards.forEach(c => {
+      cards.forEach((c, i) => {
         const isC = c.kind === 'Contradiction';
         const card = document.createElement('div');
-        card.className = 'why-card' + (isC ? ' contradiction' : '');
+        const stagger = 'd' + Math.min(i + 1, 8);
+        card.className = 'why-card reveal ' + stagger + (isC ? ' contradiction' : '');
         const sigIds   = c.signal_ids || [];
         const catLabel = (c.category || '').replace(/_/g, ' ');
         const chips = sigIds.map(s => `<span class="why-sig-chip">${String(s).replace(/_/g, ' ').toUpperCase()}</span>`).join('');
@@ -1391,6 +1423,9 @@
           `<div class="why-card-signals">${chips}</div>`;
         grid.appendChild(card);
       });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        grid.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+      }));
     }
 
     /* ── SO WHAT: profile_guidance.reinterpret()'s output for the
@@ -1756,19 +1791,27 @@
       const regular  = entries.filter(([n]) => !EMERGING_NAMES.has(n));
 
       // Emerging grid
-      document.getElementById('emergingGrid').innerHTML = emerging.map(([name, s]) =>
-        _emergingCardHtml(name, s)
+      const emergingGrid = document.getElementById('emergingGrid');
+      emergingGrid.innerHTML = emerging.map(([name, s], i) =>
+        _emergingCardHtml(name, s, i)
       ).join('');
 
       // Regular grid
-      document.getElementById('sectorGrid').innerHTML = regular.map(([name, s]) =>
-        _sectorCardHtml(name, s)
+      const sectorGrid = document.getElementById('sectorGrid');
+      sectorGrid.innerHTML = regular.map(([name, s], i) =>
+        _sectorCardHtml(name, s, i)
       ).join('');
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        emergingGrid.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+        sectorGrid.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+      }));
     }
 
-    function _emergingCardHtml(name, s) {
+    function _emergingCardHtml(name, s, i) {
+      const stagger = 'd' + Math.min((i || 0) + 1, 8);
       return `
-        <div class="emerging-card">
+        <div class="emerging-card reveal ${stagger}">
           <div class="emerging-badge">⚡ Emerging</div>
           <div class="sector-name">${name}</div>
           <div class="sector-badges">
@@ -1781,9 +1824,10 @@
         </div>`;
     }
 
-    function _sectorCardHtml(name, s) {
+    function _sectorCardHtml(name, s, i) {
+      const stagger = 'd' + Math.min((i || 0) + 1, 8);
       return `
-        <div class="sector-card">
+        <div class="sector-card reveal ${stagger}">
           <div class="sector-name">${name}</div>
           <div class="sector-badges">
             ${_cycleBadge(s.cycle_stage)}
