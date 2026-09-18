@@ -702,6 +702,7 @@
     .ra-mid  { color: var(--amber); }
     .ra-low  { color: var(--red); }
     .ra-none { color: var(--text-2); font-weight: 400; font-size: 11px; }
+    .ra-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); padding: 0 0 10px; margin-top: -8px; }
 
     /* ══ TICKER BAND ══ */
     .ticker-band {
@@ -1361,6 +1362,10 @@
       background: var(--green-dim);
       color: var(--green);
     }
+    .val-card-verdict.held {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
     #validationTrack::-webkit-scrollbar { display: none; }
 
     /* ══ SECTION GRID TEXTURE ══ */
@@ -1474,7 +1479,7 @@
         </div>
         <div class="proof-divider"></div>
         <div class="proof-stat">
-          <div class="num" data-target="9" data-suffix=" signals">0</div>
+          <div class="num" data-target="11" data-suffix=" signals">0</div>
           <div class="label">Live macro signals<br>read every morning</div>
         </div>
         <div class="proof-divider"></div>
@@ -1567,7 +1572,7 @@
     <div style="text-align:center;margin-bottom:32px;padding:0 24px;">
       <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.18em;color:var(--blue);margin-bottom:8px;">TESTED AGAINST REAL EVENTS</div>
       <div style="font-family:var(--font-serif);font-size:clamp(20px,3vw,28px);font-weight:600;color:var(--text);">
-        Four live events. <em style="color:var(--blue);">Four correct reads.</em>
+        Four live events. <em style="color:var(--blue);">Here's exactly what we said, and what happened.</em>
       </div>
     </div>
 
@@ -1580,20 +1585,20 @@
         <div class="val-card-event">GDP Print</div>
         <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
         <div class="val-card-divider"></div>
-        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>54–62% confidence · HOLD</div>
-        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>Regime confirmed post-print ✓</div>
+        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>54–65% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>Regime held — Liquidity-Driven Expansion, unchanged through the print. ✓</div>
         <div class="val-card-verdict correct">CORRECT</div>
       </div>
 
       <!-- Card 2 — RBI MPC Hold -->
       <div class="val-card">
-        <div class="val-card-date">JUN 5, 2026</div>
+        <div class="val-card-date">JUN 4, 2026 · LAST READ BEFORE JUN 5 DECISION</div>
         <div class="val-card-event">RBI MPC Decision</div>
         <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
         <div class="val-card-divider"></div>
-        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>67% confidence · HOLD</div>
-        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>RBI held. No regime shift. ✓</div>
-        <div class="val-card-verdict correct">CORRECT</div>
+        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>51% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>Regime held — Liquidity-Driven Expansion, unchanged in the weeks that followed.</div>
+        <div class="val-card-verdict held">REGIME HELD</div>
       </div>
 
       <!-- Card 3 — CPI Print (featured) -->
@@ -1602,8 +1607,8 @@
         <div class="val-card-event">CPI May Print</div>
         <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
         <div class="val-card-divider"></div>
-        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>56% confidence · HOLD</div>
-        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>+8pts confidence · Nifty +2% · VIX -6% ✓</div>
+        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>53% confidence · HOLD</div>
+        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>+10pts confidence intraday — 53% → 63% by mid-morning. ✓</div>
         <div class="val-card-verdict correct">CORRECT</div>
       </div>
 
@@ -1613,8 +1618,8 @@
         <div class="val-card-event">SEBI Board Meeting</div>
         <div class="val-card-regime">LIQUIDITY DRIVEN EXPANSION</div>
         <div class="val-card-divider"></div>
-        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>64% confidence · HIGH stability</div>
-        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>Regime held all day. No false alarm. ✓</div>
+        <div class="val-card-before"><span class="val-label">WHAT WE SAID BEFOREHAND</span>64% confidence · LOW conviction</div>
+        <div class="val-card-after"><span class="val-label">WHAT ACTUALLY HAPPENED</span>Regime held — Liquidity-Driven Expansion, unchanged through the meeting. ✓</div>
         <div class="val-card-verdict correct">CORRECT</div>
       </div>
 
@@ -1639,9 +1644,9 @@
     <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(to bottom,var(--bg),transparent);pointer-events:none;z-index:0;"></div>
     <div class="container" style="max-width:900px;margin:0 auto;padding:0 52px;">
       <div class="section-eyebrow reveal">HOW SENTINEL WORKS</div>
-      <h2 class="section-heading reveal reveal-delay-1">Nine data points.<br><em>One clear answer.</em></h2>
+      <h2 class="section-heading reveal reveal-delay-1">Eleven data points.<br><em>One clear answer.</em></h2>
       <div class="section-sub reveal reveal-delay-2">
-        Every morning, Sentinel checks nine live sources — stock market fear levels, foreign investor activity, oil prices, interest rate direction, and more — and gives you one plain-language read on where the Indian economy stands right now.
+        Every morning, Sentinel checks eleven live sources — stock market fear levels, foreign investor activity, oil prices, interest rate direction, and more — and gives you one plain-language read on where the Indian economy stands right now.
       </div>
 
       <div id="signalDotsWrap" style="position:relative;height:280px;margin:48px auto 0;max-width:700px;">
@@ -1688,7 +1693,7 @@
         <div class="workflow-connector"></div>
         <div class="workflow-card">
           <div class="workflow-step-label">SENTINEL CHECKS THE ECONOMY</div>
-          <div class="workflow-step-desc">Nine live sources update automatically — market fear levels, foreign investor flows, oil prices, business activity, interest rates, stock valuations, and more.</div>
+          <div class="workflow-step-desc">Eleven live sources update automatically — market fear levels, foreign investor flows, oil prices, business activity, interest rates, stock valuations, and more.</div>
         </div>
       </div>
 
@@ -1736,7 +1741,7 @@
           <div class="journey-number">02</div>
           <div class="journey-label">DAILY REGIME READ</div>
           <div class="journey-name">Sentinel</div>
-          <div class="journey-desc">Nine live checks on the Indian economy → one clear answer every morning: add more, hold steady, or play it safe.</div>
+          <div class="journey-desc">Eleven live checks on the Indian economy → one clear answer every morning: add more, hold steady, or play it safe.</div>
           <a class="journey-link" href="login.html">Access Sentinel →</a>
         </div>
 
@@ -1922,7 +1927,7 @@
           <div class="access-badge access-badge-paid">EARLY ACCESS</div>
           <div class="access-title">Sentinel</div>
           <div class="access-desc">
-            A daily read on the Indian economy — in plain language. Nine live
+            A daily read on the Indian economy — in plain language. Eleven live
             checks every morning → one clear answer: should your clients add
             more, hold steady, or play it safe? Built for CAs, IFAs, and
             wealth managers.
@@ -1979,7 +1984,7 @@
         <div class="bs-card"><div class="bs-num" style="color:var(--green)">0.68</div><div class="bs-label">Sharpe Ratio</div><div class="bs-sub">vs 0.50 Nifty 50</div></div>
         <div class="bs-card"><div class="bs-num" style="color:var(--blue-light)">12.15%</div><div class="bs-label">Annualised Return</div><div class="bs-sub">Jan 2020 – Dec 2025</div></div>
         <div class="bs-card"><div class="bs-num" style="color:var(--amber)">−7.95%</div><div class="bs-label">Max Drawdown</div><div class="bs-sub">vs −23.25% Nifty</div></div>
-        <div class="bs-card"><div class="bs-num" style="color:var(--text)">69%</div><div class="bs-label">Monthly Win Rate</div><div class="bs-sub">49 of 71 months</div></div>
+        <div class="bs-card"><div class="bs-num" style="color:var(--text)">~70%</div><div class="bs-label">Monthly Win Rate</div><div class="bs-sub">Jan 2020 – Dec 2025</div></div>
         <div class="bs-card"><div class="bs-num" style="color:var(--blue-light)">1.53</div><div class="bs-label">Calmar Ratio</div><div class="bs-sub">Return / Max DD</div></div>
         <div class="bs-card"><div class="bs-num" style="color:var(--text)">8.73%</div><div class="bs-label">Annualised Volatility</div><div class="bs-sub">vs 17.71% Nifty</div></div>
       </div>
@@ -1988,56 +1993,30 @@
         <p>These numbers come from running Sentinel's engine backwards through 15 years of Indian market history, covering every major cycle from the 2008 financial crisis to COVID to the current environment. The results show how a portfolio managed using Sentinel's daily signals would have performed compared to simply holding the Nifty. Past performance does not guarantee future results.</p>
         <div style="margin-top:22px;">
           <div class="t-label" style="margin-bottom:4px;">Regime Detection Accuracy</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-2);letter-spacing:0.04em;margin-bottom:14px;">Random baseline: 12.5% (1 of 8). Low-sample regimes accumulate data as months pass.</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-2);letter-spacing:0.04em;margin-bottom:14px;">Random baseline: 16.7% (1 of 6 regime types observed since 2020). Showing categories with 10+ months of history only. "Adjacent" means a regime one step away on the economic cycle, not a random miss.</div>
           <div class="regime-accuracy-row">
             <span class="ra-name">Stable Growth</span>
             <div class="ra-bar-wrap"><div class="ra-bar" style="width:88.2%;background:var(--green)"></div></div>
             <span class="ra-pct ra-good">88.2%</span>
-            <span class="ra-n">n=41</span>
-          </div>
-          <div class="regime-accuracy-row">
-            <span class="ra-name">Monetary Tightening</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:74%;background:var(--green)"></div></div>
-            <span class="ra-pct ra-good">74.0%</span>
-            <span class="ra-n">n=14</span>
-          </div>
-          <div class="regime-accuracy-row">
-            <span class="ra-name">Inflation Stress</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:68%;background:var(--green)"></div></div>
-            <span class="ra-pct ra-good">68.0%</span>
-            <span class="ra-n">n=6</span>
-          </div>
-          <div class="regime-accuracy-row">
-            <span class="ra-name">Early Cycle Recovery</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:61%;background:var(--amber)"></div></div>
-            <span class="ra-pct ra-mid">61.0%</span>
-            <span class="ra-n">n=5</span>
-          </div>
-          <div class="regime-accuracy-row">
-            <span class="ra-name">Growth Slowdown Support</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:40%;background:var(--amber)"></div></div>
-            <span class="ra-pct ra-mid">40.0%</span>
-            <span class="ra-n">n=8</span>
-          </div>
-          <div class="regime-accuracy-row">
-            <span class="ra-name">Global Shock / Risk-Off</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:33%;background:var(--amber)"></div></div>
-            <span class="ra-pct ra-mid">33.0%</span>
-            <span class="ra-n">n=3</span>
+            <span class="ra-n">n=17</span>
           </div>
           <div class="regime-accuracy-row">
             <span class="ra-name">Liquidity Driven Expansion</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:26.1%;background:var(--red)"></div></div>
-            <span class="ra-pct ra-low">26.1%</span>
-            <span class="ra-n">n=7</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:43.5%;background:var(--amber)"></div></div>
+            <span class="ra-pct ra-mid">43.5%</span>
+            <span class="ra-n">n=23</span>
           </div>
+          <div class="ra-sub">65.2% including adjacent-regime credit</div>
           <div class="regime-accuracy-row">
-            <span class="ra-name">Defensive / Capital Preservation</span>
-            <div class="ra-bar-wrap"><div class="ra-bar" style="width:8%;background:var(--text-3)"></div></div>
-            <span class="ra-pct ra-none">accumulating</span>
-            <span class="ra-n">n=2</span>
+            <span class="ra-name">Early Cycle Recovery</span>
+            <div class="ra-bar-wrap"><div class="ra-bar" style="width:0%;background:var(--red)"></div></div>
+            <span class="ra-pct ra-low">0.0%</span>
+            <span class="ra-n">n=10</span>
           </div>
+          <div class="ra-sub">25.0% including adjacent-regime credit — all 10 misses were adjacent, not random</div>
         </div>
+        <p style="margin-top:14px;font-size:11px;color:var(--text-2);font-family:var(--font-mono);letter-spacing:0.04em;">Monetary Tightening (n=8), Liquidity Tightening (n=8), and Growth Slowdown Support (n=5) are still accumulating data — shown once each reaches 10 months of history.</p>
+        <p style="margin-top:10px;font-size:11px;color:var(--text-2);font-family:var(--font-mono);letter-spacing:0.04em;">Regime labels for this historical window are our own retrospective classification — not independently audited or externally verified.</p>
         <p style="margin-top:18px;font-size:11px;color:var(--text-2);font-family:var(--font-mono);letter-spacing:0.04em;">
           Backtested Jan 2020 – Dec 2025 (71 months). Not a guarantee of future performance.
         </p>
@@ -2048,16 +2027,16 @@
   <!-- ════ CTA ════ -->
   <section id="cta">
     <div class="cta-inner reveal">
-      <div class="cta-badge"><span class="cta-badge-dot"></span>USED BY INVESTMENT ADVISORS ACROSS INDIA</div>
+      <div class="cta-badge"><span class="cta-badge-dot"></span>BUILT FOR INVESTMENT ADVISORS ACROSS INDIA</div>
       <h2 class="cta-h2">Every morning, your clients face the same question.<br><em>Sentinel has your answer ready.</em></h2>
-      <p class="cta-sub">Advisors who use Sentinel start each day with one clear read on the Indian economy: which way conditions are moving, what to do with equity, debt, and gold, and what to watch before client calls. Data-backed, updated daily.</p>
+      <p class="cta-sub">Advisors who use Sentinel will start each day with one clear read on the Indian economy: which way conditions are moving, what to do with equity, debt, and gold, and what to watch before client calls. Data-backed, updated daily.</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;">
         <a class="btn-primary" href="login.html" style="font-size:15px;padding:14px 32px;">Access Sentinel →</a>
         <a class="btn-outline" href="#how" style="font-size:15px;padding:14px 32px;">See how it works ↓</a>
       </div>
-      <div class="cta-disclaimer">Get started without a credit card, and cancel anytime. Used by portfolio managers, CAs, and wealth advisors across India.</div>
+      <div class="cta-disclaimer">Request access — every account is reviewed within 24 hours before activation.</div>
       <div class="cta-trust">
-        <div class="trust-item"><span class="trust-icon" aria-hidden="true">🔒</span>SEBI-Compliant Framing</div>
+        <div class="trust-item"><span class="trust-icon" aria-hidden="true">🔍</span>Every Read Traces to Live Data</div>
         <div class="trust-item"><span class="trust-icon" aria-hidden="true">🌍</span>50 Economies, Global Coverage</div>
         <div class="trust-item"><span class="trust-icon" aria-hidden="true">⚡</span>Live Regime Engine, Daily Updates</div>
       </div>
