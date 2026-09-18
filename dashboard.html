@@ -75,6 +75,18 @@
       --duration-fast: 150ms;
       --duration-base: 220ms;
       --duration-shimmer: 1.8s;
+      /* ── Elevation-pass motion tokens — same values as the Sentinel
+         elevation-pass mockup (design/sentinel-elevation-mockup.html),
+         applied live for the first time here ── */
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --dur-reveal: 760ms;
+      --dur-ring: 1400ms;
+      --stagger-step: 90ms;
+      /* ── Type 1 — Pushed Classic (font families already match; these
+         add the weight/tracking treatment for hero/lead-level text) ── */
+      --hero-wt: 700; --hero-ls: -0.022em;
+      --lead-wt: 600; --lead-ls: -0.012em;
+      --label-ls: 0.20em;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -4333,13 +4345,39 @@
     .reliability-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
     .reliability-dot.banded { border-radius: 1px; transform: rotate(45deg); }
 
-    .story-lead { font-family: var(--font-serif); font-weight: 600; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.22; color: var(--text); max-width: 660px; }
+    .story-lead { font-family: var(--font-serif); font-weight: var(--lead-wt, 600); letter-spacing: var(--lead-ls, normal); font-size: clamp(28px, 3.6vw, 40px); line-height: 1.22; color: var(--text); max-width: 660px; }
     .story-support { font-family: var(--font-sans); font-size: 16px; line-height: 1.65; color: var(--text-2); max-width: 620px; margin-top: 18px; }
     .story-reliability-note { font-family: var(--font-sans); font-size: 14px; line-height: 1.7; color: var(--text-2); max-width: 620px; margin-top: 12px; font-style: italic; }
 
     .story-conf-wrap { flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 46px; }
     .story-conf-quality { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; line-height: 1.5; color: var(--text-2); }
     .story-conf-band-note { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+
+    /* ══ Elevation-pass reveal system — same mechanism/tokens as the
+       Sentinel elevation-pass mockup, applied live for the first time.
+       Cards get .reveal on render; .in is added a frame later so the
+       transition actually plays instead of starting already-visible. ══ */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .reveal.d1 { transition-delay: var(--stagger-step); }
+    .reveal.d2 { transition-delay: calc(var(--stagger-step) * 2); }
+    .reveal.d3 { transition-delay: calc(var(--stagger-step) * 3); }
+    .reveal.d4 { transition-delay: calc(var(--stagger-step) * 4); }
+    .reveal.d5 { transition-delay: calc(var(--stagger-step) * 5); }
+    .reveal.d6 { transition-delay: calc(var(--stagger-step) * 6); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .ticker-live-badge::before { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+    }
+    /* Breathing pulse — LIVE indicators only (always green here; this
+       badge has no amber/red variant), never on paused/unavailable states. */
+    .ticker-live-badge { position: relative; padding-left: 16px; }
+    .ticker-live-badge::before {
+      content: ''; position: absolute; left: 6px; top: 50%; margin-top: -3px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 6px var(--green);
+      animation: livePulse 2.4s ease infinite;
+    }
+    @keyframes livePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
 
     .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
     .why-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
@@ -6293,10 +6331,11 @@
           ...(io.convergence || []).map(c => Object.assign({ kind: 'Convergence' }, c)),
           ...(io.contradictions || []).map(c => Object.assign({ kind: 'Contradiction' }, c)),
         ];
-        cards.forEach(c => {
+        cards.forEach((c, i) => {
           const isC = c.kind === 'Contradiction';
           const card = document.createElement('div');
-          card.className = 'why-card' + (isC ? ' contradiction' : '');
+          const stagger = 'd' + Math.min(i + 1, 6);
+          card.className = 'why-card reveal ' + stagger + (isC ? ' contradiction' : '');
           const sigIds = c.signal_ids || [];
           const catLabel = (c.category || '').replace(/_/g, ' ');
           const chips = sigIds.map(s => `<span class="why-sig-chip">${String(s).replace(/_/g, ' ').toUpperCase()}</span>`).join('');
@@ -6309,6 +6348,11 @@
             `<div class="why-card-signals">${chips}</div>`;
           whyGrid.appendChild(card);
         });
+        // Two rAFs so the browser commits the opacity:0 starting state
+        // before .in is added — otherwise the transition never plays.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          whyGrid.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+        }));
       } else if (fromHistory) {
         whyIntro.textContent = 'Run the engine to see which signals agree and which disagree today.';
       } else {

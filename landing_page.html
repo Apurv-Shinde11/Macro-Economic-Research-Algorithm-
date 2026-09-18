@@ -37,6 +37,20 @@
       --font-mono:  'JetBrains Mono', monospace;
       --glow-blue:  0 0 40px rgba(79,131,255,0.18);
       --glow-gold:  0 0 40px rgba(245,197,66,0.14);
+      /* ── Elevation-pass motion tokens — same values as the Sentinel
+         elevation-pass mockup, applied live for the first time here.
+         Existing .reveal/.reveal-delay-N classes and their JS observer
+         are kept as-is; only the underlying timing below is retimed
+         to these tokens instead of the old hardcoded values. ── */
+      --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --dur-reveal: 760ms;
+      --dur-ring:   1400ms;
+      --stagger-step: 90ms;
+      /* Type 1 — Pushed Classic weight/tracking treatment */
+      --hero-wt: 700; --hero-ls: -0.022em;
+      --lead-wt: 600; --lead-ls: -0.012em;
+      --label-ls: 0.20em;
     }
 
     /* ══ LIGHT THEME ══ */
@@ -334,9 +348,9 @@
     .hero-h1 {
       font-family: var(--font-serif);
       font-size: clamp(52px, 5.8vw, 82px);
-      font-weight: 600; line-height: 1.06;
+      font-weight: var(--hero-wt); line-height: 1.06;
       color: var(--text); margin-bottom: 28px;
-      letter-spacing: -0.02em;
+      letter-spacing: var(--hero-ls);
     }
     .hero-h1 em {
       font-style: italic;
@@ -420,7 +434,7 @@
     .live-dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: var(--green);
-      animation: livePulse 1.8s ease infinite;
+      animation: livePulse 2.4s ease infinite;
       box-shadow: 0 0 6px var(--green);
     }
     @keyframes livePulse {
@@ -498,12 +512,12 @@
     .delay-2  { animation: fadeUp 1s ease 0.30s both; }
     .delay-3  { animation: fadeUp 1s ease 0.48s both; }
     .delay-4  { animation: fadeUp 1s ease 0.66s both; }
-    .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.8s ease, transform 0.8s ease; }
+    .reveal { opacity: 0; transform: translateY(32px); transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
     .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
+    .reveal-delay-1 { transition-delay: var(--stagger-step); }
+    .reveal-delay-2 { transition-delay: calc(var(--stagger-step) * 2); }
+    .reveal-delay-3 { transition-delay: calc(var(--stagger-step) * 3); }
+    .reveal-delay-4 { transition-delay: calc(var(--stagger-step) * 4); }
 
     @media (prefers-reduced-motion: reduce) {
       .fade-in, .delay-1, .delay-2, .delay-3, .delay-4, .reveal,
@@ -697,7 +711,11 @@
     .ra-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; min-width: 44px; text-align: right; }
     .ra-n { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); min-width: 46px; text-align: right; letter-spacing: 0.04em; }
     .ra-bar-wrap { flex: 1; height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; overflow: hidden; }
-    .ra-bar { height: 100%; border-radius: 2px; }
+    .ra-bar { height: 100%; border-radius: 2px; transform-origin: left; transform: scaleX(0); transition: transform var(--dur-ring) var(--ease-out-quart); }
+    .ra-bar.in { transform: scaleX(1); }
+    @media (prefers-reduced-motion: reduce) {
+      .ra-bar { transition: none !important; transform: scaleX(1) !important; }
+    }
     .ra-good { color: var(--green); }
     .ra-mid  { color: var(--amber); }
     .ra-low  { color: var(--red); }
@@ -2413,18 +2431,23 @@
     if (mq.matches) return;
 
     const els = document.querySelectorAll('.reveal');
-    if (!els.length) return;
+    // Regime-accuracy bars draw in with the same ring/fill token
+    // (--dur-ring) as the rest of the elevation-pass system, on the
+    // same scroll-triggered mechanism as .reveal rather than a
+    // separate observer.
+    const bars = document.querySelectorAll('.ra-bar');
 
     const obs = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
+          entry.target.classList.add(entry.target.classList.contains('ra-bar') ? 'in' : 'visible');
           obs.unobserve(entry.target);
         }
       });
     }, { threshold: 0.12 });
 
     els.forEach(el => obs.observe(el));
+    bars.forEach(el => obs.observe(el));
   })();
   </script>
 
@@ -2960,7 +2983,7 @@
         const target = parseInt(el.dataset.target);
         const suffix = el.dataset.suffix || '';
         if (mq.matches) { el.textContent = target + suffix; return; }
-        const duration = 1200;
+        const duration = 1400; // mirrors --dur-ring
         const start = performance.now();
         function tick(now) {
           const p = Math.min((now - start) / duration, 1);
