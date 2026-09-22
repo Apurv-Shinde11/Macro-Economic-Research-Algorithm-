@@ -6714,6 +6714,17 @@ _PEGGED_CURRENCIES = {
 
 _global_macro_cache_mem: dict = {"data": None, "fetched_at": 0}
 
+# Coalesces concurrent /api/global-macro requests that all miss the cache
+# at once -- without this, N simultaneous cold-cache requests each ran
+# their own independent ~180-200s live fetch (confirmed in production
+# logs: two full fetches running concurrently). Only one live fetch is
+# ever in flight per process; see get_global_macro()'s double-checked
+# lock pattern. Coalesces within this one process -- sufficient for the
+# actual deployment (Procfile runs a single uvicorn worker, no
+# --workers), but wouldn't span multiple worker processes if that ever
+# changes.
+_global_macro_fetch_lock = asyncio.Lock()
+
 
 @_HTTP_RETRY
 def _wb_fetch_raw(wb_code: str, indicator: str) -> tuple[float, int]:
@@ -7061,28 +7072,24 @@ def _with_atlas_intelligence_and_story(result: dict) -> dict:
     return result
 
 
-@app.get("/api/global-macro")
-async def get_global_macro():
-    global _global_macro_cache_mem
-    # Timing instrumentation added 2026-09-11 while chasing a >75s client
-    # timeout on this endpoint -- root cause found to be _fetch_live_
-    # economy_data()'s and _fetch_fred_rates()'s sequential blocking calls
-    # (now parallelized, see their docstrings). Left in place so the next
-    # slowdown shows up in Render's logs with real numbers instead of
-    # needing to be re-diagnosed from scratch.
-    _t0 = time.time()
-    cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
-    if _global_macro_cache_mem.get("data") and cache_age < 21600:
-        print(f"[GLOBAL_MACRO][TIMING] mem-cache hit, {time.time() - _t0:.2f}s", flush=True)
-        return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
-    # Persistent per-row cache: one row per economy, keyed on "economy"
-    # (on_conflict="economy" in the write below), refreshed within the
-    # current UTC calendar day. This is the schema the table actually
-    # has — see the per-economy upsert below for the write side. A
-    # previous blob-cache design (cache_key/data/created_at columns)
-    # never matched this table and always failed both read and write;
-    # removed rather than patched, since this per-row cache already did
-    # everything it was meant to and just needed to be reachable.
+def _read_global_macro_persistent_cache(_t0):
+    """
+    Persistent per-row cache: one row per economy, keyed on "economy"
+    (on_conflict="economy" in the write below), refreshed within the
+    current UTC calendar day. This is the schema the table actually
+    has — see the per-economy upsert below for the write side. A
+    previous blob-cache design (cache_key/data/created_at columns)
+    never matched this table and always failed both read and write;
+    removed rather than patched, since this per-row cache already did
+    everything it was meant to and just needed to be reachable.
+
+    Returns the enriched, ready-to-serve result dict on a full cache
+    hit, or None (after logging why) on empty/incomplete/error --
+    callers fall through to a live fetch in that case. Read-only and
+    side-effect-free on the persistent cache itself, so it's safe to
+    call both before and after acquiring the fetch-coalescing lock in
+    get_global_macro() (the double-checked pattern).
+    """
     try:
         cutoff = (
             datetime.now(timezone.utc)
@@ -7130,7 +7137,6 @@ async def get_global_macro():
                 "cached":          True,
             }
             result = _with_atlas_intelligence_and_story(result)
-            _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
             print(
                 f"[GLOBAL_MACRO] Per-row cache HIT — {len(cached_codes)}/{len(required_codes)} "
                 f"economies fresh since {cutoff}",
@@ -7149,7 +7155,16 @@ async def get_global_macro():
             print(f"[GLOBAL_MACRO] Per-row cache EMPTY for today — forcing fresh fetch", flush=True)
     except Exception as _e:
         print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
+    return None
 
+
+async def _fetch_and_cache_global_macro(_t0):
+    """
+    The actual live 50-economy fetch (yfinance + FRED + World Bank) and
+    persistent-cache write. Only ever called from inside
+    get_global_macro()'s fetch-coalescing lock -- see there for why.
+    """
+    global _global_macro_cache_mem
     print("[GLOBAL_MACRO] Cache miss — fetching fresh data for 50 economies...", flush=True)
     try:
         currency_map, yield_map = await _fetch_live_economy_data()
@@ -7311,6 +7326,52 @@ async def get_global_macro():
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     print(f"[GLOBAL_MACRO][TIMING] TOTAL request time, {time.time() - _t0:.2f}s", flush=True)
     return result
+
+
+@app.get("/api/global-macro")
+async def get_global_macro():
+    global _global_macro_cache_mem
+    # Timing instrumentation added 2026-09-11 while chasing a >75s client
+    # timeout on this endpoint -- root cause found to be _fetch_live_
+    # economy_data()'s and _fetch_fred_rates()'s sequential blocking calls
+    # (now parallelized, see their docstrings). Left in place so the next
+    # slowdown shows up in Render's logs with real numbers instead of
+    # needing to be re-diagnosed from scratch.
+    _t0 = time.time()
+
+    cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
+    if _global_macro_cache_mem.get("data") and cache_age < 21600:
+        print(f"[GLOBAL_MACRO][TIMING] mem-cache hit, {time.time() - _t0:.2f}s", flush=True)
+        return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
+
+    result = _read_global_macro_persistent_cache(_t0)
+    if result is not None:
+        _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+        return result
+
+    # Both caches missed. Coalesce: only one concurrent live fetch is
+    # ever allowed to run -- everyone else who arrives while it's in
+    # flight waits on this same lock, then gets served by the
+    # double-check below instead of starting their own ~180-200s fetch.
+    # Confirmed in production logs before this fix: two full 50-economy
+    # fetches running at the same time from two near-simultaneous
+    # requests hitting a cold cache.
+    async with _global_macro_fetch_lock:
+        # Re-check both caches now that we hold the lock -- whoever got
+        # here first (if anyone) may have already finished and
+        # populated them while we were waiting.
+        cache_age = time.time() - _global_macro_cache_mem.get("fetched_at", 0)
+        if _global_macro_cache_mem.get("data") and cache_age < 21600:
+            print(f"[GLOBAL_MACRO][TIMING] mem-cache hit after waiting for fetch lock, {time.time() - _t0:.2f}s", flush=True)
+            return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
+
+        result = _read_global_macro_persistent_cache(_t0)
+        if result is not None:
+            _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
+            print(f"[GLOBAL_MACRO][TIMING] per-row cache hit after waiting for fetch lock, {time.time() - _t0:.2f}s", flush=True)
+            return result
+
+        return await _fetch_and_cache_global_macro(_t0)
 
 
 @app.get("/api/global-macro/guidance")
