@@ -49,6 +49,22 @@ STORY_OUTPUT_SCHEMA = {
     "properties": {
         "headline_elaboration":    {"type": "string"},
         "what_deserves_attention": {"type": "string"},
+        # Structured claim-then-check hooks: every convergence/contradiction
+        # relationship described anywhere in headline_elaboration or
+        # what_deserves_attention must be declared here as an index into
+        # intelligence_object["convergence"] / ["contradictions"]. This is
+        # what _validate_grounding() checks against the real arrays — it
+        # does not parse the prose itself. An index that doesn't exist
+        # (including any index at all when the array is empty) fails the
+        # whole output closed, same as an ungrounded change_trigger number.
+        "convergence_refs": {
+            "type": "array",
+            "items": {"type": "integer"},
+        },
+        "contradiction_refs": {
+            "type": "array",
+            "items": {"type": "integer"},
+        },
         "change_triggers": {
             "type": "array",
             "items": {
@@ -64,7 +80,9 @@ STORY_OUTPUT_SCHEMA = {
     },
     "required": [
         "headline_elaboration",
-        "what_deserves_attention", "change_triggers",
+        "what_deserves_attention",
+        "convergence_refs", "contradiction_refs",
+        "change_triggers",
     ],
     "additionalProperties": False,
 }
@@ -89,7 +107,18 @@ HARD RULES — violating any of these makes your output unusable:
    intelligence_object.
 2. Never state a relationship between two signals that isn't already
    present in "convergence" or "contradictions". You may reference and
-   summarize those entries; you may not invent new ones.
+   summarize those entries; you may not invent new ones. Every such
+   relationship you describe anywhere in headline_elaboration or
+   what_deserves_attention — including phrases like "the one clean
+   convergence" or "these signals confirm each other" — must be
+   declared in convergence_refs / contradiction_refs as the index of
+   the real entry in intelligence_object["convergence"] /
+   ["contradictions"] you are describing. If convergence or
+   contradictions is empty, do not describe any signals as converging
+   or contradicting, in any words, and leave the corresponding refs
+   list empty. An output with prose describing a relationship but no
+   matching ref (or a ref pointing past the end of the real array) is
+   rejected outright.
 3. Do not write about confidence, reliability, briefings, or pausing —
    that is handled entirely outside your output, upstream of this call.
    You are only ever invoked when it does not apply.
@@ -197,14 +226,28 @@ def _build_paused_message(confidence: dict) -> str:
     )
 
 
-def _validate_grounding(llm_output: dict, candidates: list[dict]) -> bool:
+def _validate_grounding(llm_output: dict, candidates: list[dict], io: dict) -> bool:
     """
-    Hard check: every change_trigger the LLM wrote must reference a
-    signal_id that was actually offered to it, and must state that
-    signal's real value/threshold numbers — not a rephrased or invented
-    one. Fails closed: any violation rejects the WHOLE output rather
-    than silently editing or dropping just the offending item, since
-    editing the model's output is itself a silent-failure risk.
+    Hard check, fails closed: any violation rejects the WHOLE output
+    rather than silently editing or dropping just the offending item,
+    since editing the model's output is itself a silent-failure risk.
+
+    Two independent things are checked:
+
+    1. change_triggers — every one the LLM wrote must reference a
+       signal_id that was actually offered to it, and must state that
+       signal's real value/threshold numbers, not a rephrased or
+       invented one.
+
+    2. convergence_refs / contradiction_refs — the structured
+       claim-then-check hook for relationships described in prose
+       (headline_elaboration / what_deserves_attention). This does not
+       parse the prose itself; it only checks that every declared index
+       actually exists in intelligence_object["convergence"] /
+       ["contradictions"]. An empty real array makes every possible
+       index invalid, so any relationship claim made while the array is
+       empty is rejected here regardless of how it's worded — this is
+       what closes the "clean convergence" class of ungrounded claim.
     """
     candidates_by_id = {c["signal_id"]: c for c in candidates}
 
@@ -228,6 +271,29 @@ def _validate_grounding(llm_output: dict, candidates: list[dict]) -> bool:
             print(
                 f"[STORY_GEN] Grounding violation: sentence for {sig_id!r} "
                 f"doesn't contain its real value/threshold numbers: {sentence!r}",
+                flush=True,
+            )
+            return False
+
+    convergence    = io.get("convergence") or []
+    contradictions = io.get("contradictions") or []
+
+    for idx in llm_output.get("convergence_refs", []):
+        if not isinstance(idx, int) or idx < 0 or idx >= len(convergence):
+            print(
+                f"[STORY_GEN] Grounding violation: convergence_refs index "
+                f"{idx!r} invalid — intelligence_object.convergence has "
+                f"{len(convergence)} entries",
+                flush=True,
+            )
+            return False
+
+    for idx in llm_output.get("contradiction_refs", []):
+        if not isinstance(idx, int) or idx < 0 or idx >= len(contradictions):
+            print(
+                f"[STORY_GEN] Grounding violation: contradiction_refs index "
+                f"{idx!r} invalid — intelligence_object.contradictions has "
+                f"{len(contradictions)} entries",
                 flush=True,
             )
             return False
@@ -313,7 +379,7 @@ def generate_story(io: dict, deterministic_narrative: str | None = None) -> dict
         print(f"[STORY_GEN] LLM call failed: {e}", flush=True)
         return {"status": "unavailable"}
 
-    if not _validate_grounding(llm_output, candidates):
+    if not _validate_grounding(llm_output, candidates, io):
         return {"status": "unavailable"}
 
     try:
