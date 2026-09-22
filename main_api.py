@@ -3418,6 +3418,12 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         # calling out at all — see story_generation.py.
         try:
             _intelligence_object = build_sentinel_intelligence_object(regime)
+            print(
+                f"[API] job={job_id} intelligence_object built: "
+                f"convergence={len(_intelligence_object.get('convergence', []))} "
+                f"contradictions={len(_intelligence_object.get('contradictions', []))}",
+                flush=True,
+            )
         except Exception as _io_err:
             print(f"[API] intelligence_object build failed: {_io_err}", flush=True)
             _intelligence_object = None
