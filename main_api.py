@@ -7075,92 +7075,80 @@ async def get_global_macro():
     if _global_macro_cache_mem.get("data") and cache_age < 21600:
         print(f"[GLOBAL_MACRO][TIMING] mem-cache hit, {time.time() - _t0:.2f}s", flush=True)
         return _with_atlas_intelligence({**_global_macro_cache_mem["data"], "cached": True})
-    # Check Supabase full-blob cache (24h)
+    # Persistent per-row cache: one row per economy, keyed on "economy"
+    # (on_conflict="economy" in the write below), refreshed within the
+    # current UTC calendar day. This is the schema the table actually
+    # has — see the per-economy upsert below for the write side. A
+    # previous blob-cache design (cache_key/data/created_at columns)
+    # never matched this table and always failed both read and write;
+    # removed rather than patched, since this per-row cache already did
+    # everything it was meant to and just needed to be reachable.
     try:
-        cache_resp = _supabase.table(
-            "global_macro_cache"
-        ).select("*").eq(
-            "cache_key", "global_macro_50"
-        ).order(
-            "created_at", desc=True
-        ).limit(1).execute()
-        if cache_resp.data:
-            cached = cache_resp.data[0]
-            cached_at = datetime.fromisoformat(cached["created_at"])
-            age_hours = (
-                datetime.now(timezone.utc) - cached_at
-            ).total_seconds() / 3600
-            if age_hours < 24:
-                print(
-                    f"[GLOBAL_MACRO] Serving from cache (age: {age_hours:.1f}h)",
-                    flush=True
-                )
-                print(f"[GLOBAL_MACRO][TIMING] blob-cache hit, {time.time() - _t0:.2f}s", flush=True)
-                import json
-                return _with_atlas_intelligence(json.loads(cached["data"]))
-    except Exception as e:
-        print(
-            f"[GLOBAL_MACRO] Cache check failed: {e}",
-            flush=True
+        cutoff = (
+            datetime.now(timezone.utc)
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat()
         )
-        _err_msg = str(e).lower()
-        if "does not exist" in _err_msg or "column" in _err_msg:
+        cached = (
+            _supabase.table("global_macro_cache")
+            .select("*").gte("last_updated", cutoff).execute()
+        )
+        cached_codes = {row.get("economy") for row in (cached.data or [])}
+        required_codes = {e["code"] for e in _ECONOMIES}
+        missing_codes = required_codes - cached_codes
+        if cached.data and not missing_codes:
+            # Enrich cached rows with computed fields not stored in Supabase
+            economy_meta = {e["code"]: e for e in _ECONOMIES}
+            enriched = []
+            for row in cached.data:
+                code = row.get("economy")
+                meta = economy_meta.get(code, {})
+                enriched.append({
+                    **row,
+                    "code":                 code,
+                    "name":                 meta.get("name", code),
+                    "flag":                 meta.get("flag", ""),
+                    "currency_label":       meta.get("currency_label", ""),
+                    "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
+                    "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
+                    "gdp_nominal_trillion": (
+                        _nominal_gdp_mem_cache.get(code)
+                        or _NOMINAL_GDP_FALLBACK.get(code)
+                    ),
+                    "recent_development": (
+                        _get_country_news_cached(meta.get("wb_code", code)) or {
+                            "headline": None,
+                            "source": None,
+                            "published_at": None,
+                            "stale": True,
+                        }
+                    ),
+                })
+            result = {
+                "economies":       enriched,
+                "page_updated_at": max(e["last_updated"] for e in enriched),
+                "cached":          True,
+            }
+            result = _with_atlas_intelligence_and_story(result)
+            _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
             print(
-                "[GLOBAL_MACRO] Schema mismatch detected — "
-                "skipping per-row cache, forcing fresh fetch",
-                flush=True
+                f"[GLOBAL_MACRO] Per-row cache HIT — {len(cached_codes)}/{len(required_codes)} "
+                f"economies fresh since {cutoff}",
+                flush=True,
+            )
+            print(f"[GLOBAL_MACRO][TIMING] per-row-cache hit, {time.time() - _t0:.2f}s", flush=True)
+            return result
+        elif cached.data:
+            print(
+                f"[GLOBAL_MACRO] Per-row cache INCOMPLETE — missing "
+                f"{sorted(missing_codes)} ({len(cached_codes)}/{len(required_codes)} present) — "
+                f"forcing fresh fetch rather than serving a partial economy list",
+                flush=True,
             )
         else:
-            try:
-                cutoff = (
-                    datetime.now(timezone.utc)
-                    .replace(hour=0, minute=0, second=0, microsecond=0)
-                    .isoformat()
-                )
-                cached = (
-                    _supabase.table("global_macro_cache")
-                    .select("*").gte("last_updated", cutoff).execute()
-                )
-                if cached.data and len(cached.data) >= 50:
-                    # Enrich cached rows with computed fields not stored in Supabase
-                    economy_meta = {e["code"]: e for e in _ECONOMIES}
-                    enriched = []
-                    for row in cached.data:
-                        code = row.get("economy")
-                        meta = economy_meta.get(code, {})
-                        enriched.append({
-                            **row,
-                            "code":                 code,
-                            "name":                 meta.get("name", code),
-                            "flag":                 meta.get("flag", ""),
-                            "currency_label":       meta.get("currency_label", ""),
-                            "yield_10y":            row.get("yield_10y") or _YIELD_FALLBACKS.get(code),
-                            "macro_signal":         _derive_macro_signal(row.get("gdp_growth"), row.get("inflation")),
-                            "gdp_nominal_trillion": (
-                                _nominal_gdp_mem_cache.get(code)
-                                or _NOMINAL_GDP_FALLBACK.get(code)
-                            ),
-                            "recent_development": (
-                                _get_country_news_cached(meta.get("wb_code", code)) or {
-                                    "headline": None,
-                                    "source": None,
-                                    "published_at": None,
-                                    "stale": True,
-                                }
-                            ),
-                        })
-                    result = {
-                        "economies":       enriched,
-                        "page_updated_at": max(e["last_updated"] for e in enriched),
-                        "cached":          True,
-                    }
-                    result = _with_atlas_intelligence_and_story(result)
-                    _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
-                    print(f"[GLOBAL_MACRO][TIMING] per-row-cache fallback, {time.time() - _t0:.2f}s", flush=True)
-                    return result
-
-            except Exception as _e:
-                print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
+            print(f"[GLOBAL_MACRO] Per-row cache EMPTY for today — forcing fresh fetch", flush=True)
+    except Exception as _e:
+        print(f"[GLOBAL_MACRO] Supabase cache read failed: {_e}", flush=True)
 
     print("[GLOBAL_MACRO] Cache miss — fetching fresh data for 50 economies...", flush=True)
     try:
@@ -7316,16 +7304,10 @@ async def get_global_macro():
         "cached":          False,
     }
     result = _with_atlas_intelligence_and_story(result)
-    try:
-        import json as _json
-        _supabase.table("global_macro_cache").upsert({
-            "cache_key": "global_macro_50",
-            "data": _json.dumps(result),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
-        print("[GLOBAL_MACRO] Cache updated", flush=True)
-    except Exception as _ce:
-        print(f"[GLOBAL_MACRO] Cache save failed: {_ce}", flush=True)
+    # No separate "save the blob" step here -- the per-economy upsert
+    # loop above already persisted every economy's row to
+    # global_macro_cache (the table's real, per-row schema), which is
+    # what the read path at the top of this function reads back.
     _global_macro_cache_mem = {"data": result, "fetched_at": time.time()}
     print(f"[GLOBAL_MACRO][TIMING] TOTAL request time, {time.time() - _t0:.2f}s", flush=True)
     return result
