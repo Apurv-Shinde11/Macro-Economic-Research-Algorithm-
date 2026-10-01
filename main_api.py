@@ -47,7 +47,8 @@ from nse_data             import NSEDataFetcher
 from yield_curve          import get_yield_curve_data
 from schemas import (
     REGIME_SCHEMA, SCENARIO_SCHEMA,
-    ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA
+    ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA,
+    ECONIQ_RUN_CONTRACT_VERSION, ECONIQ_RUN_RESULT_SCHEMA
 )
 from economic_calendar      import get_events_by_window, days_until_label
 from pdf_report_generator   import PDFReportGenerator
@@ -3222,6 +3223,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 recent_runs=_recent_runs_for_smooth
             )
         )
+        eng["validator"].validate_regime_core(regime)
         regime = rep.repair(regime, REGIME_SCHEMA)
 
         # ── Global linkage inputs ──────────────────────────────────────────
@@ -3470,6 +3472,64 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 flush=True,
             )
 
+        # The detailed evidence object is part of fresh-run output but is not
+        # guaranteed to be persisted in historical runs. Story remains shared;
+        # guidance remains profile-aware and separate.
+        _run_result = {
+            "regime": regime,
+            "strategy": strat,
+            "decision": dec,
+            "positioning": pos,
+            "scenarios": scenarios,
+            "triggers": triggers,
+            "liquidity": liq,
+            "intel": intel,
+            "nse": nse_snapshot,
+            "macro": macro,
+            "final_intel": final_intel,
+            "report": report if isinstance(report, str) else "",
+            "sector_heatmap": SECTOR_HEATMAP.get(
+                regime.get("regime", ""),
+                {"FAVOUR": [], "NEUTRAL": [], "AVOID": []},
+            ),
+            "narrative_delta": narrative_delta,
+            "regime_stability": stability,
+            "transition": transition,
+            "anticipatory": _anticipatory,
+            "leading_intelligence": _leading,
+            "briefing_allowed": _briefing_allowed,
+            "briefing_blocked_reason": _briefing_blocked_reason,
+            "regime_is_unstable": _is_unstable,
+            "challenger_delta": _challenger_delta,
+            "intelligence_object": _intelligence_object,
+            "story": _story,
+            "guidance": _guidance,
+            "contract_meta": {
+                "contract_version": ECONIQ_RUN_CONTRACT_VERSION,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "pipeline": "sentinel",
+                "validation_status": "valid",
+            },
+        }
+        _run_result, _contract_repairs = rep.repair_econiq_run_result(
+            _run_result, ECONIQ_RUN_RESULT_SCHEMA
+        )
+        _contract_warnings = eng["validator"].validate_econiq_run_result(
+            _run_result, ECONIQ_RUN_RESULT_SCHEMA
+        )
+        _validation_status = eng["validator"].set_econiq_run_validation_status(
+            _run_result, _contract_repairs, _contract_warnings
+        )
+        if _contract_repairs or _contract_warnings:
+            print(
+                f"[RUN_CONTRACT] job={job_id} status={_validation_status} "
+                f"repairs={_contract_repairs} warnings={_contract_warnings}",
+                flush=True,
+            )
+        eng["validator"].validate_econiq_run_result(
+            _run_result, ECONIQ_RUN_RESULT_SCHEMA
+        )
+
         try:
             _implied = _derive_implied_action(regime.get("regime", ""), strat.get("conviction", ""))
             print(f"[API] save_run: fii={nse_snapshot.get('fii_net_crore')} dii={nse_snapshot.get('dii_net_crore')} src={nse_snapshot.get('fii_dii_source')} regime={regime.get('regime','')}", flush=True)
@@ -3504,7 +3564,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             print(f"[API] save_run failed: {e}")
 
         _jobs[job_id]["status"] = "complete"
-        _jobs[job_id]["result"] = {"regime": regime, "strategy": strat, "decision": dec, "positioning": pos, "scenarios": scenarios, "triggers": triggers, "liquidity": liq, "intel": intel, "nse": nse_snapshot, "macro": macro, "final_intel": final_intel, "report": report if isinstance(report, str) else "", "sector_heatmap": SECTOR_HEATMAP.get(regime.get("regime", ""), {"FAVOUR": [], "NEUTRAL": [], "AVOID": []}), "narrative_delta": narrative_delta, "regime_stability": stability, "transition": transition, "anticipatory": _anticipatory, "leading_intelligence": _leading, "briefing_allowed": _briefing_allowed, "briefing_blocked_reason": _briefing_blocked_reason, "regime_is_unstable": _is_unstable, "challenger_delta": _challenger_delta, "intelligence_object": _intelligence_object, "story": _story, "guidance": _guidance}
+        _jobs[job_id]["result"] = _run_result
     except Exception as e:
         print(f"[API] Pipeline error: {e}")
         traceback.print_exc()

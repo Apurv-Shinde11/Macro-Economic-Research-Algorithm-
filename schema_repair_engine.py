@@ -34,6 +34,29 @@ class SchemaRepairEngine:
 
         return repaired
 
+    def repair_econiq_run_result(self, data, schema):
+        """Repair only optional top-level containers with unambiguous defaults."""
+        if not isinstance(data, dict):
+            return data, []
+
+        repaired = dict(data)
+        changes = []
+        for field, expected in schema["optional"].items():
+            if field in repaired or expected not in (dict, list):
+                continue
+            repaired[field] = {} if expected is dict else []
+            changes.append(field)
+
+        for field, default in (
+            ("story", {"status": "unavailable"}),
+            ("guidance", {"status": "withheld"}),
+        ):
+            if repaired.get(field) is None:
+                repaired[field] = dict(default)
+                changes.append(field)
+
+        return repaired, changes
+
     def _default_for_type(self, t):
         defaults = {
             str:   "",

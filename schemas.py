@@ -51,3 +51,39 @@ STRATEGY_SCHEMA = {
     "risk_framework": list,
     "meta": dict
 }
+
+# Canonical successful fresh-run payload. Unknown fields are allowed so new
+# intelligence domains can be added without invalidating existing consumers.
+ECONIQ_RUN_CONTRACT_VERSION = "1.0"
+ECONIQ_RUN_RESULT_SCHEMA = {
+    "required": {
+        "regime": dict,
+        "strategy": dict,
+        "decision": dict,
+        "scenarios": dict,
+        "briefing_allowed": bool,
+        "briefing_blocked_reason": (str, type(None)),
+        "intelligence_object": (dict, type(None)),
+        "story": dict,
+        "guidance": dict,
+        "contract_meta": dict,
+    },
+    "optional": {
+        "positioning": dict,
+        "triggers": list,
+        "liquidity": dict,
+        "intel": dict,
+        "nse": dict,
+        "macro": dict,
+        "final_intel": dict,
+        "report": str,
+        "sector_heatmap": dict,
+        "narrative_delta": dict,
+        "regime_stability": dict,
+        "transition": dict,
+        "anticipatory": dict,
+        "leading_intelligence": dict,
+        "regime_is_unstable": bool,
+        "challenger_delta": (int, float, type(None)),
+    },
+}
