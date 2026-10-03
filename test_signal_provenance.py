@@ -8,11 +8,13 @@ from nse_data import NSEDataFetcher
 from schema_validator import SchemaValidator
 from schemas import ECONIQ_RUN_CONTRACT_VERSION, ECONIQ_RUN_RESULT_SCHEMA
 from signal_provenance import (
+    SIGNAL_SOURCE_POLICY,
     build_data_quality_summary,
     build_signal_metadata,
     build_signal_provenance,
 )
 from test_econiq_run_contract import _representative_run
+from yield_curve import get_yield_curve_data_with_reliability
 
 
 NOW = datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc)
@@ -176,6 +178,33 @@ class SignalProvenanceTests(unittest.TestCase):
         self.assertIsNone(item["observed_at"])
         self.assertIsNone(item["age_days"])
         self.assertEqual(item["freshness"], "UNKNOWN")
+
+    def test_source_policy_maps_hardened_macro_signals(self):
+        for signal in ("cpi", "repo_rate", "bank_credit_growth", "india_10y"):
+            policy = SIGNAL_SOURCE_POLICY[signal]
+            self.assertIn("preferred", policy)
+            self.assertIn("fallback", policy)
+            self.assertTrue(policy["fallback"])
+
+    def test_bank_credit_hardcoded_history_is_not_live(self):
+        ingestor = DataIngestor()
+        with patch.object(ingestor, "_fetch_dbie_credit_growth", return_value=None):
+            signals = ingestor.fetch_india_activity_signals()
+
+        self.assertEqual(signals["bank_credit"]["source_type"], "FALLBACK")
+        self.assertEqual(signals["bank_credit"]["acquisition"], "FALLBACK")
+        self.assertTrue(signals["bank_credit"]["fallback_used"])
+        self.assertNotEqual(signals["bank_credit"]["source"], "RBI DBIE (live)")
+
+    def test_yield_curve_fallback_is_explicitly_labeled(self):
+        with patch("yield_curve.fetch_india_yields", return_value=({"10Y": 6.85}, "hardcoded")):
+            with patch("yield_curve.fetch_us_yields", return_value=({"10Y": 4.32}, "partial_fallback")):
+                payload = get_yield_curve_data_with_reliability()
+
+        self.assertEqual(payload["india_source_details"]["source_type"], "FALLBACK")
+        self.assertEqual(payload["india_source_details"]["acquisition"], "FALLBACK")
+        self.assertTrue(payload["india_source_details"]["fallback_used"])
+        self.assertEqual(payload["us_source_details"]["acquisition"], "FALLBACK")
 
     def test_existing_macro_hardcoded_defaults_are_marked_fallback(self):
         ingestor = DataIngestor()

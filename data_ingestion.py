@@ -684,6 +684,7 @@ class DataIngestor:
                     return f"{str(month).strip()} {str(year).strip()}"
             return str(month).strip() if month else None
 
+        retrieved_at = datetime.now(timezone.utc).isoformat()
         macro = {
             "repo_rate":   6.5,
             "us_fed_rate": 5.25,
@@ -706,14 +707,20 @@ class DataIngestor:
                 "source_type": "FALLBACK",
                 "acquisition": "FALLBACK",
                 "observed_at": None,
-                "fallback_reason": "Trading Economics returned no usable value",
+                "retrieved_at": retrieved_at,
+                "cached": False,
+                "fallback_used": True,
+                "fallback_reason": "Trading Economics returned no usable value; authoritatively unavailable fallback retained for compatibility.",
             },
             "cpi": {
                 "source": "hardcoded_default",
                 "source_type": "FALLBACK",
                 "acquisition": "FALLBACK",
                 "observed_at": None,
-                "fallback_reason": "data.gov.in CPI returned no usable value",
+                "retrieved_at": retrieved_at,
+                "cached": False,
+                "fallback_used": True,
+                "fallback_reason": "data.gov.in CPI returned no usable value; hardcoded compatibility value retained as fallback only.",
             },
         }
 
@@ -738,6 +745,9 @@ class DataIngestor:
                             for key in ("Date", "date", "LastUpdate", "lastUpdate")
                             if data[0].get(key)
                         ), None),
+                        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                        "cached": False,
+                        "fallback_used": False,
                         "fallback_reason": None,
                     }
         except Exception:
@@ -809,6 +819,9 @@ class DataIngestor:
                             "source_type": "PRIMARY",
                             "acquisition": "LIVE",
                             "observed_at": period,
+                            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                            "cached": False,
+                            "fallback_used": False,
                             "fallback_reason": None,
                         }
             except Exception:
@@ -1113,7 +1126,13 @@ class DataIngestor:
                 "yoy_growth_pct": 12.8,
                 "retail_credit":  15.2,
                 "signal":         "STRONG",
-                "source":         "hardcoded fallback",
+                "source":         "RBI DBIE maintained historical fallback",
+                "source_type":    "FALLBACK",
+                "acquisition":    "FALLBACK",
+                "fallback_used":  True,
+                "retrieved_at":   datetime.now(timezone.utc).isoformat(),
+                "cached":         True,
+                "fallback_reason": "DBIE was unavailable; static RBI-maintained history was retained for compatibility and explicitly marked non-live.",
             }
 
         # ── Composite Score ───────────────────────────────────────────────

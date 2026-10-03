@@ -162,6 +162,43 @@ def fetch_india_yields():
         return dict(INDIA_YIELDS_CURRENT), "hardcoded"
 
 
+def get_yield_curve_data_with_reliability():
+    """Return yield-curve data along with explicit source reliability metadata."""
+    india_yields, india_source = fetch_india_yields()
+    us_yields, us_source = fetch_us_yields()
+    analysis = analyse_curve(india_yields, us_yields)
+    return {
+        "india_yields": india_yields,
+        "us_yields": us_yields,
+        "analysis": analysis,
+        "india_source": india_source,
+        "us_source": us_source,
+        "india_source_details": {
+            "source": india_source,
+            "source_type": "FALLBACK" if india_source == "hardcoded" else "PRIMARY",
+            "acquisition": "FALLBACK" if india_source == "hardcoded" else "LIVE",
+            "fallback_used": india_source == "hardcoded",
+            "fallback_reason": (
+                "FBIL did not return a valid 10Y yield; monthly RBI reference retained only as a fallback."
+                if india_source == "hardcoded" else None
+            ),
+        },
+        "us_source_details": {
+            "source": us_source,
+            "source_type": "SECONDARY" if us_source == "partial_fallback" else "SECONDARY",
+            "acquisition": "FALLBACK" if us_source == "partial_fallback" else "LIVE",
+            "fallback_used": us_source == "partial_fallback",
+            "fallback_reason": (
+                "US Treasury live quote missing; fallback values retained for compatibility."
+                if us_source == "partial_fallback" else None
+            ),
+        },
+        "timestamp": datetime.datetime.now().strftime("%H:%M IST"),
+        "tenors_india": ["3M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "30Y"],
+        "tenors_us": ["3M", "2Y", "5Y", "10Y", "30Y"],
+    }
+
+
 def fetch_us_yields():
     """
     Fetches US Treasury yields via yfinance.

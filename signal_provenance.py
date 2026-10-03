@@ -41,6 +41,36 @@ ACQUISITION_STATES = {"LIVE", "CACHED", "FALLBACK", "MISSING"}
 FRESHNESS_STATES = {"CURRENT", "RECENT", "STALE", "UNKNOWN"}
 SOURCE_TYPES = {"PRIMARY", "SECONDARY", "CACHE", "FALLBACK", "UNKNOWN"}
 
+# Explicit source hierarchy for the four high-risk macro signals that were
+# previously allowed to silently drift into synthetic defaults.
+SIGNAL_SOURCE_POLICY = {
+    "cpi": {
+        "preferred": ["data.gov.in"],
+        "cache": ["last_known_good"],
+        "fallback": ["hardcoded_default", "legacy_default"],
+        "notes": "Prefer verified government data; never present a hardcoded value as current live CPI.",
+    },
+    "repo_rate": {
+        "preferred": ["RBI official policy data", "RBI DBIE"],
+        "secondary": ["Trading Economics"],
+        "cache": ["last_known_good"],
+        "fallback": ["hardcoded_default", "legacy_default"],
+        "notes": "A policy observation should retain its original effective date and not be silently replaced with a default.",
+    },
+    "bank_credit_growth": {
+        "preferred": ["RBI DBIE"],
+        "cache": ["last_known_good"],
+        "fallback": ["RBI maintained historical series", "hardcoded_default"],
+        "notes": "Static or manual credit history must be explicitly marked as non-live.",
+    },
+    "india_10y": {
+        "preferred": ["FBIL"],
+        "cache": ["last_known_good"],
+        "fallback": ["hardcoded_rbi_reference", "legacy_default"],
+        "notes": "Monthly RBI reference values are acceptable only as fallback and must retain their source provenance.",
+    },
+}
+
 
 def _parse_observation(value):
     if not value:
