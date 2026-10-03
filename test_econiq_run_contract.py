@@ -4,10 +4,11 @@ import unittest
 from schema_repair_engine import SchemaRepairEngine
 from schema_validator import RunContractError, SchemaValidator
 from schemas import ECONIQ_RUN_RESULT_SCHEMA
+from signal_provenance import build_data_quality_summary, build_signal_provenance
 
 
 def _representative_run():
-    return {
+    payload = {
         "regime": {"regime": "STABLE_GROWTH", "confidence": 0.73},
         "strategy": {"conviction": "MEDIUM", "playbook": ["Hold"]},
         "decision": {"summary": "Maintain current positioning"},
@@ -41,12 +42,17 @@ def _representative_run():
         "story": {"status": "paused", "message": "Briefing paused"},
         "guidance": {"status": "withheld", "reason": "Briefing paused"},
         "contract_meta": {
-            "contract_version": "1.0",
+            "contract_version": "1.1",
             "generated_at": "2026-10-01T12:00:00+00:00",
             "pipeline": "sentinel",
             "validation_status": "valid",
         },
     }
+    payload["signal_provenance"] = build_signal_provenance({})
+    payload["data_quality"] = build_data_quality_summary(
+        payload["signal_provenance"]
+    )
+    return payload
 
 
 class EconIQRunContractTests(unittest.TestCase):

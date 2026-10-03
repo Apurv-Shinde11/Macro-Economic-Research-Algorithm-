@@ -407,6 +407,11 @@ class NSEDataFetcher:
                     "change_pct": change_pct,
                     "year_high":  yearly_hi,
                     "year_low":   yearly_lo,
+                    "observed_at": (
+                        idx.get("lastUpdateTime")
+                        or idx.get("timestamp")
+                        or idx.get("timeVal")
+                    ),
                     "from_52w_high": round(
                         ((last - yearly_hi) / yearly_hi * 100), 1
                     ) if yearly_hi else 0,

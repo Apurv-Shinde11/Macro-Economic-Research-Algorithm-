@@ -54,7 +54,7 @@ STRATEGY_SCHEMA = {
 
 # Canonical successful fresh-run payload. Unknown fields are allowed so new
 # intelligence domains can be added without invalidating existing consumers.
-ECONIQ_RUN_CONTRACT_VERSION = "1.0"
+ECONIQ_RUN_CONTRACT_VERSION = "1.1"
 ECONIQ_RUN_RESULT_SCHEMA = {
     "required": {
         "regime": dict,
@@ -66,6 +66,8 @@ ECONIQ_RUN_RESULT_SCHEMA = {
         "intelligence_object": (dict, type(None)),
         "story": dict,
         "guidance": dict,
+        "signal_provenance": dict,
+        "data_quality": dict,
         "contract_meta": dict,
     },
     "optional": {

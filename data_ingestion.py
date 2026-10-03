@@ -330,9 +330,9 @@ class DataIngestor:
                 return None
 
             # Trade date — first row usually carries it
+            raw_trade_date = data[0].get("date") or data[0].get("tradeDate")
             trade_date = (
-                data[0].get("date") or
-                data[0].get("tradeDate") or
+                raw_trade_date or
                 datetime.now(timezone.utc).strftime("%d-%b-%Y")
             )
 
@@ -344,6 +344,7 @@ class DataIngestor:
                 "dii_buy":  _val(dii_row, "buyValue",  "grossPurchase"),
                 "dii_sell": _val(dii_row, "sellValue", "grossSales"),
                 "trade_date": trade_date,
+                "trade_date_inferred": not bool(raw_trade_date),
                 "source": "nse_live"
             }
 
@@ -557,6 +558,7 @@ class DataIngestor:
                             "fii_net_crore": fii,
                             "dii_net_crore": r.get("dii_net_crore"),
                             "trade_date":    r.get("run_at", "")[:10],
+                            "trade_date_inferred": True,
                             "stale":         True,
                             "cached_at":     r.get("run_at"),
                             "source":        "supabase_runs",
@@ -669,6 +671,19 @@ class DataIngestor:
     # =========================
     def fetch_macro_indicators(self):
 
+        def _observation_period(record):
+            for key in ("period", "date", "month_year", "year_month", "observation_date"):
+                if record.get(key):
+                    return str(record[key]).strip()
+            year = record.get("year")
+            month = record.get("month")
+            if year and month:
+                try:
+                    return f"{int(year):04d}-{int(month):02d}"
+                except (TypeError, ValueError):
+                    return f"{str(month).strip()} {str(year).strip()}"
+            return str(month).strip() if month else None
+
         macro = {
             "repo_rate":   6.5,
             "us_fed_rate": 5.25,
@@ -685,6 +700,22 @@ class DataIngestor:
             "fii_flows":  None,
             "source":     "fallback"
         }
+        signal_sources = {
+            "repo_rate": {
+                "source": "hardcoded_default",
+                "source_type": "FALLBACK",
+                "acquisition": "FALLBACK",
+                "observed_at": None,
+                "fallback_reason": "Trading Economics returned no usable value",
+            },
+            "cpi": {
+                "source": "hardcoded_default",
+                "source_type": "FALLBACK",
+                "acquisition": "FALLBACK",
+                "observed_at": None,
+                "fallback_reason": "data.gov.in CPI returned no usable value",
+            },
+        }
 
         # --- RBI Repo Rate via Trading Economics ---
         try:
@@ -698,6 +729,17 @@ class DataIngestor:
                 if isinstance(val, (int, float)):
                     macro["repo_rate"] = float(val)
                     macro["source"]    = "trading_economics"
+                    signal_sources["repo_rate"] = {
+                        "source": "Trading Economics",
+                        "source_type": "SECONDARY",
+                        "acquisition": "LIVE",
+                        "observed_at": next((
+                            str(data[0][key]).strip()
+                            for key in ("Date", "date", "LastUpdate", "lastUpdate")
+                            if data[0].get(key)
+                        ), None),
+                        "fallback_reason": None,
+                    }
         except Exception:
             pass
 
@@ -761,9 +803,18 @@ class DataIngestor:
                     if val:
                         macro["inflation"]["headline"] = float(val)
                         macro["source"] = "data.gov.in"
+                        period = _observation_period(records[0])
+                        signal_sources["cpi"] = {
+                            "source": "data.gov.in",
+                            "source_type": "PRIMARY",
+                            "acquisition": "LIVE",
+                            "observed_at": period,
+                            "fallback_reason": None,
+                        }
             except Exception:
                 pass
 
+        macro["signal_sources"] = signal_sources
         return macro
 
     # =========================
@@ -832,7 +883,18 @@ class DataIngestor:
             market["rates"]["us10y"]           = price("us10y")
             market["commodities"]["crude_oil"] = price("crude")
             market["commodities"]["gold"]      = price("gold")
+            def observation_time(key):
+                timestamp = lookup.get(symbols[key], {}).get("regularMarketTime")
+                if isinstance(timestamp, (int, float)) and timestamp > 0:
+                    return datetime.fromtimestamp(
+                        timestamp, timezone.utc
+                    ).isoformat()
+                return None
             market["volatility"]["vix"]        = price("vix")
+            market["signal_observations"] = {
+                "usd_inr": observation_time("usd_inr"),
+                "us10y": observation_time("us10y"),
+            }
 
             market["changes"] = {
                 "nifty":     fmt_chg("nifty"),

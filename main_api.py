@@ -50,6 +50,11 @@ from schemas import (
     ASSET_SCHEMA, POSITIONING_SCHEMA, STRATEGY_SCHEMA,
     ECONIQ_RUN_CONTRACT_VERSION, ECONIQ_RUN_RESULT_SCHEMA
 )
+from signal_provenance import (
+    build_data_quality_summary,
+    build_signal_provenance,
+    provenance_alerts,
+)
 from economic_calendar      import get_events_by_window, days_until_label
 from pdf_report_generator   import PDFReportGenerator
 
@@ -1523,6 +1528,7 @@ def _fetch_nse_snapshot_jugaad() -> dict:
     """
     result = {
         "india_vix":  None,
+        "india_vix_observed_at": None,
         "nifty50":    None,
         "bank_nifty": None,
         "nifty500":   None,
@@ -1540,6 +1546,11 @@ def _fetch_nse_snapshot_jugaad() -> dict:
 
             if name == "INDIA VIX":
                 result["india_vix"] = float(last) if last else None
+                result["india_vix_observed_at"] = (
+                    item.get("lastUpdateTime")
+                    or item.get("timestamp")
+                    or item.get("timeVal")
+                )
             elif name == "NIFTY 50":
                 result["nifty50"] = {
                     "last":          float(last),
@@ -1579,6 +1590,7 @@ def _fetch_nse_snapshot_yf() -> dict:
 
         vix_hist   = yf.Ticker("^INDIAVIX").history(period="1d")
         vix        = float(vix_hist["Close"].iloc[-1]) if not vix_hist.empty else None
+        vix_observed_at = str(vix_hist.index[-1].date()) if not vix_hist.empty else None
 
         nifty_hist = yf.Ticker("^NSEI").history(period="1d")
         nifty      = float(nifty_hist["Close"].iloc[-1]) if not nifty_hist.empty else None
@@ -1594,6 +1606,7 @@ def _fetch_nse_snapshot_yf() -> dict:
         )
         return {
             "vix":        vix,
+            "vix_observed_at": vix_observed_at,
             "nifty":      nifty,
             "bank_nifty": bank_nifty,
             "src":        "yfinance",
@@ -1602,6 +1615,7 @@ def _fetch_nse_snapshot_yf() -> dict:
         print(f"[YF] Snapshot failed: {e}", flush=True)
         return {
             "vix":        None,
+            "vix_observed_at": None,
             "nifty":      None,
             "bank_nifty": None,
             "src":        "unavailable",
@@ -1704,9 +1718,9 @@ def _fetch_nse_fii_curlcffi() -> dict | None:
                     return n
             return None
 
+        raw_trade_date = data[0].get("date") or data[0].get("tradeDate")
         trade_date = (
-            data[0].get("date")
-            or data[0].get("tradeDate")
+            raw_trade_date
             or datetime.now(timezone.utc).strftime("%d-%b-%Y")
         )
 
@@ -1718,6 +1732,7 @@ def _fetch_nse_fii_curlcffi() -> dict | None:
             "dii_buy":  _val(dii_row, "buyValue",  "grossPurchase"),
             "dii_sell": _val(dii_row, "sellValue", "grossSales"),
             "trade_date": trade_date,
+            "trade_date_inferred": not bool(raw_trade_date),
             "source": "nse_curlcffi",
         }
 
@@ -2834,6 +2849,22 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
     _rbi_context = []
     _fii_context = []
     _market_context = []
+    _vix_provenance = {
+        "source": "hardcoded NSE snapshot default",
+        "source_type": "FALLBACK",
+        "acquisition": "FALLBACK",
+        "observed_at": None,
+        "fallback_reason": "No exchange or alternate-provider observation identified",
+    }
+    _crude_provenance = {
+        "source": "unknown",
+        "source_type": "UNKNOWN",
+        "acquisition": "MISSING",
+        "observed_at": None,
+        "fallback_reason": None,
+    }
+    _fii = None
+    _fii_applied_to_snapshot = False
     try:
         eng = _engines
         rep = eng["repair"]
@@ -2849,6 +2880,15 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         nse_snapshot = {}
         try:
             nse_snapshot = eng["nse"].get_full_snapshot()
+            _nse_vix = (nse_snapshot.get("indices") or {}).get("india_vix") or {}
+            if _nse_vix.get("last") is not None:
+                _vix_provenance = {
+                    "source": "NSE",
+                    "source_type": "PRIMARY",
+                    "acquisition": "LIVE",
+                    "observed_at": _nse_vix.get("observed_at"),
+                    "fallback_reason": None,
+                }
         except Exception:
             nse_snapshot = {"fii_dii": {}, "indices": {}, "fii_net_crore": None, "india_vix": 15, "pcr": 1.0, "flow_signal": "NEUTRAL"}
         # ── NSE Snapshot — layered fallback ──────────────────────────────────────
@@ -2858,6 +2898,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             _jd = _fetch_nse_snapshot_jugaad()
             if _jd.get("india_vix") is not None:
                 nse_snapshot["india_vix"] = _jd["india_vix"]
+                _vix_provenance = {
+                    "source": "jugaad-data NSELive",
+                    "source_type": "PRIMARY",
+                    "acquisition": "LIVE",
+                    "observed_at": None,
+                    "fallback_reason": None,
+                }
                 print(
                     f"[NSE] VIX from jugaad: {_jd['india_vix']}",
                     flush=True
@@ -2876,6 +2923,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             _yf_snap = _fetch_nse_snapshot_yf()
             if _yf_snap.get("vix") is not None:
                 nse_snapshot["india_vix"] = _yf_snap["vix"]
+                _vix_provenance = {
+                    "source": "Yahoo Finance ^INDIAVIX",
+                    "source_type": "SECONDARY",
+                    "acquisition": "FALLBACK",
+                    "observed_at": _yf_snap.get("vix_observed_at"),
+                    "fallback_reason": "NSE/jugaad VIX path unavailable",
+                }
             if _yf_snap.get("nifty") is not None:
                 nse_snapshot["nifty_last"] = _yf_snap["nifty"]
                 nse_snapshot.setdefault("nifty_change", 0.0)
@@ -2897,6 +2951,17 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     _current_vix == 15.0
                 ):
                     nse_snapshot["india_vix"] = float(_cached_vix)
+                    _vix_provenance = {
+                        "source": "Yahoo Finance ticker cache",
+                        "source_type": "CACHE",
+                        "acquisition": "FALLBACK",
+                        "observed_at": None,
+                        "cache_updated_at": datetime.fromtimestamp(
+                            _ticker_cache.get("fetched_at", 0), timezone.utc
+                        ).isoformat() if _ticker_cache.get("fetched_at") else None,
+                        "fallback_reason": "NSE and direct yfinance VIX values unavailable",
+                        "cached": True,
+                    }
                     print(
                         f"[VIX] Patched from ticker cache: {_cached_vix}",
                         flush=True
@@ -2922,6 +2987,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     "fii_dii_cached_at": _fii.get("cached_at"),
                     "fii_trade_date":    _fii.get("trade_date"),
                 })
+                _fii_applied_to_snapshot = True
                 print(f"[FII] resolved: fii={_fii['fii_net_crore']} dii={_fii.get('dii_net_crore')} src={_fii.get('source')}", flush=True)
                 # ── Persist daily snapshot for multi-timeframe aggregation ─────────────
                 try:
@@ -2967,12 +3033,30 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
         _cached_crude = _ticker_cache.get("data", {}).get("Crude", {}).get("price")
         if _cached_crude:
             _crude_live = _cached_crude
+            _crude_provenance = {
+                "source": "Yahoo Finance ticker cache",
+                "source_type": "CACHE",
+                "acquisition": "CACHED",
+                "observed_at": None,
+                "cache_updated_at": datetime.fromtimestamp(
+                    _ticker_cache.get("fetched_at", 0), timezone.utc
+                ).isoformat() if _ticker_cache.get("fetched_at") else None,
+                "fallback_reason": None,
+                "cached": True,
+            }
         else:
             try:
                 import yfinance as yf
                 _ch = yf.Ticker("CL=F").history(period="2d", interval="1d")
                 if len(_ch) >= 1:
                     _crude_live = round(float(_ch["Close"].iloc[-1]), 2)
+                    _crude_provenance = {
+                        "source": "Yahoo Finance CL=F",
+                        "source_type": "SECONDARY",
+                        "acquisition": "LIVE",
+                        "observed_at": str(_ch.index[-1].date()),
+                        "fallback_reason": None,
+                    }
                     print(f"[PIPELINE] Crude fetched direct: ${_crude_live}", flush=True)
             except Exception as _ce:
                 print(f"[PIPELINE] Crude fetch failed — storing NULL: {_ce}", flush=True)
@@ -2994,6 +3078,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     _crude_live = float(
                         hist["Close"].iloc[-1]
                     )
+                    _crude_provenance = {
+                        "source": "Yahoo Finance CL=F",
+                        "source_type": "SECONDARY",
+                        "acquisition": "FALLBACK",
+                        "observed_at": str(hist.index[-1].date()),
+                        "fallback_reason": "Primary crude value missing or failed sanity check",
+                    }
                     print(
                         f"[CRUDE] yfinance fallback: "
                         f"${_crude_live:.2f}",
@@ -3002,6 +3093,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 else:
                     # Last known reasonable value
                     _crude_live = 94.0
+                    _crude_provenance = {
+                        "source": "hardcoded emergency default",
+                        "source_type": "FALLBACK",
+                        "acquisition": "FALLBACK",
+                        "observed_at": None,
+                        "fallback_reason": "Both crude fetches returned no usable observation",
+                    }
                     print(
                         f"[CRUDE] yfinance empty — "
                         f"using last known ${_crude_live}",
@@ -3009,6 +3107,13 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                     )
             except Exception as e:
                 _crude_live = 94.0
+                _crude_provenance = {
+                    "source": "hardcoded emergency default",
+                    "source_type": "FALLBACK",
+                    "acquisition": "FALLBACK",
+                    "observed_at": _jd.get("india_vix_observed_at"),
+                    "fallback_reason": "Both crude fetches failed",
+                }
                 print(
                     f"[CRUDE] yfinance failed: {e} — "
                     f"using last known ${_crude_live}",
@@ -3472,6 +3577,153 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
                 flush=True,
             )
 
+        _macro_signal_sources = macro.get("signal_sources", {})
+        _cpi_macro_source = _macro_signal_sources.get("cpi", {})
+        _repo_macro_source = _macro_signal_sources.get("repo_rate", {})
+        _run_retrieved_at = datetime.now(timezone.utc).isoformat()
+        _resolved_fii_source = (_fii or {}).get("source", "unknown")
+        _fii_source = (
+            _resolved_fii_source if _fii_applied_to_snapshot
+            else nse_snapshot.get("fii_dii_source", _resolved_fii_source)
+        )
+        _fii_is_cached = _fii_source in {"supabase_cache", "supabase_runs"}
+        _fii_is_stale = (
+            bool((_fii or {}).get("stale")) if _fii_applied_to_snapshot
+            else bool(nse_snapshot.get("fii_dii_stale"))
+        )
+        _fii_acquisition = "FALLBACK" if _fii_is_cached or _fii_is_stale else "LIVE"
+        _fii_source_type = (
+            "CACHE" if _fii_is_cached else
+            "PRIMARY" if _fii_source in {"bse_live", "nse_live", "nse_curlcffi", "bse", "nse"} else
+            "SECONDARY" if _fii_source == "nsdl" else
+            "UNKNOWN"
+        )
+        _fii_observed_at = (
+            None if (_fii or {}).get("trade_date_inferred") else
+            (_fii or {}).get("trade_date")
+        ) if _fii_applied_to_snapshot else (
+            nse_snapshot.get("fii_trade_date")
+            or (nse_snapshot.get("fii_dii") or {}).get("date")
+        )
+        _yc_data = _yc_cache.get("data") or {}
+        _india_10y = (_yc_data.get("india_yields") or {}).get("10Y")
+        _india_yc_source = _yc_data.get("india_source", "unknown")
+        _yc_retrieved_at = None
+        if _yc_cache.get("fetched_at"):
+            _yc_retrieved_at = datetime.fromtimestamp(
+                _yc_cache["fetched_at"], timezone.utc
+            ).isoformat()
+        _india_10y_fallback = _india_yc_source == "hardcoded"
+        _us_10y = (market.get("rates") or {}).get("us10y")
+
+        _signal_inputs = {
+            # RegimeEngine currently consumes NLP._build_output's hard_data.cpi
+            # constant. The independently fetched macro CPI remains alongside it.
+            "cpi": {
+                "value": intel.get("hard_data", {}).get("cpi"),
+                "source": "NLP hard_data template",
+                "source_type": "FALLBACK",
+                "acquisition": "FALLBACK",
+                "observed_at": None,
+                "fallback_reason": "Regime CPI input is the NLP template value; fetched macro CPI is not wired to it",
+                "macro_observation": {
+                    "value": (macro.get("inflation") or {}).get("headline"),
+                    **_cpi_macro_source,
+                },
+                "value_path": "intel.hard_data.cpi",
+            },
+            "repo_rate": {
+                "value": intel.get("hard_data", {}).get("repo_rate", repo),
+                "source": "Sentinel /api/run request",
+                "source_type": "UNKNOWN",
+                "acquisition": "FALLBACK",
+                "observed_at": None,
+                "fallback_reason": "Run request value has no attached provider observation",
+                "macro_observation": {
+                    "value": macro.get("repo_rate"),
+                    **_repo_macro_source,
+                },
+                "value_path": "intel.hard_data.repo_rate",
+            },
+            "bank_credit_growth": {
+                "value": _credit_impulse.get("current"),
+                "source": "RBI DBIE manually maintained Sentinel history",
+                "source_type": "FALLBACK",
+                "acquisition": "FALLBACK",
+                "observed_at": _CREDIT_GROWTH_HISTORY[-1].get("month"),
+                "fallback_reason": "The Sentinel run uses the in-code history; the live /api/india-activity fetch is not called by this pipeline",
+                "value_path": "intel.credit_impulse.current",
+            },
+            "fii": {
+                "value": nse_snapshot.get("fii_net_crore"),
+                "source": _fii_source,
+                "source_type": _fii_source_type,
+                "acquisition": _fii_acquisition,
+                "observed_at": _fii_observed_at,
+                "fallback_reason": "Live FII sources unavailable; Supabase last-known-good used" if _fii_is_cached else None,
+                "cached": _fii_is_cached or _fii_is_stale,
+                "cached_at": (_fii or {}).get("cached_at") if _fii_applied_to_snapshot else nse_snapshot.get("fii_dii_cached_at"),
+            },
+            "dii": {
+                "value": nse_snapshot.get("dii_net_crore"),
+                "source": _fii_source,
+                "source_type": _fii_source_type,
+                "acquisition": _fii_acquisition,
+                "observed_at": _fii_observed_at,
+                "fallback_reason": "Live DII source unavailable; value absent from the resolved FII/DII row" if nse_snapshot.get("dii_net_crore") is None else ("Live FII/DII sources unavailable; Supabase last-known-good used" if _fii_is_cached else None),
+                "cached": _fii_is_cached or _fii_is_stale,
+                "cached_at": (_fii or {}).get("cached_at") if _fii_applied_to_snapshot else nse_snapshot.get("fii_dii_cached_at"),
+            },
+            "india_vix": {
+                "value": nse_snapshot.get("india_vix"),
+                **_vix_provenance,
+            },
+            "crude_oil": {
+                "value": nse_snapshot.get("crude_price"),
+                **_crude_provenance,
+            },
+            "usd_inr": {
+                "value": (market.get("fx") or {}).get("usd_inr"),
+                "source": "Yahoo Finance INR=X",
+                "source_type": "SECONDARY",
+                "acquisition": "LIVE",
+                "observed_at": (market.get("signal_observations") or {}).get("usd_inr"),
+                "fallback_reason": None,
+                "value_path": "market.fx.usd_inr",
+            },
+            "india_10y": {
+                "value": _india_10y,
+                "source": "hardcoded RBI monthly yield" if _india_10y_fallback else ("FBIL" if _india_yc_source == "fbil_live" else "yield curve cache unavailable"),
+                "source_type": "FALLBACK" if _india_10y_fallback else ("PRIMARY" if _india_yc_source == "fbil_live" else "UNKNOWN"),
+                "acquisition": "FALLBACK" if _india_10y_fallback else ("CACHED" if _india_yc_source == "fbil_live" else "MISSING"),
+                "observed_at": "2026-05" if _india_10y_fallback else None,
+                "retrieved_at": _run_retrieved_at,
+                "cache_updated_at": _yc_retrieved_at,
+                "fallback_reason": "FBIL 10Y value unavailable; monthly RBI fallback used" if _india_10y_fallback else None,
+                "cached": bool(_yc_data),
+            },
+            "us_10y": {
+                "value": _us_10y,
+                "source": "Yahoo Finance ^TNX",
+                "source_type": "SECONDARY",
+                "acquisition": "LIVE",
+                "observed_at": (market.get("signal_observations") or {}).get("us10y"),
+                "fallback_reason": None,
+                "value_path": "market.rates.us10y",
+            },
+        }
+        signal_provenance = build_signal_provenance(
+            _signal_inputs, now=datetime.now(timezone.utc)
+        )
+        data_quality = build_data_quality_summary(signal_provenance)
+        _provenance_alerts = provenance_alerts(signal_provenance)
+        if _provenance_alerts:
+            print(
+                f"[DATA_QUALITY] job={job_id} "
+                + ", ".join(_provenance_alerts),
+                flush=True,
+            )
+
         # The detailed evidence object is part of fresh-run output but is not
         # guaranteed to be persisted in historical runs. Story remains shared;
         # guidance remains profile-aware and separate.
@@ -3504,6 +3756,8 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             "intelligence_object": _intelligence_object,
             "story": _story,
             "guidance": _guidance,
+            "signal_provenance": signal_provenance,
+            "data_quality": data_quality,
             "contract_meta": {
                 "contract_version": ECONIQ_RUN_CONTRACT_VERSION,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
