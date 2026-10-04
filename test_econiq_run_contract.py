@@ -41,6 +41,7 @@ def _representative_run():
         "intelligence_object": {"signals": [{"id": "growth", "value": 6.8}]},
         "story": {"status": "paused", "message": "Briefing paused"},
         "guidance": {"status": "withheld", "reason": "Briefing paused"},
+        "rbi_policy_intelligence": {},
         "contract_meta": {
             "contract_version": "1.1",
             "generated_at": "2026-10-01T12:00:00+00:00",
@@ -174,6 +175,22 @@ class EconIQRunContractTests(unittest.TestCase):
             ),
             [],
         )
+
+    def test_rbi_policy_intelligence_is_additive_and_optional(self):
+        payload = _representative_run()
+        payload["rbi_policy_intelligence"] = {"tone": {"label": "UNKNOWN"}}
+
+        self.assertEqual(
+            self.validator.validate_econiq_run_result(
+                payload, ECONIQ_RUN_RESULT_SCHEMA
+            ),
+            [],
+        )
+        del payload["rbi_policy_intelligence"]
+        warnings = self.validator.validate_econiq_run_result(
+            payload, ECONIQ_RUN_RESULT_SCHEMA
+        )
+        self.assertIn("optional field missing: rbi_policy_intelligence", warnings)
 
 
 if __name__ == "__main__":

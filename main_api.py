@@ -55,6 +55,7 @@ from signal_provenance import (
     build_signal_provenance,
     provenance_alerts,
 )
+from rbi_policy_intelligence import build_rbi_policy_intelligence
 from economic_calendar      import get_events_by_window, days_until_label
 from pdf_report_generator   import PDFReportGenerator
 
@@ -2204,8 +2205,9 @@ def _fetch_rbi_release_raw(release: dict) -> dict:
 
     text = content.get_text(separator=" ", strip=True)
 
-    # Limit to 3000 chars for NLP efficiency
-    text = text[:3000]
+    full_text = text
+    # Preserve the existing NLP input size; RBI intelligence uses full source text.
+    text = full_text[:3000]
 
     if len(text) <= 200:
         raise ValueError(
@@ -2214,11 +2216,16 @@ def _fetch_rbi_release_raw(release: dict) -> dict:
         )
 
     return {
-        "text":    text,
-        "date":    release["date"],
-        "prid":    release["prid"],
-        "source":  f"RBI MPC {release['date']}",
-        "fetched": True,
+        "text":         text,
+        "full_text":    full_text,
+        "date":         release["date"],
+        "meeting_date": release["date"],
+        "meeting_id":   release.get("meeting_id"),
+        "prid":         release["prid"],
+        "url":          url,
+        "source":       f"RBI MPC {release['date']}",
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "fetched":      True,
     }
 
 
@@ -2256,44 +2263,62 @@ def _fetch_rbi_mpc_text() -> dict:
         {
             "prid": "63287",
             "date": "August 3-5, 2026",
+            "meeting_id": "2026-08",
             "rate": "5.25%",
         },
         {
             "prid": "63288",
             "date": "August 5, 2026",
+            "meeting_id": "2026-08",
             "rate": "5.25%",
         },
         {
             "prid": "62863",
             "date": "June 3-5, 2026",
+            "meeting_id": "2026-06",
             "rate": "5.25%",
         },
         {
             "prid": "62169",
             "date": "Feb 4-6, 2026",
+            "meeting_id": "2026-02",
             "rate": "6.25%",
         },
     ]
 
-    # Try most recent first
+    # Resolve the newest source and the previous distinct meeting. Multiple
+    # releases can refer to the same MPC meeting, so only one is retained.
+    documents = []
+    successful_meetings = set()
     for release in MPC_PRESS_RELEASES:
+        meeting_id = release.get("meeting_id") or release["date"]
+        if meeting_id in successful_meetings:
+            continue
         try:
             result = _fetch_rbi_release_raw(release)
+            result["meeting_id"] = meeting_id
             print(
                 f"[RBI_NLP] Fetched MPC statement "
                 f"{release['date']}: {len(result['text'])} chars",
                 flush=True
             )
-            _RBI_DOC_CACHE["data"]       = result
-            _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
-            return result
-
+            documents.append(result)
+            successful_meetings.add(meeting_id)
+            if len(documents) == 2:
+                break
         except Exception as e:
             print(
                 f"[RBI_NLP] Fetch failed prid={release['prid']}: {e}",
                 flush=True
             )
             continue
+
+    if documents:
+        result = documents[0]
+        result["previous"] = documents[1] if len(documents) > 1 else None
+        _RBI_DOC_CACHE["data"]       = result
+        _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
+        return result
 
     # Fallback text if fetch fails
     print(
@@ -2306,10 +2331,16 @@ def _fetch_rbi_mpc_text() -> dict:
             "neutral. Inflation trending toward 4% target. Growth "
             "projection 6.6% for FY27. Next meeting August 2026."
         ),
-        "date":    "June 2026",
-        "prid":    "fallback",
-        "source":  "RBI MPC fallback",
+        "full_text": "",
+        "date": "June 2026",
+        "meeting_date": "June 2026",
+        "meeting_id": "2026-06",
+        "prid": "fallback",
+        "url": None,
+        "source": "RBI MPC fallback",
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
         "fetched": False,
+        "previous": None,
     }
     _RBI_DOC_CACHE["data"]       = fallback
     _RBI_DOC_CACHE["fetched_at"] = datetime.utcnow()
@@ -3216,6 +3247,21 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             "source":  _rbi_doc["source"],
             "fetched": _rbi_doc["fetched"],
         }
+        try:
+            _rbi_policy_intelligence = build_rbi_policy_intelligence(
+                _rbi_doc,
+                previous_document=_rbi_doc.get("previous"),
+                retrieved_at=_rbi_doc.get("retrieved_at"),
+            )
+        except Exception as _rbi_intelligence_error:
+            print(
+                f"[RBI_POLICY_INTELLIGENCE] Build failed: {_rbi_intelligence_error}",
+                flush=True,
+            )
+            _rbi_policy_intelligence = build_rbi_policy_intelligence(
+                {"fetched": False, "text": ""},
+                retrieved_at=datetime.now(timezone.utc).isoformat(),
+            )
         intel["hard_data"].update({
             "repo_rate": repo, "fiscal_deficit": deficit, "capex_lakh_cr": capex,
             "gdp_growth": macro.get("growth", {}).get("gdp", 7.2),
@@ -3758,6 +3804,7 @@ def _run_pipeline_sync(job_id: str, user_id: str, repo: float, deficit: float, c
             "guidance": _guidance,
             "signal_provenance": signal_provenance,
             "data_quality": data_quality,
+            "rbi_policy_intelligence": _rbi_policy_intelligence,
             "contract_meta": {
                 "contract_version": ECONIQ_RUN_CONTRACT_VERSION,
                 "generated_at": datetime.now(timezone.utc).isoformat(),

@@ -4334,6 +4334,157 @@
     .story-eyebrow.amber { color: var(--amber); }
     .story-section-title { font-family: var(--font-serif); font-weight: 600; font-size: 27px; line-height: 1.3; color: var(--text); max-width: 640px; margin: 8px 0 8px; }
     .story-section-sub { font-family: var(--font-sans); font-size: 15px; line-height: 1.65; color: var(--text-2); max-width: 640px; margin-bottom: 28px; }
+    .rbi-policy-section[hidden] {
+      display: none;
+    }
+
+    .rbi-policy-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .rbi-policy-head .story-section-title {
+      margin-bottom: 16px;
+    }
+
+    .rbi-policy-source {
+      font: 10px var(--font-mono);
+      color: var(--text-3);
+      padding-bottom: 18px;
+    }
+
+    .rbi-policy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px 32px;
+    }
+
+    .rbi-policy-item {
+      min-width: 0;
+    }
+
+    .rbi-policy-item p {
+      margin: 7px 0 0;
+      color: var(--text-2);
+      font: 14px/1.6 var(--font-sans);
+      overflow-wrap: anywhere;
+    }
+
+    .rbi-policy-market {
+      display: flex;
+      gap: 10px 28px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .rbi-policy-market-item {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 140px;
+    }
+
+    .rbi-policy-market-item span:first-child {
+      color: var(--text-3);
+      font: 10px var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .rbi-policy-market-item span:last-child {
+      color: var(--text);
+      font: 12px var(--font-mono);
+    }
+
+    .rbi-policy-watch {
+      margin: 14px 0 0;
+      color: var(--text-2);
+      font: 13px/1.6 var(--font-sans);
+    }
+
+    .rbi-policy-details {
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .rbi-policy-details summary {
+      width: fit-content;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--blue);
+      font: 11px var(--font-mono);
+    }
+
+    .rbi-policy-details summary:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+      border-radius: 3px;
+    }
+
+    .rbi-policy-detail-body {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px 32px;
+      padding-top: 12px;
+    }
+
+    .rbi-policy-detail-group h3 {
+      margin: 0 0 8px;
+      color: var(--text-3);
+      font: 10px var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .rbi-policy-detail-group p,
+    .rbi-policy-detail-group li {
+      color: var(--text-2);
+      font: 13px/1.6 var(--font-sans);
+      overflow-wrap: anywhere;
+    }
+
+    .rbi-policy-detail-group p {
+      margin: 6px 0;
+    }
+
+    .rbi-policy-detail-group ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .rbi-policy-detail-group li+li {
+      margin-top: 6px;
+    }
+
+    .rbi-policy-detail-group a {
+      color: var(--blue);
+    }
+
+    @media (max-width: 700px) {
+
+      .rbi-policy-grid,
+      .rbi-policy-detail-body {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .rbi-policy-market {
+        gap: 12px 18px;
+      }
+
+      .rbi-policy-market-item {
+        min-width: 0;
+        flex: 1 1 125px;
+      }
+    }
+
 
     .story-top { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
     .story-top-left { flex: 1 1 560px; min-width: 320px; }
@@ -4770,6 +4921,34 @@
               <span class="streak-icon" id="streakIcon">🔥</span>
               <span class="streak-text" id="streakText">
                 Loading...
+
+          <section class="story-section rbi-policy-section" id="rbiPolicySection" hidden
+            aria-labelledby="rbiPolicyPosture">
+            <div class="rbi-policy-head">
+              <div>
+                <span class="story-eyebrow">RBI policy</span>
+                <h2 class="story-section-title" id="rbiPolicyPosture">Policy read unavailable</h2>
+              </div>
+              <span class="rbi-policy-source" id="rbiPolicySource"></span>
+            </div>
+            <div class="rbi-policy-grid">
+              <div class="rbi-policy-item">
+                <span class="section-meta">What changed</span>
+                <p id="rbiPolicyChange">Previous MPC comparison unavailable.</p>
+              </div>
+              <div class="rbi-policy-item">
+                <span class="section-meta">Why</span>
+                <p id="rbiPolicyWhy">No policy-driver evidence extracted.</p>
+              </div>
+            </div>
+            <div class="rbi-policy-market" id="rbiPolicyMarket" aria-label="Directional market implications"></div>
+            <p class="rbi-policy-watch" id="rbiPolicyWatch"></p>
+            <details class="rbi-policy-details">
+              <summary>View facts, evidence and source</summary>
+              <div class="rbi-policy-detail-body" id="rbiPolicyDetailBody"></div>
+            </details>
+          </section>
+
               </span>
             </div>
           </div>
@@ -6181,6 +6360,146 @@
     // the WHY section's convergence/contradiction cards (real, from
     // intelligence_object.py's output — only present on a fresh run, since it isn't
     // persisted to the runs table yet, so fromHistory has nothing to show here),
+    function renderRbiPolicyIntelligence(intelligence) {
+      const section = document.getElementById('rbiPolicySection');
+      if (!section) return;
+      section.hidden = true;
+      if (!intelligence || typeof intelligence !== 'object' || Array.isArray(intelligence)) return;
+
+      const facts = intelligence.facts && typeof intelligence.facts === 'object' ? intelligence.facts : {};
+      const tone = intelligence.tone && typeof intelligence.tone === 'object' ? intelligence.tone : {};
+      const comparison = intelligence.comparison && typeof intelligence.comparison === 'object' ? intelligence.comparison : {};
+      const interpretation = intelligence.interpretation && typeof intelligence.interpretation === 'object' ? intelligence.interpretation : {};
+      const drivers = Array.isArray(intelligence.drivers) ? intelligence.drivers : [];
+      const watch = Array.isArray(intelligence.watch_triggers) ? intelligence.watch_triggers : [];
+      const transmission = intelligence.transmission && typeof intelligence.transmission === 'object' ? intelligence.transmission : {};
+      const posture = typeof interpretation.posture === 'string' ? interpretation.posture : (tone.label || 'UNDETERMINED');
+      document.getElementById('rbiPolicyPosture').textContent = posture.replace(/_/g, ' ');
+
+      const comparisonLabels = [
+        ['repo', 'repo rate'],
+        ['stance', 'stance'],
+        ['inflation_projection', 'inflation forecast'],
+        ['growth_projection', 'growth forecast'],
+        ['language', 'policy language'],
+      ];
+      const comparisonParts = comparisonLabels
+        .filter(([key]) => comparison[key] && comparison[key] !== 'UNKNOWN')
+        .map(([key, label]) => {
+          const deltaKey = key === 'inflation_projection'
+            ? 'inflation_projection_delta_pp'
+            : key === 'growth_projection' ? 'growth_projection_delta_pp' : null;
+      renderRbiPolicyIntelligence(data && data.rbi_policy_intelligence);
+          const delta = deltaKey ? comparison[deltaKey] : null;
+          const suffix = Number.isFinite(delta) ? ` (${delta > 0 ? '+' : ''}${delta.toFixed(1)} pp)` : '';
+          return `${label}: ${String(comparison[key]).toLowerCase()}${suffix}`;
+        });
+      document.getElementById('rbiPolicyChange').textContent = comparison.status === 'AVAILABLE'
+        ? (comparisonParts.join(' · ') || 'No structured change was detected.')
+        : (comparison.reason || 'Previous MPC comparison unavailable from source material.');
+
+      const primaryEvidence = typeof interpretation.primary_reason === 'string' && interpretation.primary_reason.trim()
+        ? interpretation.primary_reason.trim()
+        : 'The policy rationale was not sufficiently extracted from the retrieved source.';
+      document.getElementById('rbiPolicyWhy').textContent = primaryEvidence;
+
+      const market = document.getElementById('rbiPolicyMarket');
+      market.replaceChildren();
+      [
+        ['Bonds', transmission.long_duration_bonds],
+        ['Banks / NBFCs', transmission.banks || transmission.nbfc_hfc],
+        ['INR', transmission.inr],
+      ].forEach(([label, item]) => {
+        const row = document.createElement('div');
+        row.className = 'rbi-policy-market-item';
+        const name = document.createElement('span');
+        name.textContent = label;
+        const value = document.createElement('span');
+        value.textContent = item && typeof item.direction === 'string' ? item.direction.replace(/_/g, ' ') : 'UNKNOWN';
+        row.append(name, value);
+        market.appendChild(row);
+      });
+      const watchNames = watch.slice(0, 4).map(item => item && item.what_to_watch).filter(value => typeof value === 'string' && value);
+      document.getElementById('rbiPolicyWatch').textContent = watchNames.length ? `Watch: ${watchNames.join(' · ')}` : 'Watch triggers unavailable.';
+
+      const details = document.getElementById('rbiPolicyDetailBody');
+      details.replaceChildren();
+      const addGroup = (title, lines) => {
+        const group = document.createElement('div');
+        group.className = 'rbi-policy-detail-group';
+        const heading = document.createElement('h3');
+        heading.textContent = title;
+        group.appendChild(heading);
+        const list = document.createElement('ul');
+        lines.filter(Boolean).forEach(line => {
+          const item = document.createElement('li');
+          item.textContent = line;
+          list.appendChild(item);
+        });
+        if (list.childElementCount) group.appendChild(list);
+        else {
+          const empty = document.createElement('p');
+          empty.textContent = 'Not available in the retrieved source.';
+          group.appendChild(empty);
+        }
+        details.appendChild(group);
+      };
+      const projectionText = rows => Array.isArray(rows)
+        ? rows.map(row => row && Number.isFinite(row.value_pct)
+          ? `${row.metric ? row.metric.replace(/_/g, ' ') + ' · ' : ''}${row.period || 'period unknown'} · ${row.value_pct}%`
+          : '').filter(Boolean)
+        : [];
+      const factLines = [
+        facts.meeting_date ? `Meeting: ${facts.meeting_date}` : '',
+        Number.isFinite(facts.repo_rate_pct) ? `Repo rate: ${facts.repo_rate_pct}%` : '',
+        Number.isFinite(facts.repo_rate_change_bps) ? `Rate change: ${facts.repo_rate_change_bps} bps` : '',
+        facts.policy_decision ? `Decision: ${facts.policy_decision}` : '',
+        facts.policy_stance ? `Stance: ${facts.policy_stance.replace(/_/g, ' ')}` : '',
+        facts.vote_result ? `Vote result: ${facts.vote_result.replace(/_/g, ' ')}` : '',
+        facts.vote_split && Number.isFinite(facts.vote_split.for) && Number.isFinite(facts.vote_split.against)
+          ? `Vote split: ${facts.vote_split.for}–${facts.vote_split.against}` : '',
+        facts.dissent ? `Dissent: ${facts.dissent}` : '',
+        ...projectionText(facts.cpi_projections).map(value => `CPI projection: ${value}`),
+        ...projectionText(facts.gdp_projections).map(value => `GDP projection: ${value}`),
+      ];
+      addGroup('Extracted facts', factLines);
+      const toneEvidence = Array.isArray(tone.evidence)
+        ? tone.evidence.map(item => item && item.excerpt ? `${item.theme || 'Policy language'}: “${item.excerpt}”` : '')
+        : [];
+      addGroup('Policy-language evidence', toneEvidence);
+      addGroup('Policy drivers', drivers.map(item => {
+        if (!item || typeof item !== 'object') return '';
+        const excerpt = Array.isArray(item.evidence) ? item.evidence.filter(value => typeof value === 'string').join(' ') : '';
+        return excerpt ? `${item.driver || 'Driver'} · ${item.direction || 'MENTIONED'}: ${excerpt}` : '';
+      }));
+      addGroup('Market transmission', Object.entries(transmission).map(([asset, item]) => (
+        item && item.direction && item.direction !== 'UNKNOWN'
+          ? `${asset.replace(/_/g, ' ')} · ${item.direction}: ${item.explanation || 'Causal explanation unavailable.'}`
+          : ''
+      )));
+      addGroup('Watch triggers', watch.map(item => item && item.what_to_watch
+        ? `[${item.source_type === 'SOURCE_DERIVED' ? 'RBI SOURCE' : 'ECONIQ MONITORING'}] ${item.what_to_watch}: ${item.why_it_matters || ''} ${item.interpretation_change || ''}`
+        : ''));
+
+      const source = facts.source && typeof facts.source === 'object' ? facts.source : {};
+      const sourceEl = document.getElementById('rbiPolicySource');
+      sourceEl.textContent = source.name || (intelligence.provenance?.acquisition === 'LIVE' ? 'RBI source' : 'Fallback / source unavailable');
+      if (typeof source.url === 'string') {
+        try {
+          const url = new URL(source.url);
+          if (url.hostname === 'www.rbi.org.in') {
+            const link = document.createElement('a');
+            link.href = url.href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'Official release';
+            sourceEl.replaceChildren(link);
+          }
+        } catch (_) { /* Keep the source label when the URL is invalid. */ }
+      }
+      section.hidden = false;
+    }
+
     // and the story-generation layer's output (data.story — real on both fresh
     // runs and history reloads, since it's written to and read from runs.story).
     function renderStoryArc(data, fromHistory, pct) {

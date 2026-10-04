@@ -85,6 +85,7 @@ ECONIQ_RUN_RESULT_SCHEMA = {
         "transition": dict,
         "anticipatory": dict,
         "leading_intelligence": dict,
+        "rbi_policy_intelligence": dict,
         "regime_is_unstable": bool,
         "challenger_delta": (int, float, type(None)),
     },
