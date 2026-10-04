@@ -1,0 +1,274 @@
+from datetime import datetime, timezone
+
+import pandas as pd
+import pytest
+
+from econiq_macro_regime.macro_regime.fit_real_data import (
+    REAL_DFM_INDICATOR_METADATA,
+    prepare_real_dfm_data,
+)
+from econiq_macro_regime.macro_regime.point_in_time_dataset import (
+    build_point_in_time_dataset,
+    build_point_in_time_panel,
+)
+
+
+@pytest.fixture
+def sample_observations():
+    return [
+        {
+            "indicator": "cpi_inflation",
+            "period_date": "2024-01-01",
+            "value": 2.0,
+            "source": "FRED",
+            "ingested_at": "2024-02-01T00:00:00Z",
+        },
+        {
+            "indicator": "cpi_inflation",
+            "period_date": "2024-01-01",
+            "value": 2.3,
+            "source": "FRED",
+            "ingested_at": "2024-03-01T00:00:00Z",
+        },
+        {
+            "indicator": "gdp_growth",
+            "period_date": "2024-01-01",
+            "value": 6.1,
+            "source": "WORLD_BANK",
+            "ingested_at": "2024-04-01T00:00:00Z",
+        },
+        {
+            "indicator": "gdp_growth",
+            "period_date": "2024-01-01",
+            "value": 6.4,
+            "source": "WORLD_BANK",
+            "ingested_at": "2024-07-01T00:00:00Z",
+        },
+        {
+            "indicator": "currency_inr_usd",
+            "period_date": "2024-02-01",
+            "value": 83.5,
+            "source": "FRED",
+            "ingested_at": "2024-02-29T00:00:00Z",
+        },
+    ]
+
+
+def test_future_revision_is_excluded_before_as_of(sample_observations):
+    dataset = build_point_in_time_dataset(sample_observations, as_of="2024-02-15T12:00:00Z")
+    records = dataset["records"]
+
+    cpi = [r for r in records if r["indicator"] == "cpi_inflation"]
+    assert len(cpi) == 1
+    assert cpi[0]["value"] == 2.0
+    assert cpi[0]["availability_quality"] == "INGESTION_PROXY"
+
+
+def test_revision_becomes_available_after_publication(sample_observations):
+    dataset = build_point_in_time_dataset(sample_observations, as_of="2024-03-15T12:00:00Z")
+    cpi = [r for r in dataset["records"] if r["indicator"] == "cpi_inflation"]
+    assert len(cpi) == 1
+    assert cpi[0]["value"] == 2.3
+
+
+def test_panel_preserves_ragged_edges_and_missing_values(sample_observations):
+    panel = build_point_in_time_panel(
+        sample_observations,
+        as_of="2024-07-15T12:00:00Z",
+        indicators=["cpi_inflation", "gdp_growth", "currency_inr_usd"],
+    )
+
+    idx = pd.to_datetime(panel.index)
+    assert panel.loc["2024-01-01", "cpi_inflation"] == 2.3
+    assert panel.loc["2024-02-01", "currency_inr_usd"] == 83.5
+    assert pd.isna(panel.loc["2024-03-01", "gdp_growth"])
+
+
+def test_dataset_manifest_is_reproducible_and_clear(sample_observations):
+    dataset = build_point_in_time_dataset(sample_observations, as_of="2024-07-15T12:00:00Z")
+    manifest = dataset["manifest"]
+
+    assert manifest["as_of"] == "2024-07-15T12:00:00Z"
+    assert manifest["indicator_count"] == 3
+    assert manifest["observation_count"] == 3
+    assert manifest["availability_quality"]["cpi_inflation"] == "INGESTION_PROXY"
+
+
+def test_future_ingestion_does_not_create_historical_availability():
+    records = [
+        {
+            "indicator": "cpi_inflation",
+            "period_date": "2023-01-31",
+            "value": 2.5,
+            "source": "FRED",
+            "ingested_at": "2024-01-15T00:00:00Z",
+        }
+    ]
+
+    dataset = build_point_in_time_dataset(records, as_of="2023-06-30T00:00:00Z")
+    assert dataset["records"] == []
+
+
+def test_quality_semantics_distinguish_exact_and_proxy():
+    exact = build_point_in_time_dataset(
+        [{"indicator": "gdp_growth", "period_date": "2024-01-01", "value": 6.1, "source": "WB", "published_at": "2024-04-15T00:00:00Z"}],
+        as_of="2024-04-20T00:00:00Z",
+    )
+    proxy = build_point_in_time_dataset(
+        [{"indicator": "gdp_growth", "period_date": "2024-01-01", "value": 6.1, "source": "WB", "ingested_at": "2024-04-15T00:00:00Z"}],
+        as_of="2024-04-20T00:00:00Z",
+    )
+
+    assert exact["records"][0]["availability_quality"] == "EXACT"
+    assert proxy["records"][0]["availability_quality"] == "INGESTION_PROXY"
+
+
+def test_deterministic_result_is_stable_for_same_input():
+    records = [
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 2.0, "source": "FRED", "ingested_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "currency_inr_usd", "period_date": "2024-02-01", "value": 83.5, "source": "FRED", "ingested_at": "2024-02-29T00:00:00Z"},
+        {"indicator": "gdp_growth", "period_date": "2024-01-01", "value": 6.1, "source": "WB", "published_at": "2024-04-01T00:00:00Z"},
+    ]
+
+    first = build_point_in_time_dataset(records, as_of="2024-04-15T00:00:00Z")
+    second = build_point_in_time_dataset(records, as_of="2024-04-15T00:00:00Z")
+    assert [r["indicator"] for r in first["records"]] == [r["indicator"] for r in second["records"]]
+    assert [r["value"] for r in first["records"]] == [r["value"] for r in second["records"]]
+    assert first["manifest"]["indicator_count"] == second["manifest"]["indicator_count"]
+
+
+def test_mixed_frequency_panel_keeps_gap_without_forward_fill():
+    records = [
+        {"indicator": "monthly_data", "period_date": "2024-01-01", "value": 1.0, "source": "FRED", "published_at": "2024-01-10T00:00:00Z"},
+        {"indicator": "monthly_data", "period_date": "2024-02-01", "value": 1.2, "source": "FRED", "published_at": "2024-02-10T00:00:00Z"},
+        {"indicator": "quarterly_data", "period_date": "2024-01-01", "value": 5.0, "source": "WB", "published_at": "2024-02-15T00:00:00Z"},
+        {"indicator": "quarterly_data", "period_date": "2024-04-01", "value": 5.8, "source": "WB", "published_at": "2024-05-15T00:00:00Z"},
+    ]
+
+    panel = build_point_in_time_panel(records, as_of="2024-05-31T00:00:00Z", indicators=["monthly_data", "quarterly_data"])
+    assert panel.loc["2024-01-01", "monthly_data"] == 1.0
+    assert panel.loc["2024-03-01", "monthly_data"] is pd.NA or pd.isna(panel.loc["2024-03-01", "monthly_data"])
+    assert panel.loc["2024-03-01", "quarterly_data"] is pd.NA or pd.isna(panel.loc["2024-03-01", "quarterly_data"])
+
+
+def test_real_dfm_pit_gate_runs_before_transform():
+    records = [
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 100.0, "source": "FRED", "published_at": "2024-02-15T00:00:00Z"},
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 110.0, "source": "FRED", "published_at": "2024-08-30T00:00:00Z"},
+    ]
+
+    prepared = prepare_real_dfm_data(records, as_of="2024-06-30T00:00:00Z")
+    assert prepared["panel"].shape[1] == 1
+    assert prepared["panel"].iloc[0, 0] == 100.0
+
+
+def test_real_dfm_default_as_of_uses_same_pit_selector(sample_observations):
+    from econiq_macro_regime.macro_regime.fit_real_data import prepare_real_dfm_data
+
+    prepared = prepare_real_dfm_data(sample_observations)
+    assert prepared["strict_point_in_time"] is True
+    assert prepared["manifest"]["as_of"]
+    assert prepared["manifest"]["availability_quality"]["cpi_inflation"] == "INGESTION_PROXY"
+    assert prepared["panel"].loc["2024-01-01", "cpi_inflation"] == 2.3
+
+
+def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatch):
+    import econiq_macro_regime.macro_regime.fit_real_data as fit_real_data
+
+    rows = [
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 100.0,
+         "source": "FRED", "ingested_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 110.0,
+         "source": "FRED", "ingested_at": "2024-08-01T00:00:00Z"},
+    ]
+
+    class Response:
+        data = rows
+
+    class Query:
+        def select(self, columns):
+            assert "ingested_at" in columns
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def range(self, *_args):
+            return self
+
+        def execute(self):
+            return Response()
+
+    class Client:
+        def table(self, name):
+            assert name == "macro_timeseries"
+            return Query()
+
+    monkeypatch.setenv("SUPABASE_URL", "https://example.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-only")
+    monkeypatch.setattr(fit_real_data, "create_client", lambda *_args: Client())
+
+    wide = fit_real_data.load_wide_frame()
+    raw = wide.attrs["raw_records"]
+    assert [record["value"] for record in raw] == [100.0, 110.0]
+    assert [record["ingested_at"] for record in raw] == [
+        "2024-02-01T00:00:00Z", "2024-08-01T00:00:00Z",
+    ]
+
+
+def test_real_dfm_historical_as_of_excludes_future_observations():
+    records = [
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 100.0,
+         "source": "FRED", "published_at": "2024-02-15T00:00:00Z"},
+        {"indicator": "cpi_inflation", "period_date": "2024-02-01", "value": 110.0,
+         "source": "FRED", "published_at": "2024-08-30T00:00:00Z"},
+    ]
+    prepared = prepare_real_dfm_data(records, as_of="2024-06-30T00:00:00Z")
+    assert prepared["panel"]["cpi_inflation"].dropna().tolist() == [100.0]
+
+
+def test_real_dfm_unknown_availability_is_not_admitted():
+    data = pd.DataFrame(
+        {"cpi_inflation": [100.0]},
+        index=pd.to_datetime(["2024-01-01"]),
+    )
+    prepared = prepare_real_dfm_data(data, as_of="2024-06-30T00:00:00Z")
+    assert prepared["panel"].empty
+    assert prepared["transformed_panel"].empty
+    assert any("no defensible availability timestamp" in warning for warning in prepared["warnings"])
+
+
+def test_real_dfm_pit_selection_precedes_transform_and_preserves_values(monkeypatch):
+    import econiq_macro_regime.macro_regime.fit_real_data as fit_real_data
+
+    transformed_inputs = []
+
+    def capture_transform(panel):
+        transformed_inputs.append(panel.copy())
+        return panel.copy()
+
+    monkeypatch.setattr(fit_real_data, "transform_wide_frame", capture_transform)
+    records = [
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 100.0,
+         "source": "FRED", "published_at": "2024-02-15T00:00:00Z"},
+        {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 110.0,
+         "source": "FRED", "published_at": "2024-08-30T00:00:00Z"},
+    ]
+
+    prepared = fit_real_data.prepare_real_dfm_data(records, as_of="2024-06-30T00:00:00Z")
+    assert len(transformed_inputs) == 1
+    assert transformed_inputs[0].loc["2024-01-01", "cpi_inflation"] == 100.0
+    assert prepared["panel"].loc["2024-01-01", "cpi_inflation"] == 100.0
+    assert prepared["transformed_panel"].loc["2024-01-01", "cpi_inflation"] == 100.0
+
+
+def test_real_dfm_metadata_preserves_policy_rate_proxy_truth():
+    policy = REAL_DFM_INDICATOR_METADATA["policy_rate"]
+    assert "10Y government bond yield" in policy["economic_meaning"]
+    assert "repo rate" in policy["economic_meaning"] or "RBI repo rate" in policy["notes"]
+
+
+def test_real_dfm_strict_mode_rejects_unknown_historical_availability():
+    wide = pd.DataFrame({"cpi_inflation": [100.0, 110.0]}, index=pd.to_datetime(["2024-01-01", "2024-02-01"]))
+    prepared = prepare_real_dfm_data(wide, as_of="2024-06-30T00:00:00Z")
+    assert prepared["panel"].empty

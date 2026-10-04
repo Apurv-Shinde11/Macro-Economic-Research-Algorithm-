@@ -1,0 +1,1 @@
+"""EconIQ statistical research package."""
