@@ -125,6 +125,16 @@ REAL_DFM_INDICATOR_METADATA = {
 # stored observations. This is a runtime knowledge proxy, not an official
 # provider publication timestamp; PIT selection must preserve that distinction.
 for _series_metadata in REAL_DFM_INDICATOR_METADATA.values():
+    _provider = _series_metadata["provider"].upper().replace(" ", "_")
+    _series_metadata["publication_timestamp_capability"] = (
+        "not_preserved_by_current_ingestion_job"
+    )
+    _series_metadata["vintage_metadata_capability"] = (
+        "provider_api_support_exists_but_not_collected"
+        if _provider == "FRED"
+        else "not_collected_by_current_indicator_request"
+    )
+    _series_metadata["availability_policy"] = "database_ingestion_proxy_unless_verified_publication_exists"
     _series_metadata["availability_method"] = (
         "macro_timeseries.ingested_at database timestamp; provider publication "
         "time is not currently preserved"
@@ -246,7 +256,11 @@ def load_wide_frame(economy: str = "IN") -> pd.DataFrame:
     while True:
         resp = (
             supabase.table("macro_timeseries")
-            .select("indicator, period_date, value, source, ingested_at")
+            .select(
+                "indicator, period_date, value, source, ingested_at, provider_series, "
+                "published_at, availability_timestamp, availability_quality, vintage_id, "
+                "revision_number, metadata"
+            )
             .eq("economy", economy)
             .range(offset, offset + page_size - 1)
             .execute()

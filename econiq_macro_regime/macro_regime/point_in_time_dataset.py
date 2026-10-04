@@ -8,6 +8,7 @@ import pandas as pd
 
 
 DEFAULT_DATASET_VERSION = "point_in_time_v1"
+AVAILABILITY_QUALITIES = ("EXACT", "INGESTION_PROXY", "ESTIMATED", "UNKNOWN")
 
 
 def _coerce_datetime(value: Any) -> datetime | None:
@@ -44,19 +45,27 @@ def _normalize_record(record: dict[str, Any]) -> dict[str, Any]:
     normalized["value"] = record.get("value")
     normalized["source"] = str(record.get("source") or "UNKNOWN")
 
-    available_at = (
-        record.get("available_at")
-        or record.get("published_at")
-        or record.get("ingested_at")
-        or record.get("retrieved_at")
-    )
-    normalized["available_at"] = available_at
-    normalized["availability_quality"] = "UNKNOWN"
-    if available_at is not None:
-        if record.get("available_at") is not None or record.get("published_at") is not None:
-            normalized["availability_quality"] = "EXACT"
-        elif record.get("ingested_at") is not None or record.get("retrieved_at") is not None:
-            normalized["availability_quality"] = "INGESTION_PROXY"
+    # Publication time is the only automatically trusted exact availability.
+    # Database ingestion is a conservative proxy. Provider vintage dates,
+    # observation dates, and HTTP retrieval times are not publication times.
+    published = record.get("published_at")
+    ingested = record.get("ingested_at")
+    declared_quality = str(record.get("availability_quality") or "").upper()
+    declared_timestamp = record.get("availability_timestamp")
+    available_at = None
+    quality = "UNKNOWN"
+    if published is not None and _coerce_datetime(published) is not None:
+        available_at, quality = published, "EXACT"
+    elif ingested is not None and _coerce_datetime(ingested) is not None:
+        available_at, quality = ingested, "INGESTION_PROXY"
+    elif declared_quality == "INGESTION_PROXY" and _coerce_datetime(declared_timestamp) is not None:
+        available_at, quality = declared_timestamp, "INGESTION_PROXY"
+    elif declared_quality == "ESTIMATED" and declared_timestamp is not None:
+        available_at, quality = declared_timestamp, "ESTIMATED"
+
+    normalized["availability_timestamp"] = available_at
+    normalized["available_at"] = available_at  # compatibility alias
+    normalized["availability_quality"] = quality
     normalized["_available_dt"] = _coerce_datetime(available_at)
     return normalized
 
@@ -80,8 +89,11 @@ def _latest_for_key(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         candidate_time = record.get("_available_dt") or datetime.min.replace(tzinfo=timezone.utc)
         if candidate_time > current_time:
             latest_by_key[key] = record
-        elif candidate_time == current_time and record.get("ingested_at") and not current.get("ingested_at"):
-            latest_by_key[key] = record
+        elif candidate_time == current_time:
+            candidate_key = (str(record.get("ingested_at") or ""), str(record.get("vintage_id") or ""), str(record.get("value")))
+            current_key = (str(current.get("ingested_at") or ""), str(current.get("vintage_id") or ""), str(current.get("value")))
+            if candidate_key > current_key:
+                latest_by_key[key] = record
     return list(latest_by_key.values())
 
 
@@ -111,9 +123,10 @@ def build_point_in_time_dataset(
         normalized = [record for record in normalized if record["indicator"] in allowed]
 
     if as_of is None:
-        selected = normalized
+        eligible = [record for record in normalized if _is_eligible(record, datetime.max.replace(tzinfo=timezone.utc))]
+        selected = _latest_for_key(eligible)
         quality_hint = "UNKNOWN"
-        warnings: list[str] = ["as_of is None; dataset reflects all available records without historical eligibility filtering."]
+        warnings: list[str] = ["as_of is None; latest vintages with defensible availability are selected."]
     else:
         as_of_dt = _coerce_datetime(as_of)
         if as_of_dt is None:
@@ -130,7 +143,7 @@ def build_point_in_time_dataset(
         future = [r for r in normalized if r.get("_available_dt") is not None and r["_available_dt"] > as_of_dt]
         if future:
             warnings.append(
-                f"{len(future)} observation(s) were excluded because they were published after as_of={as_of}."
+                f"{len(future)} observation(s) were excluded because their availability timestamp is after as_of={as_of}."
             )
         quality_hint = "safe"
 
@@ -145,6 +158,21 @@ def build_point_in_time_dataset(
         elif current == "INGESTION_PROXY" and record["availability_quality"] == "EXACT":
             quality_by_indicator[indicator] = "EXACT"
 
+    eligible_records = [r for r in normalized if _is_eligible(r, as_of_dt if as_of is not None else datetime.max.replace(tzinfo=timezone.utc))]
+    key_counts: dict[tuple[str, str], int] = defaultdict(int)
+    eligible_key_counts: dict[tuple[str, str], int] = defaultdict(int)
+    for record in normalized:
+        key_counts[(record["indicator"], record["period_date"])] += 1
+    for record in eligible_records:
+        eligible_key_counts[(record["indicator"], record["period_date"])] += 1
+    input_quality_counts = {
+        quality: sum(r["availability_quality"] == quality for r in normalized)
+        for quality in AVAILABILITY_QUALITIES
+    }
+    selected_quality_counts = {
+        quality: sum(r["availability_quality"] == quality for r in selected)
+        for quality in AVAILABILITY_QUALITIES
+    }
     manifest = {
         "as_of": as_of.isoformat() if isinstance(as_of, datetime) else str(as_of),
         "dataset_version": DEFAULT_DATASET_VERSION,
@@ -154,7 +182,14 @@ def build_point_in_time_dataset(
         "earliest_observation": min((r["period_date"] for r in selected), default=None),
         "latest_observation": max((r["period_date"] for r in selected), default=None),
         "availability_quality": quality_by_indicator,
+        "availability_quality_counts": selected_quality_counts,
+        "input_availability_quality_counts": input_quality_counts,
+        "excluded_unknown_availability": sum(r["_available_dt"] is None for r in normalized),
+        "excluded_future_observations": sum(r["_available_dt"] is not None and r["_available_dt"] > (as_of_dt if as_of is not None else datetime.max.replace(tzinfo=timezone.utc)) for r in normalized),
+        "revision_rows_considered": sum(max(0, count - 1) for count in key_counts.values()),
+        "revisions_selected": sum(max(0, count - 1) for count in eligible_key_counts.values()),
         "sources": sorted({r["source"] for r in selected}),
+        "source_coverage": {source: sum(r["source"] == source for r in selected) for source in sorted({r["source"] for r in selected})},
         "warnings": warnings,
     }
     return {"records": selected, "manifest": manifest, "quality_hint": quality_hint}

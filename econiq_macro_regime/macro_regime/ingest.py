@@ -19,6 +19,7 @@ whatever scheduling roadmap step "where does the batch job run" resolves to.
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass, field
 import os
 import sys
 import tomllib
@@ -144,13 +145,33 @@ FRED_RESAMPLE_TO_MONTHLY = {"currency_inr_usd"}
 ECONOMY = "IN"
 
 
+@dataclass(frozen=True)
+class ProviderObservation:
+    period_date: date
+    value: float
+    provider_metadata: dict = field(default_factory=dict)
+
+# Provider capabilities are explicit so absence of a vintage timestamp is not
+# mistaken for proof that an observation was first published on its period date.
+SOURCE_CAPABILITIES = {
+    "FRED": {
+        "vintage_metadata": "available_from_provider_but_not_requested_by_this_job",
+        "publication_timestamp": "not_returned_by_current_observations_request",
+    },
+    "WORLD_BANK": {
+        "vintage_metadata": "not_returned_by_current_indicator_request",
+        "publication_timestamp": "not_returned_by_current_indicator_request",
+    },
+}
+
+
 def _get_supabase():
     url = os.environ["SUPABASE_URL"]
     key = os.environ["SUPABASE_SERVICE_KEY"]
     return create_client(url, key)
 
 
-def fetch_fred_series(series_id: str, api_key: str) -> list[tuple[date, float]]:
+def fetch_fred_series(series_id: str, api_key: str) -> list[ProviderObservation]:
     """Full history for one FRED series. Returns (period_date, value) pairs,
     skipping FRED's '.' missing-value sentinel rather than inserting garbage."""
     resp = requests.get(
@@ -167,11 +188,18 @@ def fetch_fred_series(series_id: str, api_key: str) -> list[tuple[date, float]]:
     for obs in resp.json().get("observations", []):
         if obs["value"] == ".":
             continue  # FRED's missing-value sentinel — do not insert as 0 or NaN-as-string
-        out.append((date.fromisoformat(obs["date"]), float(obs["value"])))
+        out.append(ProviderObservation(
+            period_date=date.fromisoformat(obs["date"]),
+            value=float(obs["value"]),
+            # FRED's realtime_start/end here describe the requested real-time
+            # query window. Preserve them as response metadata, not as release
+            # dates or observation vintage timestamps.
+            provider_metadata={key: obs[key] for key in ("realtime_start", "realtime_end") if obs.get(key)},
+        ))
     return out
 
 
-def resample_daily_to_monthly(rows: list[tuple[date, float]]) -> list[tuple[date, float]]:
+def resample_daily_to_monthly(rows: list[ProviderObservation]) -> list[ProviderObservation]:
     """
     Collapses daily (date, value) pairs down to one row per month — the
     value from the last trading day of that month — so a daily series like
@@ -182,17 +210,18 @@ def resample_daily_to_monthly(rows: list[tuple[date, float]]) -> list[tuple[date
     """
     if pd is None:
         raise RuntimeError("pandas is required to resample a daily series — pip install pandas")
-    df = pd.DataFrame(rows, columns=["date", "value"])
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.set_index("date").sort_index()
-    monthly = df.resample("MS").last()  # last trading day's value, tagged to month start
-    monthly = monthly.dropna()
-    return [(d.date(), float(v)) for d, v in monthly["value"].items()]
+    by_month: dict[date, ProviderObservation] = {}
+    for observation in sorted(rows, key=lambda item: item.period_date):
+        period = observation.period_date.replace(day=1)
+        metadata = dict(observation.provider_metadata)
+        metadata["source_observation_date"] = observation.period_date.isoformat()
+        by_month[period] = ProviderObservation(period, observation.value, metadata)
+    return list(by_month.values())
 
 
-def fetch_world_bank_series(country_code: str, indicator_code: str) -> list[tuple[date, float]]:
+def fetch_world_bank_series(country_code: str, indicator_code: str) -> list[ProviderObservation]:
     """Full history for one World Bank indicator. No API key required."""
-    out: list[tuple[date, float]] = []
+    out: list[ProviderObservation] = []
     page = 1
     while True:
         resp = requests.get(
@@ -207,14 +236,18 @@ def fetch_world_bank_series(country_code: str, indicator_code: str) -> list[tupl
         meta, rows = payload[0], payload[1]
         for row in rows:
             if row["value"] is not None:
-                out.append((date.fromisoformat(f"{row['date']}-01-01"), float(row["value"])))
+                out.append(ProviderObservation(
+                    period_date=date.fromisoformat(f"{row['date']}-01-01"),
+                    value=float(row["value"]),
+                    provider_metadata={key: row[key] for key in ("obs_status", "decimal", "unit") if row.get(key) is not None},
+                ))
         if page >= meta.get("pages", 1):
             break
         page += 1
     return out
 
 
-def insert_rows(supabase, indicator: str, source: str, rows: list[tuple[date, float]]):
+def insert_rows(supabase, indicator: str, source: str, rows: list[ProviderObservation | tuple[date, float]]):
     """
     INSERT ONLY — see schema/001_macro_timeseries.sql. Never upsert here;
     that would recreate the exact history-loss bug macro_timeseries exists
@@ -224,21 +257,36 @@ def insert_rows(supabase, indicator: str, source: str, rows: list[tuple[date, fl
     if not rows:
         print(f"[INGEST] {indicator} ({source}): no rows returned, nothing to insert", flush=True)
         return
-    payload = [
-        {
+    provider_series = (FRED_SERIES if source == "FRED" else WORLD_BANK_SERIES).get(indicator)
+    provenance = {
+        "provider": source,
+        "provider_series": provider_series,
+        "availability_policy": "database_ingestion_proxy",
+        "vintage_id_available": False,
+        "capabilities": SOURCE_CAPABILITIES[source],
+    }
+    payload = []
+    for row in rows:
+        if isinstance(row, ProviderObservation):
+            observation = row
+        else:
+            observation = ProviderObservation(row[0], row[1])
+        row_metadata = dict(provenance)
+        row_metadata["provider_response"] = observation.provider_metadata
+        payload.append({
             "economy": ECONOMY,
             "indicator": indicator,
-            "period_date": d.isoformat(),
-            "value": v,
+            "period_date": observation.period_date.isoformat(),
+            "value": observation.value,
             "source": source,
-        }
-        for d, v in rows
-    ]
+            "provider_series": provider_series,
+            "metadata": row_metadata,
+        })
     for i in range(0, len(payload), 500):
         chunk = payload[i : i + 500]
         supabase.table("macro_timeseries").insert(chunk).execute()
     print(f"[INGEST] {indicator} ({source}): inserted {len(payload)} rows "
-          f"({rows[0][0]} to {rows[-1][0]})", flush=True)
+          f"({payload[0]['period_date']} to {payload[-1]['period_date']})", flush=True)
 
 
 def _indicators_already_present(supabase) -> set[str]:

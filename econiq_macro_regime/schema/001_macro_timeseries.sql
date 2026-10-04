@@ -19,23 +19,33 @@ create table if not exists macro_timeseries (
     value         numeric     not null,
     source        text        not null,                -- 'FRED' | 'WORLD_BANK'
     ingested_at   timestamptz not null default now(),   -- when *we* pulled it, not the period date
+    provider_series text,
+    published_at  timestamptz,
+    availability_timestamp timestamptz default now(),
+    availability_quality text not null default 'INGESTION_PROXY'
+        check (availability_quality in ('EXACT', 'INGESTION_PROXY', 'ESTIMATED', 'UNKNOWN')),
+    vintage_id    text,
+    revision_number integer check (revision_number is null or revision_number >= 0),
+    metadata      jsonb not null default '{}'::jsonb
 
-    -- One row per (economy, indicator, period, source, ingestion event) is allowed —
-    -- deliberately NOT unique on (economy, indicator, period_date) alone, because a
-    -- later re-pull of a revised historical value (e.g. GDP revisions) should be
-    -- inserted as a new row, not overwrite the old one. This is what makes the table
-    -- usable as a point-in-time / vintage store, per the "vintage revision" pitfall
-    -- Gemini flagged: you can reconstruct what the model would have seen on any past
-    -- date by filtering ingested_at <= that date and taking the latest row per period.
-    constraint macro_timeseries_no_dupes
-        unique (economy, indicator, period_date, source, ingested_at)
+    -- Never unique on (economy, indicator, period_date) alone: revisions remain
+    -- separate immutable rows and are distinguished by provider vintage identity.
 );
+
+create unique index if not exists macro_timeseries_vintage_unique
+    on macro_timeseries (
+        economy, indicator, period_date, source, ingested_at,
+        (coalesce(vintage_id, ''))
+    );
 
 create index if not exists idx_macro_timeseries_lookup
     on macro_timeseries (economy, indicator, period_date);
 
 create index if not exists idx_macro_timeseries_latest
     on macro_timeseries (economy, indicator, ingested_at desc);
+
+create index if not exists idx_macro_timeseries_availability
+    on macro_timeseries (economy, indicator, period_date, availability_timestamp);
 
 comment on table macro_timeseries is
     'Insert-only historical macro series for DFM/BVAR/spillover model training. '

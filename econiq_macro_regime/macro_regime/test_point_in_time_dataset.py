@@ -118,9 +118,56 @@ def test_quality_semantics_distinguish_exact_and_proxy():
         [{"indicator": "gdp_growth", "period_date": "2024-01-01", "value": 6.1, "source": "WB", "ingested_at": "2024-04-15T00:00:00Z"}],
         as_of="2024-04-20T00:00:00Z",
     )
+    canonical_proxy = build_point_in_time_dataset(
+        [{"indicator": "gdp_growth", "period_date": "2024-01-01", "value": 6.1, "source": "WB",
+          "availability_timestamp": "2024-04-15T00:00:00Z", "availability_quality": "INGESTION_PROXY"}],
+        as_of="2024-04-20T00:00:00Z",
+    )
 
     assert exact["records"][0]["availability_quality"] == "EXACT"
     assert proxy["records"][0]["availability_quality"] == "INGESTION_PROXY"
+    assert canonical_proxy["records"][0]["availability_quality"] == "INGESTION_PROXY"
+
+
+def test_retrieval_or_period_date_is_never_treated_as_publication_time():
+    records = [
+        {"indicator": "x", "period_date": "2024-01-01", "value": 1,
+         "source": "FRED", "retrieved_at": "2024-01-02T00:00:00Z"},
+        {"indicator": "y", "period_date": "2024-01-01", "value": 2,
+         "source": "FRED"},
+    ]
+    dataset = build_point_in_time_dataset(records, as_of="2024-02-01T00:00:00Z")
+    assert dataset["records"] == []
+    assert dataset["manifest"]["excluded_unknown_availability"] == 2
+
+
+def test_explicit_published_at_is_canonical_and_manifest_counts_revisions():
+    records = [
+        {"indicator": "x", "period_date": "2024-01-01", "value": 1,
+         "source": "FRED", "published_at": "2024-02-01T00:00:00Z",
+         "ingested_at": "2024-02-03T00:00:00Z"},
+        {"indicator": "x", "period_date": "2024-01-01", "value": 2,
+         "source": "FRED", "published_at": "2024-03-01T00:00:00Z",
+         "ingested_at": "2024-03-02T00:00:00Z"},
+        {"indicator": "x", "period_date": "2024-02-01", "value": 3,
+         "source": "FRED", "ingested_at": "2024-05-01T00:00:00Z"},
+        {"indicator": "x", "period_date": "2024-03-01", "value": 4,
+         "source": "FRED"},
+    ]
+    dataset = build_point_in_time_dataset(records, as_of="2024-02-15T00:00:00Z")
+    assert [(row["value"], row["availability_timestamp"], row["availability_quality"])
+            for row in dataset["records"]] == [(1, "2024-02-01T00:00:00Z", "EXACT")]
+    manifest = dataset["manifest"]
+    assert manifest["availability_quality_counts"] == {
+        "EXACT": 1, "INGESTION_PROXY": 0, "ESTIMATED": 0, "UNKNOWN": 0,
+    }
+    assert manifest["input_availability_quality_counts"] == {
+        "EXACT": 2, "INGESTION_PROXY": 1, "ESTIMATED": 0, "UNKNOWN": 1,
+    }
+    assert manifest["excluded_unknown_availability"] == 1
+    assert manifest["excluded_future_observations"] == 2
+    assert manifest["revision_rows_considered"] == 1
+    assert manifest["revisions_selected"] == 0
 
 
 def test_deterministic_result_is_stable_for_same_input():
