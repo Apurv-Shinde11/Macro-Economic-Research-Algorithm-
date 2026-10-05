@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 import math
+import re
 from typing import Any, Callable, Iterable
 
 import requests
@@ -32,7 +33,7 @@ class FredVintageObservation:
     period_date: date
     value: float
     provider_vintage_date: date
-    realtime_start: date
+    realtime_start: date | None
     realtime_end: date | None
 
     def vintage_id(self, series_id: str) -> str:
@@ -145,13 +146,11 @@ def fetch_vintage_dates(
     return sorted(set(dates))
 
 
-def _parse_observation(row: Any, series_id: str, requested_dates: set[date]) -> FredVintageObservation | None:
-    if not isinstance(row, dict):
-        raise FredVintagePayloadError("FRED observation must be a JSON object.")
-    raw_value = row.get("value")
-    if raw_value == ".":
+def _parse_numeric_value(raw_value: Any) -> float | None:
+    """Parse a provider cell, skipping explicit empty/missing cells."""
+    if raw_value is None or raw_value == "" or raw_value == ".":
         return None
-    if raw_value is None or not isinstance(raw_value, (str, int, float)):
+    if isinstance(raw_value, bool) or not isinstance(raw_value, (str, int, float)):
         raise FredVintagePayloadError("FRED observation has an invalid numeric value.")
     try:
         value = float(raw_value)
@@ -159,7 +158,18 @@ def _parse_observation(row: Any, series_id: str, requested_dates: set[date]) -> 
         raise FredVintagePayloadError(f"FRED value is not numeric: {raw_value!r}") from exc
     if not math.isfinite(value):
         raise FredVintagePayloadError(f"FRED value must be finite: {raw_value!r}")
+    return value
 
+
+def _parse_observation(row: Any, series_id: str, requested_dates: set[date]) -> FredVintageObservation | None:
+    """Parse the legacy one-value-per-row FRED observation representation."""
+    if not isinstance(row, dict):
+        raise FredVintagePayloadError("FRED observation must be a JSON object.")
+    if "value" not in row:
+        raise FredVintagePayloadError("FRED observation is missing its value field.")
+    value = _parse_numeric_value(row["value"])
+    if value is None:
+        return None
     period = _parse_provider_date(row.get("date"), "observation date")
     realtime_start = _parse_provider_date(row.get("realtime_start"), "observation realtime_start")
     if realtime_start not in requested_dates:
@@ -169,9 +179,87 @@ def _parse_observation(row: Any, series_id: str, requested_dates: set[date]) -> 
     raw_realtime_end = row.get("realtime_end")
     realtime_end = (
         _parse_provider_date(raw_realtime_end, "observation realtime_end")
-        if raw_realtime_end not in (None, "") else None
+        if raw_realtime_end not in (None, "", ".") else None
     )
     return FredVintageObservation(period, value, realtime_start, realtime_start, realtime_end)
+
+
+def _parse_observation_row(
+    row: Any,
+    series_id: str,
+    requested_dates: set[date],
+) -> list[FredVintageObservation]:
+    """Parse one FRED row, expanding output_type=3 vintage columns as needed."""
+    if not isinstance(row, dict):
+        raise FredVintagePayloadError("FRED observation must be a JSON object.")
+
+    vintage_columns = [key for key in row if key != "date" and key.startswith(f"{series_id}_")]
+    if not vintage_columns:
+        # Retain compatibility with the older real-time-period row shape.
+        if "value" in row:
+            observation = _parse_observation(row, series_id, requested_dates)
+            return [observation] if observation is not None else []
+
+        unexpected_columns = [key for key in row if key != "date"]
+        if not unexpected_columns:
+            return []  # No vintage cell was supplied for this period.
+        candidate = unexpected_columns[0]
+        if re.fullmatch(r".+_\d{8}", candidate):
+            raise FredVintagePayloadError(
+                f"FRED vintage column {candidate!r} does not match requested series {series_id!r}."
+            )
+        raise FredVintagePayloadError(
+            f"Unrecognized FRED observation column {candidate!r} for series {series_id!r}."
+        )
+
+    period = _parse_provider_date(row.get("date"), "observation date")
+    observations: list[FredVintageObservation] = []
+    known_columns = {"date", "realtime_start", "realtime_end"}
+    for key in vintage_columns:
+        match = re.fullmatch(re.escape(series_id) + r"_(\d{8})", key)
+        if not match:
+            raise FredVintagePayloadError(
+                f"Malformed FRED vintage column {key!r}; expected {series_id}_YYYYMMDD."
+            )
+        raw_vintage_date = match.group(1)
+        try:
+            vintage_date = datetime.strptime(raw_vintage_date, "%Y%m%d").date()
+        except ValueError as exc:
+            raise FredVintagePayloadError(
+                f"Invalid date in FRED vintage column {key!r}."
+            ) from exc
+        if vintage_date not in requested_dates:
+            raise FredVintagePayloadError(
+                f"FRED vintage column date {vintage_date} was not requested for series {series_id}."
+            )
+        value = _parse_numeric_value(row[key])
+        if value is None:
+            continue
+
+        raw_realtime_start = row.get("realtime_start")
+        realtime_start = (
+            _parse_provider_date(raw_realtime_start, "observation realtime_start")
+            if raw_realtime_start not in (None, "", ".") else None
+        )
+        if realtime_start is not None and realtime_start not in requested_dates:
+            raise FredVintagePayloadError(
+                f"Observation realtime_start {realtime_start} was not requested for series {series_id}."
+            )
+        raw_realtime_end = row.get("realtime_end")
+        realtime_end = (
+            _parse_provider_date(raw_realtime_end, "observation realtime_end")
+            if raw_realtime_end not in (None, "", ".") else None
+        )
+        observations.append(FredVintageObservation(
+            period, value, vintage_date, realtime_start, realtime_end
+        ))
+
+    unknown = [key for key in row if key not in known_columns and key not in vintage_columns]
+    if unknown:
+        raise FredVintagePayloadError(
+            f"Unrecognized FRED observation column {unknown[0]!r} for series {series_id!r}."
+        )
+    return observations
 
 
 def fetch_vintage_observations(
@@ -213,10 +301,8 @@ def fetch_vintage_observations(
                 raise FredVintagePayloadError("FRED observations response is missing observations.")
             parsed_page = [
                 observation
-                for observation in (
-                    _parse_observation(row, series_id, requested_dates) for row in page
-                )
-                if observation is not None
+                for row in page
+                for observation in _parse_observation_row(row, series_id, requested_dates)
             ]
             for observation in parsed_page:
                 key = (observation.period_date, observation.provider_vintage_date)
@@ -279,7 +365,9 @@ def build_vintage_rows(
             "metadata": {
                 "provider": "FRED/ALFRED",
                 "provider_vintage_date": observation.provider_vintage_date.isoformat(),
-                "provider_realtime_start": observation.realtime_start.isoformat(),
+                "provider_realtime_start": (
+                    observation.realtime_start.isoformat() if observation.realtime_start else None
+                ),
                 "provider_realtime_end": (
                     observation.realtime_end.isoformat() if observation.realtime_end else None
                 ),

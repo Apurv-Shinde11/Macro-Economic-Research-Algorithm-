@@ -154,6 +154,104 @@ def test_invalid_numeric_values_fail_and_missing_marker_is_not_a_row():
         )
 
 
+def test_output_type_three_live_discovered_vintage_column_shape():
+    parsed = fv._parse_observation_row(
+        {"date": "1957-01-01", "INDCPIALLMINMEI_20240515": "1.471388"},
+        "INDCPIALLMINMEI",
+        {date(2024, 5, 15)},
+    )
+    assert len(parsed) == 1
+    observation = parsed[0]
+    assert observation.period_date == date(1957, 1, 1)
+    assert observation.value == 1.471388
+    assert observation.provider_vintage_date == date(2024, 5, 15)
+    assert observation.realtime_start is None
+    assert observation.realtime_end is None
+
+
+def test_output_type_three_row_expands_multiple_vintage_columns():
+    parsed = fv._parse_observation_row(
+        {
+            "date": "2019-04-01",
+            "SERIES_WITH_UNDERSCORE_20240101": "100.0",
+            "SERIES_WITH_UNDERSCORE_20240201": "101.0",
+        },
+        "SERIES_WITH_UNDERSCORE",
+        {date(2024, 1, 1), date(2024, 2, 1)},
+    )
+    assert [(item.value, item.provider_vintage_date) for item in parsed] == [
+        (100.0, date(2024, 1, 1)),
+        (101.0, date(2024, 2, 1)),
+    ]
+
+
+@pytest.mark.parametrize("cell", [".", None, ""])
+def test_output_type_three_missing_cells_are_skipped(cell):
+    parsed = fv._parse_observation_row(
+        {"date": "2019-04-01", "TEST_20240101": cell},
+        "TEST",
+        {date(2024, 1, 1)},
+    )
+    assert parsed == []
+
+
+def test_output_type_three_malformed_numeric_value_fails_clearly():
+    with pytest.raises(fv.FredVintagePayloadError, match="not numeric"):
+        fv._parse_observation_row(
+            {"date": "2019-04-01", "TEST_20240101": "not-a-number"},
+            "TEST",
+            {date(2024, 1, 1)},
+        )
+
+
+def test_output_type_three_wrong_series_prefix_is_rejected():
+    with pytest.raises(fv.FredVintagePayloadError, match="does not match requested series"):
+        fv._parse_observation_row(
+            {"date": "2019-04-01", "OTHER_20240101": "100"},
+            "TEST",
+            {date(2024, 1, 1)},
+        )
+
+
+@pytest.mark.parametrize("column", ["TEST_bad", "TEST_20241340"])
+def test_output_type_three_malformed_vintage_suffix_is_rejected(column):
+    with pytest.raises(fv.FredVintagePayloadError, match="(Malformed|Invalid date)"):
+        fv._parse_observation_row(
+            {"date": "2019-04-01", column: "100"},
+            "TEST",
+            {date(2024, 1, 1)},
+        )
+
+
+def test_output_type_three_vintage_id_is_deterministic_without_realtime_fields():
+    row = {"date": "1957-01-01", "INDCPIALLMINMEI_20240515": "1.471388"}
+    requested = {date(2024, 5, 15)}
+    first = fv._parse_observation_row(row, "INDCPIALLMINMEI", requested)[0]
+    second = fv._parse_observation_row(row, "INDCPIALLMINMEI", requested)[0]
+    assert first.vintage_id("INDCPIALLMINMEI") == second.vintage_id("INDCPIALLMINMEI")
+
+
+def test_output_type_three_canonical_row_keeps_conservative_availability_semantics():
+    observation = fv._parse_observation_row(
+        {"date": "1957-01-01", "INDCPIALLMINMEI_20240515": "1.471388"},
+        "INDCPIALLMINMEI",
+        {date(2024, 5, 15)},
+    )[0]
+    row = fv.build_vintage_rows("cpi_inflation", "INDCPIALLMINMEI", [observation])[0]
+    assert row["provider_vintage_date"] == "2024-05-15"
+    assert row["published_at"] is None
+    assert row["availability_quality"] == "ESTIMATED"
+    assert row["availability_basis"] == "FRED_VINTAGE_DATE"
+    assert row["metadata"]["provider_realtime_start"] is None
+    assert row["metadata"]["provider_realtime_end"] is None
+
+
+def test_output_type_three_row_without_vintage_cells_is_omitted():
+    assert fv._parse_observation_row(
+        {"date": "2019-04-01"}, "TEST", {date(2024, 1, 1)}
+    ) == []
+
+
 def test_empty_history_is_explicit_and_does_not_touch_database():
     def get(_url, params, timeout):
         return _response({"count": 0, "vintage_dates": []})
