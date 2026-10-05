@@ -126,22 +126,31 @@ REAL_DFM_INDICATOR_METADATA = {
 # provider publication timestamp; PIT selection must preserve that distinction.
 for _series_metadata in REAL_DFM_INDICATOR_METADATA.values():
     _provider = _series_metadata["provider"].upper().replace(" ", "_")
-    _series_metadata["publication_timestamp_capability"] = (
-        "not_preserved_by_current_ingestion_job"
-    )
+    _series_metadata["publication_timestamp_capability"] = "not_preserved_by_current_ingestion_job"
     _series_metadata["vintage_metadata_capability"] = (
-        "provider_api_support_exists_but_not_collected"
+        "fred_alfr_vintage_acquisition_available_series_depth_unverified"
         if _provider == "FRED"
         else "not_collected_by_current_indicator_request"
     )
-    _series_metadata["availability_policy"] = "database_ingestion_proxy_unless_verified_publication_exists"
+    _series_metadata["availability_policy"] = (
+        "FRED provider vintage date ESTIMATED when acquired; otherwise database ingestion proxy"
+        if _provider == "FRED"
+        else "database ingestion proxy; no provider vintage date collected"
+    )
     _series_metadata["availability_method"] = (
-        "macro_timeseries.ingested_at database timestamp; provider publication "
-        "time is not currently preserved"
+        "FRED vintage-date backfill uses provider information-set dates at date-only "
+        "precision (ESTIMATED); normal ingestion uses macro_timeseries.ingested_at "
+        "(INGESTION_PROXY); source-agency publication time is not inferred"
+        if _provider == "FRED"
+        else "macro_timeseries.ingested_at database timestamp (INGESTION_PROXY); "
+        "provider publication time is not preserved"
     )
     _series_metadata["notes"] += (
-        " Stored rows can be filtered by actual database ingestion time, but "
-        "this is an INGESTION_PROXY and does not establish the provider release time."
+        " FRED vintages, when acquired, represent the FRED/ALFRED real-time "
+        "information set and do not establish an original source-agency release time."
+        if _provider == "FRED"
+        else " Stored rows can be filtered by actual database ingestion time, but "
+        "this is an INGESTION_PROXY and does not establish provider release time."
     )
 
 
@@ -206,10 +215,11 @@ def prepare_real_dfm_data(
         }
 
     dataset = build_point_in_time_dataset(records, as_of=as_of, indicators=indicator_names)
-    selected = dataset["records"]
+    selected = _aggregate_fred_daily_fx_to_monthly(dataset["records"], as_of)
     manifest = dataset["manifest"]
     warnings = list(manifest.get("warnings", []))
     filtered_panel = build_point_in_time_panel(selected, as_of=as_of, indicators=indicator_names)
+    manifest["panel_observation_count"] = int(filtered_panel.notna().sum().sum())
 
     transformed_panel = transform_wide_frame(filtered_panel) if not filtered_panel.empty else pd.DataFrame()
     return {
@@ -220,6 +230,75 @@ def prepare_real_dfm_data(
         "strict_point_in_time": True,
         "warnings": warnings,
     }
+
+
+def _aggregate_fred_daily_fx_to_monthly(records: list[dict], as_of: str) -> list[dict]:
+    """After PIT selection, map daily DEXINUS vintages to monthly EOM values."""
+    daily: dict[pd.Timestamp, list[dict]] = {}
+    other_records: list[dict] = []
+    for record in records:
+        metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        is_daily_fx = (
+            record.get("indicator") == "currency_inr_usd"
+            and record.get("provider_series") == "DEXINUS"
+            and metadata.get("provider_frequency") == "daily"
+        )
+        if not is_daily_fx:
+            other_records.append(record)
+            continue
+        day = pd.Timestamp(record["period_date"])
+        month = day.to_period("M").to_timestamp()
+        daily.setdefault(month, []).append(record)
+
+    as_of_timestamp = pd.Timestamp(as_of)
+    if as_of_timestamp.tzinfo is not None:
+        as_of_timestamp = as_of_timestamp.tz_convert("UTC").tz_localize(None)
+    as_of_month = as_of_timestamp.to_period("M").to_timestamp()
+    monthly_records = list(other_records)
+    for month, month_records in daily.items():
+        # A monthly factor must not use a partial current month. The latest
+        # daily observation for a completed month is selected only after PIT.
+        if month >= as_of_month:
+            continue
+        last_day = max(pd.Timestamp(record["period_date"]) for record in month_records)
+        chosen = max(
+            (
+                record for record in month_records
+                if pd.Timestamp(record["period_date"]) == last_day
+            ),
+            key=lambda record: (
+                record.get("_available_dt") or datetime.min.replace(tzinfo=timezone.utc),
+                str(record.get("vintage_id") or ""),
+            ),
+        )
+        monthly = dict(chosen)
+        monthly["period_date"] = month.strftime("%Y-%m-%d")
+        monthly_meta = dict(chosen.get("metadata") or {})
+        monthly_meta["monthly_aggregation"] = "last_eligible_daily_observation_after_pit"
+        monthly_meta["source_observation_date"] = last_day.strftime("%Y-%m-%d")
+        monthly["metadata"] = monthly_meta
+        monthly_records.append(monthly)
+
+    # Existing current-value monthly records and acquired daily vintage rows
+    # can map to the same period. Preserve the one latest eligible timestamp.
+    selected_by_period: dict[tuple[str, str], dict] = {}
+    for record in monthly_records:
+        key = (record["indicator"], str(record["period_date"]))
+        current = selected_by_period.get(key)
+        record_time = record.get("_available_dt") or datetime.min.replace(tzinfo=timezone.utc)
+        current_time = (
+            current.get("_available_dt") or datetime.min.replace(tzinfo=timezone.utc)
+            if current else datetime.min.replace(tzinfo=timezone.utc)
+        )
+        if current is None or (record_time, str(record.get("vintage_id") or "")) > (
+            current_time,
+            str(current.get("vintage_id") or ""),
+        ):
+            selected_by_period[key] = record
+    return sorted(
+        selected_by_period.values(),
+        key=lambda record: (record["indicator"], str(record["period_date"])),
+    )
 
 
 def _load_secrets():
@@ -258,8 +337,8 @@ def load_wide_frame(economy: str = "IN") -> pd.DataFrame:
             supabase.table("macro_timeseries")
             .select(
                 "indicator, period_date, value, source, ingested_at, provider_series, "
-                "published_at, availability_timestamp, availability_quality, vintage_id, "
-                "revision_number, metadata"
+                "provider_vintage_date, published_at, availability_timestamp, "
+                "availability_basis, availability_quality, vintage_id, revision_number, metadata"
             )
             .eq("economy", economy)
             .range(offset, offset + page_size - 1)

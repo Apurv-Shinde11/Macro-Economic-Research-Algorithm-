@@ -6,10 +6,9 @@
 -- fitting, which global_macro_cache structurally cannot provide (it upserts on
 -- economy and overwrites the previous value on every write).
 --
--- RULE: application code must only INSERT into this table. Never UPSERT, never
--- UPDATE, never delete except for an explicit, deliberate data-correction pass.
--- A silent upsert here would quietly recreate the exact history-loss bug this
--- table exists to fix.
+-- RULE: never overwrite vintages. INSERT ... ON CONFLICT DO NOTHING is allowed
+-- only for deterministic provider-vintage keys to make repeated acquisitions
+-- idempotent. Never use conflict-update behavior or delete historical rows.
 
 create table if not exists macro_timeseries (
     id            bigint generated always as identity primary key,
@@ -20,8 +19,10 @@ create table if not exists macro_timeseries (
     source        text        not null,                -- 'FRED' | 'WORLD_BANK'
     ingested_at   timestamptz not null default now(),   -- when *we* pulled it, not the period date
     provider_series text,
+    provider_vintage_date date,
     published_at  timestamptz,
     availability_timestamp timestamptz default now(),
+    availability_basis text,
     availability_quality text not null default 'INGESTION_PROXY'
         check (availability_quality in ('EXACT', 'INGESTION_PROXY', 'ESTIMATED', 'UNKNOWN')),
     vintage_id    text,
@@ -38,6 +39,12 @@ create unique index if not exists macro_timeseries_vintage_unique
         (coalesce(vintage_id, ''))
     );
 
+-- Stable provider identity supports insert-only idempotent vintage backfills.
+create unique index if not exists macro_timeseries_provider_vintage_key
+    on macro_timeseries (
+        economy, indicator, period_date, source, provider_series, vintage_id
+    );
+
 create index if not exists idx_macro_timeseries_lookup
     on macro_timeseries (economy, indicator, period_date);
 
@@ -49,4 +56,5 @@ create index if not exists idx_macro_timeseries_availability
 
 comment on table macro_timeseries is
     'Insert-only historical macro series for DFM/BVAR/spillover model training. '
-    'Never upserted. See global_macro_cache for the current-snapshot table used by the dashboard.';
+    'Provider vintage duplicates are ignored by stable identity; stored rows are never overwritten. '
+    'See global_macro_cache for the current-snapshot table used by the dashboard.';

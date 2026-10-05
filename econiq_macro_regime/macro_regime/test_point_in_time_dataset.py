@@ -235,6 +235,8 @@ def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatc
     class Query:
         def select(self, columns):
             assert "ingested_at" in columns
+            assert "provider_vintage_date" in columns
+            assert "availability_basis" in columns
             return self
 
         def eq(self, *_args):
@@ -261,6 +263,34 @@ def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatc
     assert [record["ingested_at"] for record in raw] == [
         "2024-02-01T00:00:00Z", "2024-08-01T00:00:00Z",
     ]
+
+
+def test_fred_daily_fx_vintages_are_aggregated_only_after_pit_to_monthly():
+    from econiq_macro_regime.macro_regime.fit_real_data import _aggregate_fred_daily_fx_to_monthly
+
+    records = [
+        {"indicator": "currency_inr_usd", "period_date": "2024-02-28", "value": 82.0,
+         "provider_series": "DEXINUS", "vintage_id": "feb", "availability_quality": "ESTIMATED",
+         "availability_basis": "FRED_VINTAGE_DATE", "availability_timestamp": "2024-03-01T23:59:59Z",
+         "_available_dt": datetime.fromisoformat("2024-03-01T23:59:59+00:00"),
+         "metadata": {"provider_frequency": "daily"}},
+        {"indicator": "currency_inr_usd", "period_date": "2024-03-28", "value": 83.0,
+         "provider_series": "DEXINUS", "vintage_id": "mar", "availability_quality": "ESTIMATED",
+         "availability_basis": "FRED_VINTAGE_DATE", "availability_timestamp": "2024-03-29T23:59:59Z",
+         "_available_dt": datetime.fromisoformat("2024-03-29T23:59:59+00:00"),
+         "metadata": {"provider_frequency": "daily"}},
+        {"indicator": "currency_inr_usd", "period_date": "2024-04-03", "value": 84.0,
+         "provider_series": "DEXINUS", "vintage_id": "apr", "availability_quality": "ESTIMATED",
+         "availability_basis": "FRED_VINTAGE_DATE", "availability_timestamp": "2024-04-04T23:59:59Z",
+         "_available_dt": datetime.fromisoformat("2024-04-04T23:59:59+00:00"),
+         "metadata": {"provider_frequency": "daily"}},
+    ]
+
+    monthly = _aggregate_fred_daily_fx_to_monthly(records, "2024-04-05T12:00:00Z")
+    assert [(record["period_date"], record["value"]) for record in monthly] == [
+        ("2024-02-01", 82.0), ("2024-03-01", 83.0),
+    ]
+    assert monthly[-1]["metadata"]["source_observation_date"] == "2024-03-28"
 
 
 def test_real_dfm_historical_as_of_excludes_future_observations():

@@ -3,8 +3,10 @@
 -- and their database-assigned ingested_at remains usable as an availability proxy.
 alter table macro_timeseries
     add column if not exists provider_series text,
+    add column if not exists provider_vintage_date date,
     add column if not exists published_at timestamptz,
     add column if not exists availability_timestamp timestamptz,
+    add column if not exists availability_basis text,
     add column if not exists availability_quality text not null default 'UNKNOWN',
     add column if not exists vintage_id text,
     add column if not exists revision_number integer,
@@ -45,6 +47,13 @@ create unique index if not exists macro_timeseries_vintage_unique
     on macro_timeseries (
         economy, indicator, period_date, source, ingested_at,
         (coalesce(vintage_id, ''))
+    );
+
+-- Null vintage IDs remain unconstrained for legacy/current rows. Provider
+-- vintages have stable non-null IDs and therefore conflict deterministically.
+create unique index if not exists macro_timeseries_provider_vintage_key
+    on macro_timeseries (
+        economy, indicator, period_date, source, provider_series, vintage_id
     );
 
 create index if not exists idx_macro_timeseries_availability

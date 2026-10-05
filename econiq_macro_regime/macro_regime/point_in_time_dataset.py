@@ -52,10 +52,21 @@ def _normalize_record(record: dict[str, Any]) -> dict[str, Any]:
     ingested = record.get("ingested_at")
     declared_quality = str(record.get("availability_quality") or "").upper()
     declared_timestamp = record.get("availability_timestamp")
+    metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+    availability_basis = record.get("availability_basis") or metadata.get("availability_basis")
     available_at = None
     quality = "UNKNOWN"
     if published is not None and _coerce_datetime(published) is not None:
         available_at, quality = published, "EXACT"
+    elif (
+        availability_basis == "FRED_VINTAGE_DATE"
+        and declared_quality == "ESTIMATED"
+        and _coerce_datetime(declared_timestamp) is not None
+    ):
+        # Provider vintage dates anchor historical provider information sets,
+        # even when EconIQ retrieves those vintages years later. Their date-only
+        # precision remains ESTIMATED and never becomes source publication time.
+        available_at, quality = declared_timestamp, "ESTIMATED"
     elif ingested is not None and _coerce_datetime(ingested) is not None:
         available_at, quality = ingested, "INGESTION_PROXY"
     elif declared_quality == "INGESTION_PROXY" and _coerce_datetime(declared_timestamp) is not None:

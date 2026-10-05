@@ -11,6 +11,8 @@ SECRETS_TOML_PATH at it, see below).
 Usage:
     python ingest.py --backfill          # full history, run once
     python ingest.py --append-latest     # just the newest release(s), run monthly
+    python ingest.py --fred-vintages --indicator cpi_inflation --dry-run
+    python ingest.py --fred-vintages --all-fred --dry-run
 
 This script is intentionally NOT wired into main_api.py or any request path.
 It's a standalone batch job — run it manually, via a Render cron job, or
@@ -20,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass, field
+import json
 import os
 import sys
 import tomllib
@@ -35,7 +38,7 @@ except ImportError:
     pd = None  # only needed for FRED_RESAMPLE_TO_MONTHLY series; see resample_daily_to_monthly
 
 
-def _load_secrets():
+def _load_secrets(require_supabase: bool = True):
     """
     Mirrors test_coalescing.py's own bootstrap exactly: reads
     .streamlit/secrets.toml and sets the three env vars this script needs.
@@ -62,7 +65,9 @@ def _load_secrets():
     with open(secrets_path, "rb") as f:
         secrets = tomllib.load(f)
 
-    required = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "FRED_API_KEY"]
+    required = ["FRED_API_KEY"]
+    if require_supabase:
+        required = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", *required]
     missing = [k for k in required if k not in secrets]
     if missing:
         print(f"[INGEST] secrets.toml is missing required key(s): {missing}", file=sys.stderr)
@@ -172,7 +177,7 @@ def _get_supabase():
 
 
 def fetch_fred_series(series_id: str, api_key: str) -> list[ProviderObservation]:
-    """Full history for one FRED series. Returns (period_date, value) pairs,
+    """Latest available history for one FRED series as provider observations,
     skipping FRED's '.' missing-value sentinel rather than inserting garbage."""
     resp = requests.get(
         "https://api.stlouisfed.org/fred/series/observations",
@@ -357,7 +362,53 @@ if __name__ == "__main__":
                          "FRED/WB will just return the same history again, but that's wasteful "
                          "for a monthly cron. Implement a 'only insert rows newer than MAX(period_date) "
                          "already in macro_timeseries for this indicator' query before scheduling this.")
+    parser.add_argument("--fred-vintages", action="store_true", help="Acquire historical FRED/ALFRED vintage observations.")
+    vintage_scope = parser.add_mutually_exclusive_group()
+    vintage_scope.add_argument("--indicator", choices=sorted(FRED_SERIES))
+    vintage_scope.add_argument("--series", choices=sorted(FRED_SERIES.values()))
+    vintage_scope.add_argument("--all-fred", action="store_true")
+    parser.add_argument("--dry-run", action="store_true", help="Fetch and summarize vintage rows without Supabase writes.")
+    parser.add_argument("--vintage-start", default=None, help="First vintage date to acquire (YYYY-MM-DD).")
+    parser.add_argument("--vintage-end", default=None, help="Last vintage date to acquire (YYYY-MM-DD).")
     args = parser.parse_args()
+
+    if args.fred_vintages:
+        if args.backfill or args.force or args.append_latest:
+            parser.error("--fred-vintages cannot be combined with normal ingestion modes")
+        if not (args.indicator or args.series or args.all_fred):
+            parser.error("--fred-vintages requires --indicator, --series, or --all-fred")
+        _load_secrets(require_supabase=not args.dry_run)
+        try:
+            from .fred_vintages import FredVintageError, acquire_and_persist_vintages
+        except ImportError:  # direct `python ingest.py` invocation
+            from fred_vintages import FredVintageError, acquire_and_persist_vintages
+
+        if args.all_fred:
+            selected = list(FRED_SERIES.items())
+        elif args.indicator:
+            selected = [(args.indicator, FRED_SERIES[args.indicator])]
+        else:
+            selected = [(name, sid) for name, sid in FRED_SERIES.items() if sid == args.series]
+        client = None if args.dry_run else _get_supabase()
+        reports, failures = [], []
+        for indicator, series_id in selected:
+            try:
+                reports.append(acquire_and_persist_vintages(
+                    indicator,
+                    series_id,
+                    os.environ["FRED_API_KEY"],
+                    supabase=client,
+                    dry_run=args.dry_run,
+                    vintage_start=args.vintage_start,
+                    vintage_end=args.vintage_end,
+                ))
+            except (FredVintageError, requests.RequestException, ValueError) as exc:
+                failures.append({"indicator": indicator, "series_id": series_id, "error": str(exc)})
+        print(json.dumps({"reports": reports, "failures": failures}, indent=2), flush=True)
+        sys.exit(1 if failures else 0)
+
+    if args.indicator or args.series or args.all_fred or args.dry_run or args.vintage_start or args.vintage_end:
+        parser.error("FRED vintage options require --fred-vintages")
 
     _load_secrets()
 
