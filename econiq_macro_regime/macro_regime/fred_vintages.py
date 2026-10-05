@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 import math
 import re
+import time as time_module
 from typing import Any, Callable, Iterable
 
 import requests
@@ -14,7 +15,14 @@ FRED_BASE_URL = "https://api.stlouisfed.org/fred/series"
 VINTAGE_DATE_PAGE_SIZE = 10_000
 OBSERVATION_PAGE_SIZE = 100_000
 VINTAGE_DATE_BATCH_SIZE = 100
+OBSERVATION_WINDOW_DAYS = 365
+FRED_CONNECT_TIMEOUT_SECONDS = 5
+FRED_READ_TIMEOUT_SECONDS = 30
+FRED_REQUEST_TIMEOUT = (FRED_CONNECT_TIMEOUT_SECONDS, FRED_READ_TIMEOUT_SECONDS)
+FRED_MAX_RETRIES = 2
+FRED_RETRY_BACKOFF_SECONDS = 0.25
 UPSERT_BATCH_SIZE = 500
+CHUNKED_DAILY_FRED_SERIES = {"DEXINUS"}
 FRED_VINTAGE_CONFLICT_TARGET = (
     "economy,indicator,period_date,source,provider_series,vintage_id"
 )
@@ -26,6 +34,14 @@ class FredVintageError(RuntimeError):
 
 class FredVintagePayloadError(FredVintageError):
     """Raised when FRED returns malformed or internally inconsistent data."""
+
+
+class FredVintageAcquisitionError(FredVintageError):
+    """Raised when one or more chunks prevent a complete vintage acquisition."""
+
+    def __init__(self, message: str, report: dict[str, Any]):
+        super().__init__(message)
+        self.report = report
 
 
 @dataclass(frozen=True)
@@ -55,7 +71,10 @@ def _json_response(response: Any) -> dict[str, Any]:
     try:
         response.raise_for_status()
     except requests.RequestException as exc:
-        raise FredVintageError(f"FRED request failed: {exc}") from exc
+        # Do not include the request URL in an exception: it contains api_key.
+        status = getattr(response, "status_code", None)
+        suffix = f" (HTTP {status})" if status is not None else f" ({type(exc).__name__})"
+        raise FredVintageError(f"FRED request failed{suffix}.") from None
     try:
         payload = response.json()
     except (ValueError, TypeError) as exc:
@@ -70,12 +89,58 @@ def _json_response(response: Any) -> dict[str, Any]:
     return payload
 
 
-def _get_json(get: Callable[..., Any], url: str, params: dict[str, Any]) -> dict[str, Any]:
-    try:
-        response = get(url, params=params, timeout=30)
-    except requests.RequestException as exc:
-        raise FredVintageError(f"FRED request failed: {exc}") from exc
-    return _json_response(response)
+def _get_json(
+    get: Callable[..., Any],
+    url: str,
+    params: dict[str, Any],
+    *,
+    request_stats: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """Request JSON with bounded retries for transient transport/server errors."""
+    attempts = FRED_MAX_RETRIES + 1
+    for attempt in range(attempts):
+        if request_stats is not None:
+            request_stats["requests"] = request_stats.get("requests", 0) + 1
+        try:
+            response = get(url, params=params, timeout=FRED_REQUEST_TIMEOUT)
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            if request_stats is not None:
+                request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
+                if attempt < attempts - 1:
+                    request_stats["retries"] = request_stats.get("retries", 0) + 1
+            if attempt < attempts - 1:
+                time_module.sleep(FRED_RETRY_BACKOFF_SECONDS * (2 ** attempt))
+                continue
+            raise FredVintageError(
+                f"FRED request failed after {attempts} attempts ({type(exc).__name__})."
+            ) from None
+        except requests.RequestException as exc:
+            if request_stats is not None:
+                request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
+            raise FredVintageError(
+                f"FRED request failed ({type(exc).__name__})."
+            ) from None
+
+        status = getattr(response, "status_code", None)
+        try:
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            retryable = status == 429 or (isinstance(status, int) and 500 <= status <= 599)
+            if request_stats is not None:
+                request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
+                if retryable and attempt < attempts - 1:
+                    request_stats["retries"] = request_stats.get("retries", 0) + 1
+            if retryable and attempt < attempts - 1:
+                time_module.sleep(FRED_RETRY_BACKOFF_SECONDS * (2 ** attempt))
+                continue
+            suffix = f"HTTP {status}" if status is not None else type(exc).__name__
+            raise FredVintageError(f"FRED request failed after {attempt + 1} attempt(s) ({suffix}).") from None
+
+        if request_stats is not None:
+            request_stats["successful_requests"] = request_stats.get("successful_requests", 0) + 1
+        return _json_response(response)
+
+    raise FredVintageError("FRED request failed after retry exhaustion.")
 
 
 def _parse_provider_date(value: Any, field: str) -> date:
@@ -85,6 +150,30 @@ def _parse_provider_date(value: Any, field: str) -> date:
         return date.fromisoformat(value)
     except ValueError as exc:
         raise FredVintagePayloadError(f"Invalid FRED {field}: {value!r}") from exc
+
+
+def fetch_series_observation_range(
+    series_id: str,
+    api_key: str,
+    *,
+    get: Callable[..., Any] = requests.get,
+) -> tuple[date, date]:
+    """Return the provider-declared observation bounds for a FRED series."""
+    if not api_key or not api_key.strip():
+        raise FredVintageError("A FRED API key is required for vintage acquisition.")
+    payload = _get_json(get, FRED_BASE_URL, {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+    })
+    series = payload.get("seriess")
+    if not isinstance(series, list) or len(series) != 1 or not isinstance(series[0], dict):
+        raise FredVintagePayloadError("FRED series response is missing its series metadata.")
+    start = _parse_provider_date(series[0].get("observation_start"), "observation_start")
+    end = _parse_provider_date(series[0].get("observation_end"), "observation_end")
+    if start > end:
+        raise FredVintagePayloadError("FRED observation_start is after observation_end.")
+    return start, end
 
 
 def fetch_vintage_dates(
@@ -268,13 +357,22 @@ def fetch_vintage_observations(
     vintage_dates: Iterable[date],
     *,
     vintage_batch_size: int = VINTAGE_DATE_BATCH_SIZE,
+    observation_start: str | None = None,
+    observation_end: str | None = None,
     get: Callable[..., Any] = requests.get,
+    _request_stats: dict[str, int] | None = None,
 ) -> list[FredVintageObservation]:
-    """Fetch new/revised rows for vintage dates in bounded, paginated requests."""
+    """Fetch new/revised rows, optionally bounded to observation dates."""
     if not api_key or not api_key.strip():
         raise FredVintageError("A FRED API key is required for vintage acquisition.")
     if not 1 <= vintage_batch_size <= 2_000:
         raise ValueError("vintage_batch_size must be between 1 and 2000.")
+    if observation_start:
+        _parse_provider_date(observation_start, "observation_start")
+    if observation_end:
+        _parse_provider_date(observation_end, "observation_end")
+    if observation_start and observation_end and observation_start > observation_end:
+        raise ValueError("observation_start must be on or before observation_end.")
     dates = sorted(set(vintage_dates))
     if not dates:
         return []
@@ -295,19 +393,46 @@ def fetch_vintage_observations(
                 "offset": offset,
                 "sort_order": "asc",
             }
-            payload = _get_json(get, f"{FRED_BASE_URL}/observations", params)
+            if observation_start:
+                params["observation_start"] = observation_start
+            if observation_end:
+                params["observation_end"] = observation_end
+            payload = _get_json(
+                get, f"{FRED_BASE_URL}/observations", params,
+                request_stats=_request_stats,
+            )
             page = payload.get("observations")
             if not isinstance(page, list):
                 raise FredVintagePayloadError("FRED observations response is missing observations.")
+            if _request_stats is not None:
+                _request_stats["raw_provider_rows"] = _request_stats.get("raw_provider_rows", 0) + len(page)
+                _request_stats["vintage_cells"] = _request_stats.get("vintage_cells", 0) + sum(
+                    key.startswith(f"{series_id}_") for row in page if isinstance(row, dict) for key in row
+                )
+                _request_stats["explicit_missing_cells"] = _request_stats.get("explicit_missing_cells", 0) + sum(
+                    key.startswith(f"{series_id}_") and value in (None, "", ".")
+                    for row in page if isinstance(row, dict)
+                    for key, value in row.items()
+                )
             parsed_page = [
                 observation
                 for row in page
                 for observation in _parse_observation_row(row, series_id, requested_dates)
             ]
             for observation in parsed_page:
+                if _request_stats is not None:
+                    _request_stats["parsed_observations"] = _request_stats.get("parsed_observations", 0) + 1
                 key = (observation.period_date, observation.provider_vintage_date)
                 previous = parsed_by_key.get(key)
-                if previous and previous.value != observation.value:
+                if previous is not None and _request_stats is not None:
+                    _request_stats["duplicate_logical_identities"] = (
+                        _request_stats.get("duplicate_logical_identities", 0) + 1
+                    )
+                if previous is not None and previous.value != observation.value:
+                    if _request_stats is not None:
+                        _request_stats["conflicting_logical_identities"] = (
+                            _request_stats.get("conflicting_logical_identities", 0) + 1
+                        )
                     raise FredVintagePayloadError(
                         f"Conflicting values for {key} in FRED response pages."
                     )
@@ -332,6 +457,164 @@ def fetch_vintage_observations(
         parsed_by_key.values(),
         key=lambda item: (item.period_date, item.provider_vintage_date),
     )
+
+
+def _observation_windows(start: date, end: date, window_days: int) -> list[tuple[date, date]]:
+    if window_days < 1:
+        raise ValueError("observation_window_days must be positive.")
+    windows: list[tuple[date, date]] = []
+    window_start = start
+    while window_start <= end:
+        window_end = min(end, window_start + timedelta(days=window_days - 1))
+        windows.append((window_start, window_end))
+        window_start = window_end + timedelta(days=1)
+    return windows
+
+
+def _merge_vintage_observations(
+    merged: dict[tuple[date, date], FredVintageObservation],
+    observations: Iterable[FredVintageObservation],
+    report: dict[str, Any],
+) -> None:
+    """Merge overlapping chunks by deterministic period/vintage identity."""
+    for observation in observations:
+        key = (observation.period_date, observation.provider_vintage_date)
+        previous = merged.get(key)
+        if previous is None:
+            merged[key] = observation
+            continue
+        report["duplicate_logical_identities"] += 1
+        if previous.value != observation.value:
+            report["conflicting_logical_identities"] += 1
+            raise FredVintagePayloadError(f"Conflicting values for {key} across FRED chunks.")
+        if previous != observation:
+            report["conflicting_logical_identities"] += 1
+            raise FredVintagePayloadError(f"Conflicting provenance for {key} across FRED chunks.")
+
+
+def fetch_vintage_observations_chunked(
+    series_id: str,
+    api_key: str,
+    vintage_dates: Iterable[date],
+    observation_start: date,
+    observation_end: date,
+    *,
+    vintage_batch_size: int = VINTAGE_DATE_BATCH_SIZE,
+    observation_window_days: int = OBSERVATION_WINDOW_DAYS,
+    get: Callable[..., Any] = requests.get,
+) -> tuple[list[FredVintageObservation], dict[str, Any]]:
+    """Fetch complete vintage history as bounded vintage/date-window chunks.
+
+    A failed pair of vintage batch and observation window aborts the result.
+    The attached report identifies successful and failed work; partial data is
+    never returned as a successful acquisition.
+    """
+    if not api_key or not api_key.strip():
+        raise FredVintageError("A FRED API key is required for vintage acquisition.")
+    if not 1 <= vintage_batch_size <= 2_000:
+        raise ValueError("vintage_batch_size must be between 1 and 2000.")
+    dates = sorted(set(vintage_dates))
+    if not dates:
+        return [], {
+            "complete": True,
+            "requested_vintage_date_count": 0,
+            "successfully_processed_vintage_date_count": 0,
+            "requested_observation_windows": 0,
+            "successfully_processed_observation_windows": 0,
+            "failed_chunks": [],
+            "canonical_observations": 0,
+            "duplicate_logical_identities": 0,
+            "conflicting_logical_identities": 0,
+            "requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "retries": 0,
+            "raw_provider_rows": 0,
+            "vintage_cells": 0,
+            "explicit_missing_cells": 0,
+        }
+    if observation_start > observation_end:
+        raise ValueError("observation_start must be on or before observation_end.")
+
+    windows = _observation_windows(observation_start, observation_end, observation_window_days)
+    vintage_batches = [dates[offset : offset + vintage_batch_size]
+                       for offset in range(0, len(dates), vintage_batch_size)]
+    report: dict[str, Any] = {
+        "complete": False,
+        "requested_vintage_date_count": len(dates),
+        "requested_vintage_date_range": [dates[0].isoformat(), dates[-1].isoformat()],
+        "successfully_processed_vintage_date_count": 0,
+        "requested_observation_windows": len(windows),
+        "observation_window_days": observation_window_days,
+        "successfully_processed_observation_windows": 0,
+        "failed_chunks": [],
+        "canonical_observations": 0,
+        "duplicate_logical_identities": 0,
+        "conflicting_logical_identities": 0,
+        "requests": 0,
+        "successful_requests": 0,
+        "failed_requests": 0,
+        "retries": 0,
+        "raw_provider_rows": 0,
+        "vintage_cells": 0,
+        "explicit_missing_cells": 0,
+    }
+    completed_pairs: set[tuple[int, int]] = set()
+    merged: dict[tuple[date, date], FredVintageObservation] = {}
+
+    def update_progress() -> None:
+        report["successfully_processed_observation_windows"] = sum(
+            all((batch_index, window_index) in completed_pairs
+                for batch_index in range(len(vintage_batches)))
+            for window_index in range(len(windows))
+        )
+        report["successfully_processed_vintage_date_count"] = sum(
+            len(batch)
+            for batch_index, batch in enumerate(vintage_batches)
+            if all((batch_index, window_index) in completed_pairs
+                   for window_index in range(len(windows)))
+        )
+        report["canonical_observations"] = len(merged)
+
+    for batch_index, batch in enumerate(vintage_batches):
+        for window_index, (window_start, window_end) in enumerate(windows):
+            try:
+                chunk = fetch_vintage_observations(
+                    series_id,
+                    api_key,
+                    batch,
+                    vintage_batch_size=len(batch),
+                    observation_start=window_start.isoformat(),
+                    observation_end=window_end.isoformat(),
+                    get=get,
+                    _request_stats=report,
+                )
+                _merge_vintage_observations(merged, chunk, report)
+                completed_pairs.add((batch_index, window_index))
+            except Exception as exc:
+                report["failed_chunks"].append({
+                    "vintage_date_range": [batch[0].isoformat(), batch[-1].isoformat()],
+                    "observation_start": window_start.isoformat(),
+                    "observation_end": window_end.isoformat(),
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                })
+                update_progress()
+                raise FredVintageAcquisitionError(
+                    "FRED vintage acquisition is incomplete; at least one bounded chunk failed.",
+                    report,
+                ) from exc
+    update_progress()
+    report["complete"] = (
+        not report["failed_chunks"]
+        and report["successfully_processed_vintage_date_count"] == len(dates)
+        and report["successfully_processed_observation_windows"] == len(windows)
+    )
+    if not report["complete"]:
+        raise FredVintageAcquisitionError(
+            "FRED vintage acquisition did not process every requested chunk.", report
+        )
+    return sorted(merged.values(), key=lambda item: (item.period_date, item.provider_vintage_date)), report
 
 
 def build_vintage_rows(
@@ -466,7 +749,21 @@ def acquire_and_persist_vintages(
     if not vintage_dates:
         return {"status": "empty_vintage_history", "indicator": indicator, "series_id": series_id,
                 "vintage_dates_fetched": 0, "rows_parsed": 0, "rows_submitted": 0, "dry_run": dry_run}
-    observations = fetch_vintage_observations(series_id, api_key, vintage_dates, get=get)
+    acquisition_report = None
+    if series_id in CHUNKED_DAILY_FRED_SERIES:
+        observation_start, observation_end = fetch_series_observation_range(
+            series_id, api_key, get=get
+        )
+        observations, acquisition_report = fetch_vintage_observations_chunked(
+            series_id,
+            api_key,
+            vintage_dates,
+            observation_start,
+            observation_end,
+            get=get,
+        )
+    else:
+        observations = fetch_vintage_observations(series_id, api_key, vintage_dates, get=get)
     rows = build_vintage_rows(indicator, series_id, observations)
     report = persist_vintage_rows(supabase, rows, dry_run=dry_run)
     report.update({
@@ -475,4 +772,6 @@ def acquire_and_persist_vintages(
         "series_id": series_id,
         "vintage_dates_fetched": len(vintage_dates),
     })
+    if acquisition_report is not None:
+        report["acquisition"] = acquisition_report
     return report

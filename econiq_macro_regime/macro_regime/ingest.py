@@ -403,7 +403,11 @@ if __name__ == "__main__":
                     vintage_end=args.vintage_end,
                 ))
             except (FredVintageError, requests.RequestException, ValueError) as exc:
-                failures.append({"indicator": indicator, "series_id": series_id, "error": str(exc)})
+                failure = {"indicator": indicator, "series_id": series_id, "error": str(exc)}
+                acquisition_report = getattr(exc, "report", None)
+                if acquisition_report is not None:
+                    failure["acquisition"] = acquisition_report
+                failures.append(failure)
         print(json.dumps({"reports": reports, "failures": failures}, indent=2), flush=True)
         sys.exit(1 if failures else 0)
 

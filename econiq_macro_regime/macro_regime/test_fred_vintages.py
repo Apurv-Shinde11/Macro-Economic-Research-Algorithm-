@@ -30,7 +30,7 @@ def test_vintage_dates_are_parsed_and_pagination_is_followed(monkeypatch):
 
     dates = fv.fetch_vintage_dates("TEST", "hidden-key", get=get)
     assert dates == [date(2020, 1, 15), date(2020, 2, 15), date(2020, 3, 15)]
-    assert calls == [(0, 30), (2, 30)]
+    assert calls == [(0, fv.FRED_REQUEST_TIMEOUT), (2, fv.FRED_REQUEST_TIMEOUT)]
 
 
 def test_vintage_observations_parse_versions_and_skip_fred_missing_values(monkeypatch):
@@ -292,3 +292,226 @@ def test_duplicate_provider_rows_with_conflicting_values_are_rejected():
 
     with pytest.raises(fv.FredVintagePayloadError, match="Conflicting values"):
         fv.fetch_vintage_observations("TEST", "hidden-key", [date(2020, 1, 15)], get=get)
+
+
+def test_observation_date_windows_and_vintage_batches_merge_completely():
+    dates = [date(2020, 1, 1), date(2020, 1, 3)]
+    calls = []
+
+    def get(_url, params, timeout):
+        calls.append(params)
+        row = {"date": params["observation_start"]}
+        for vintage in dates:
+            row[f"TEST_{vintage:%Y%m%d}"] = str(10 + vintage.day)
+        return _response({"count": 1, "observations": [row]})
+
+    observations, report = fv.fetch_vintage_observations_chunked(
+        "TEST", "hidden-key", dates, date(2020, 1, 1), date(2020, 1, 4),
+        vintage_batch_size=2, observation_window_days=2, get=get,
+    )
+
+    assert [(item.period_date, item.provider_vintage_date) for item in observations] == [
+        (date(2020, 1, 1), dates[0]),
+        (date(2020, 1, 1), dates[1]),
+        (date(2020, 1, 3), dates[0]),
+        (date(2020, 1, 3), dates[1]),
+    ]
+    assert len(calls) == 2
+    assert all(call["output_type"] == 3 for call in calls)
+    assert all(call["observation_start"] and call["observation_end"] for call in calls)
+    assert report["complete"] is True
+    assert report["requested_vintage_date_count"] == 2
+    assert report["successfully_processed_vintage_date_count"] == 2
+    assert report["requested_observation_windows"] == 2
+    assert report["successfully_processed_observation_windows"] == 2
+    assert report["failed_chunks"] == []
+    assert report["canonical_observations"] == 4
+
+
+def test_overlapping_chunks_deduplicate_identical_logical_observations():
+    item = fv.FredVintageObservation(
+        date(2020, 1, 2), 10.0, date(2020, 2, 1), None, None
+    )
+    report = {"duplicate_logical_identities": 0, "conflicting_logical_identities": 0}
+    merged = {}
+
+    fv._merge_vintage_observations(merged, [item], report)
+    fv._merge_vintage_observations(merged, [item], report)
+
+    assert list(merged.values()) == [item]
+    assert report["duplicate_logical_identities"] == 1
+    assert report["conflicting_logical_identities"] == 0
+
+
+def test_overlapping_chunks_with_different_values_fail():
+    first = fv.FredVintageObservation(
+        date(2020, 1, 2), 10.0, date(2020, 2, 1), None, None
+    )
+    conflicting = fv.FredVintageObservation(
+        date(2020, 1, 2), 11.0, date(2020, 2, 1), None, None
+    )
+    report = {"duplicate_logical_identities": 0, "conflicting_logical_identities": 0}
+    merged = {(first.period_date, first.provider_vintage_date): first}
+
+    with pytest.raises(fv.FredVintagePayloadError, match="Conflicting values"):
+        fv._merge_vintage_observations(merged, [conflicting], report)
+    assert report["conflicting_logical_identities"] == 1
+
+
+def test_transient_timeout_retries_and_succeeds(monkeypatch):
+    monkeypatch.setattr(fv.time_module, "sleep", lambda _seconds: None)
+    calls = []
+
+    def get(_url, params, timeout):
+        calls.append((params, timeout))
+        if len(calls) == 1:
+            raise requests.Timeout("temporary timeout")
+        return _response({"count": 1, "observations": [
+            {"date": "2020-01-02", "TEST_20200201": "10.0"}
+        ]})
+
+    stats = {}
+    parsed = fv.fetch_vintage_observations(
+        "TEST", "hidden-key", [date(2020, 2, 1)], get=get, _request_stats=stats
+    )
+
+    assert len(parsed) == 1
+    assert len(calls) == 2
+    assert stats["requests"] == 2
+    assert stats["successful_requests"] == 1
+    assert stats["failed_requests"] == 1
+    assert stats["retries"] == 1
+
+
+def test_retry_exhaustion_fails_loudly(monkeypatch):
+    monkeypatch.setattr(fv.time_module, "sleep", lambda _seconds: None)
+    calls = []
+
+    def get(*_args, **_kwargs):
+        calls.append(1)
+        raise requests.Timeout("still unavailable")
+
+    stats = {}
+    with pytest.raises(fv.FredVintageError, match="failed after 3 attempts"):
+        fv.fetch_vintage_observations(
+            "TEST", "hidden-key", [date(2020, 2, 1)], get=get, _request_stats=stats
+        )
+    assert len(calls) == 3
+    assert stats["retries"] == 2
+    assert stats["failed_requests"] == 3
+
+
+def test_failed_observation_window_cannot_report_partial_acquisition_as_complete(monkeypatch):
+    monkeypatch.setattr(fv, "FRED_MAX_RETRIES", 0)
+    monkeypatch.setattr(fv.time_module, "sleep", lambda _seconds: None)
+    calls = []
+
+    def get(_url, params, timeout):
+        calls.append(params)
+        if params["observation_start"] == "2020-01-03":
+            raise requests.Timeout("window unavailable")
+        return _response({"count": 1, "observations": [
+            {"date": "2020-01-01", "TEST_20200201": "10.0"}
+        ]})
+
+    with pytest.raises(fv.FredVintageAcquisitionError) as raised:
+        fv.fetch_vintage_observations_chunked(
+            "TEST", "hidden-key", [date(2020, 2, 1)],
+            date(2020, 1, 1), date(2020, 1, 4), observation_window_days=2, get=get,
+        )
+
+    assert len(calls) == 2
+    assert raised.value.report["complete"] is False
+    assert raised.value.report["successfully_processed_observation_windows"] == 1
+    assert raised.value.report["successfully_processed_vintage_date_count"] == 0
+    assert len(raised.value.report["failed_chunks"]) == 1
+
+
+def test_vintage_observation_date_bounds_are_sent_and_missing_cells_skipped():
+    calls = []
+
+    def get(_url, params, timeout):
+        calls.append(params)
+        return _response({"count": 1, "observations": [
+            {"date": "2020-01-02", "TEST_20200201": "."}
+        ]})
+
+    stats = {}
+    parsed = fv.fetch_vintage_observations(
+        "TEST", "hidden-key", [date(2020, 2, 1)],
+        observation_start="2020-01-01", observation_end="2020-01-31",
+        get=get, _request_stats=stats,
+    )
+
+    assert parsed == []
+    assert calls[0]["observation_start"] == "2020-01-01"
+    assert calls[0]["observation_end"] == "2020-01-31"
+    assert stats["explicit_missing_cells"] == 1
+    assert stats.get("parsed_observations", 0) == 0
+
+
+def test_series_observation_range_is_parsed_from_provider_metadata():
+    def get(_url, params, timeout):
+        assert params["series_id"] == "TEST"
+        return _response({"seriess": [{
+            "observation_start": "1973-01-02",
+            "observation_end": "2026-09-25",
+        }]})
+
+    assert fv.fetch_series_observation_range("TEST", "hidden-key", get=get) == (
+        date(1973, 1, 2), date(2026, 9, 25)
+    )
+
+
+def test_dexinus_acquisition_uses_metadata_and_complete_date_chunking():
+    calls = []
+
+    def get(url, params, timeout):
+        calls.append((url, params))
+        if url.endswith("/vintagedates"):
+            return _response({"count": 1, "vintage_dates": ["2020-02-01"]})
+        if url.endswith("/series"):
+            return _response({"seriess": [{
+                "observation_start": "2020-01-01",
+                "observation_end": "2020-12-30",
+            }]})
+        assert params["observation_start"] == "2020-01-01"
+        assert params["observation_end"] == "2020-12-30"
+        return _response({"count": 1, "observations": [
+            {"date": "2020-01-02", "DEXINUS_20200201": "73.0"}
+        ]})
+
+    report = fv.acquire_and_persist_vintages(
+        "currency_inr_usd", "DEXINUS", "hidden-key", dry_run=True, get=get,
+    )
+
+    assert report["rows_parsed"] == 1
+    assert report["rows_submitted"] == 0
+    assert report["acquisition"]["complete"] is True
+    assert report["acquisition"]["requested_vintage_date_count"] == 1
+    assert report["acquisition"]["successfully_processed_vintage_date_count"] == 1
+    assert report["acquisition"]["successfully_processed_observation_windows"] == 1
+    assert report["acquisition"]["failed_chunks"] == []
+    assert report["preview"][0]["availability_quality"] == "ESTIMATED"
+    assert len(calls) == 3
+
+
+def test_india_10y_keeps_existing_unbounded_observation_path():
+    observation_params = []
+
+    def get(url, params, timeout):
+        if url.endswith("/vintagedates"):
+            return _response({"count": 1, "vintage_dates": ["2020-01-15"]})
+        observation_params.append(params)
+        return _response({"count": 1, "observations": [
+            {"date": "2019-04-01", "INDIRLTLT01STM_20200115": "6.5"}
+        ]})
+
+    report = fv.acquire_and_persist_vintages(
+        "policy_rate", "INDIRLTLT01STM", "hidden-key", dry_run=True, get=get,
+    )
+
+    assert report["rows_parsed"] == 1
+    assert "acquisition" not in report
+    assert "observation_start" not in observation_params[0]
+    assert "observation_end" not in observation_params[0]
