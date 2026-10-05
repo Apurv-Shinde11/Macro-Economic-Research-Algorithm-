@@ -9,6 +9,8 @@ from econiq_macro_regime.macro_regime.point_in_time_dataset import build_point_i
 
 def _response(payload):
     class Response:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 
@@ -59,6 +61,79 @@ def test_vintage_observations_parse_versions_and_skip_fred_missing_values(monkey
     assert len(calls) == 2
     assert calls[0]["output_type"] == 3
     assert calls[0]["vintage_dates"] == "2020-01-15,2020-02-15,2020-03-15"
+
+
+def test_output_type_3_empty_page_with_positive_count_is_valid_sparse_result():
+    calls = []
+
+    def get(_url, params, timeout):
+        calls.append(params)
+        return _response({"count": 261, "observations": []})
+
+    stats = {}
+    parsed = fv.fetch_vintage_observations(
+        "DEXINUS", "hidden-key", [date(2016, 2, 16)],
+        observation_start="1973-01-02", observation_end="1974-01-01",
+        get=get, _request_stats=stats,
+    )
+
+    assert parsed == []
+    assert calls[0]["output_type"] == 3
+    assert stats["requests"] == 1
+    assert stats["raw_provider_rows"] == 0
+    assert stats["_last_request_diagnostic"]["reported_count"] == 261
+    assert stats["_last_request_diagnostic"]["rows_returned"] == 0
+
+
+def test_empty_type_3_chunk_completes_with_count_not_matching_returned_rows():
+    def get(_url, params, timeout):
+        return _response({"count": 261, "observations": []})
+
+    observations, report = fv.fetch_vintage_observations_chunked(
+        "DEXINUS", "hidden-key", [date(2016, 2, 16)],
+        date(1973, 1, 2), date(1974, 1, 1), get=get,
+    )
+
+    assert observations == []
+    assert report["complete"] is True
+    assert report["total_chunks"] == 1
+    assert report["completed_chunks"] == 1
+    assert report["failed_chunks"] == []
+
+
+def test_premature_short_nonempty_page_has_structured_chunk_diagnostics(monkeypatch):
+    monkeypatch.setattr(fv, "OBSERVATION_PAGE_SIZE", 2)
+
+    def get(_url, params, timeout):
+        return _response({"count": 3, "observations": [
+            {"date": "2020-01-01", "TEST_20200102": "1.0"}
+        ]})
+
+    with pytest.raises(fv.FredVintageAcquisitionError) as raised:
+        fv.fetch_vintage_observations_chunked(
+            "TEST", "hidden-key", [date(2020, 1, 2)],
+            date(2020, 1, 1), date(2020, 1, 1), get=get,
+        )
+
+    report = raised.value.report
+    assert report["complete"] is False
+    assert report["total_chunks"] == 1
+    assert report["completed_chunks"] == 0
+    failure = report["failed_chunks"][0]
+    assert failure["vintage_batch_index"] == 0
+    assert failure["vintage_batch_size"] == 1
+    assert failure["first_vintage"] == failure["last_vintage"] == "2020-01-02"
+    assert failure["observation_window_index"] == 0
+    assert failure["failed_page"]["page_number"] == 1
+    assert failure["failed_page"]["offset"] == 0
+    assert failure["failed_page"]["limit"] == 2
+    assert failure["failed_page"]["http_status"] == 200
+    assert failure["failed_page"]["reported_count"] == 3
+    assert failure["failed_page"]["rows_returned"] == 1
+    assert failure["failed_page"]["cumulative_rows"] == 1
+    assert failure["failed_page"]["retry_number"] == 1
+    assert failure["failed_page"]["request_duration_seconds"] >= 0
+    assert failure["elapsed_seconds"] >= 0
 
 
 def test_vintage_rows_preserve_fred_semantics_and_pit_selects_revision():
@@ -424,7 +499,18 @@ def test_failed_observation_window_cannot_report_partial_acquisition_as_complete
     assert raised.value.report["complete"] is False
     assert raised.value.report["successfully_processed_observation_windows"] == 1
     assert raised.value.report["successfully_processed_vintage_date_count"] == 0
+    assert raised.value.report["completed_chunks"] == 1
+    assert raised.value.report["total_chunks"] == 2
     assert len(raised.value.report["failed_chunks"]) == 1
+    failure = raised.value.report["failed_chunks"][0]
+    assert failure["vintage_batch_index"] == 0
+    assert failure["observation_window_index"] == 1
+    assert failure["failed_page"]["page_number"] == 1
+    assert failure["failed_page"]["offset"] == 0
+    assert failure["failed_page"]["limit"] == fv.OBSERVATION_PAGE_SIZE
+    assert failure["failed_page"]["retry_number"] == 1
+    assert failure["retry_count"] == 0
+    assert failure["elapsed_seconds"] >= 0
 
 
 def test_vintage_observation_date_bounds_are_sent_and_missing_cells_skipped():

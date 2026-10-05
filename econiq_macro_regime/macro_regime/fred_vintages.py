@@ -94,16 +94,46 @@ def _get_json(
     url: str,
     params: dict[str, Any],
     *,
-    request_stats: dict[str, int] | None = None,
+    request_stats: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Request JSON with bounded retries for transient transport/server errors."""
     attempts = FRED_MAX_RETRIES + 1
+
+    def record_diagnostic(
+        attempt: int,
+        started_at: float,
+        *,
+        status: Any = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        if request_stats is None:
+            return
+        chunk = request_stats.get("_chunk_context", {})
+        page = request_stats.get("_request_context", {})
+        observations = payload.get("observations") if isinstance(payload, dict) else None
+        row_count = len(observations) if isinstance(observations, list) else None
+        diagnostic = {**chunk, **page}
+        diagnostic.update({
+            "retry_number": attempt + 1,
+            "http_status": status,
+            "reported_count": payload.get("count") if isinstance(payload, dict) else None,
+            "rows_returned": row_count,
+            "cumulative_rows": (
+                page.get("cumulative_rows_before_page", 0) + row_count
+                if row_count is not None else None
+            ),
+            "request_duration_seconds": round(time_module.monotonic() - started_at, 3),
+        })
+        request_stats["_last_request_diagnostic"] = diagnostic
+
     for attempt in range(attempts):
+        started_at = time_module.monotonic()
         if request_stats is not None:
             request_stats["requests"] = request_stats.get("requests", 0) + 1
         try:
             response = get(url, params=params, timeout=FRED_REQUEST_TIMEOUT)
         except (requests.Timeout, requests.ConnectionError) as exc:
+            record_diagnostic(attempt, started_at)
             if request_stats is not None:
                 request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
                 if attempt < attempts - 1:
@@ -115,6 +145,7 @@ def _get_json(
                 f"FRED request failed after {attempts} attempts ({type(exc).__name__})."
             ) from None
         except requests.RequestException as exc:
+            record_diagnostic(attempt, started_at)
             if request_stats is not None:
                 request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
             raise FredVintageError(
@@ -125,6 +156,7 @@ def _get_json(
         try:
             response.raise_for_status()
         except requests.RequestException as exc:
+            record_diagnostic(attempt, started_at, status=status)
             retryable = status == 429 or (isinstance(status, int) and 500 <= status <= 599)
             if request_stats is not None:
                 request_stats["failed_requests"] = request_stats.get("failed_requests", 0) + 1
@@ -138,7 +170,13 @@ def _get_json(
 
         if request_stats is not None:
             request_stats["successful_requests"] = request_stats.get("successful_requests", 0) + 1
-        return _json_response(response)
+        try:
+            payload = _json_response(response)
+        except Exception:
+            record_diagnostic(attempt, started_at, status=status)
+            raise
+        record_diagnostic(attempt, started_at, status=status, payload=payload)
+        return payload
 
     raise FredVintageError("FRED request failed after retry exhaustion.")
 
@@ -360,7 +398,7 @@ def fetch_vintage_observations(
     observation_start: str | None = None,
     observation_end: str | None = None,
     get: Callable[..., Any] = requests.get,
-    _request_stats: dict[str, int] | None = None,
+    _request_stats: dict[str, Any] | None = None,
 ) -> list[FredVintageObservation]:
     """Fetch new/revised rows, optionally bounded to observation dates."""
     if not api_key or not api_key.strip():
@@ -382,6 +420,8 @@ def fetch_vintage_observations(
         batch = dates[start : start + vintage_batch_size]
         requested_dates = set(batch)
         offset = 0
+        page_number = 0
+        cumulative_rows = 0
         while True:
             params = {
                 "series_id": series_id,
@@ -397,6 +437,13 @@ def fetch_vintage_observations(
                 params["observation_start"] = observation_start
             if observation_end:
                 params["observation_end"] = observation_end
+            if _request_stats is not None:
+                _request_stats["_request_context"] = {
+                    "page_number": page_number + 1,
+                    "offset": offset,
+                    "limit": OBSERVATION_PAGE_SIZE,
+                    "cumulative_rows_before_page": cumulative_rows,
+                }
             payload = _get_json(
                 get, f"{FRED_BASE_URL}/observations", params,
                 request_stats=_request_stats,
@@ -404,6 +451,7 @@ def fetch_vintage_observations(
             page = payload.get("observations")
             if not isinstance(page, list):
                 raise FredVintagePayloadError("FRED observations response is missing observations.")
+            cumulative_rows += len(page)
             if _request_stats is not None:
                 _request_stats["raw_provider_rows"] = _request_stats.get("raw_provider_rows", 0) + len(page)
                 _request_stats["vintage_cells"] = _request_stats.get("vintage_cells", 0) + sum(
@@ -443,6 +491,15 @@ def fetch_vintage_observations(
                     total_count = int(count)
                 except (ValueError, TypeError) as exc:
                     raise FredVintagePayloadError("FRED observation count is invalid.") from exc
+                # ALFRED output type 3 is sparse: it returns only values first
+                # available or revised on the requested vintages. FRED's live
+                # response can report the underlying observation-date count
+                # even when that vintage/date intersection has no returned
+                # rows (e.g. DEXINUS count=261, observations=[]). In this mode
+                # an HTTP 200 empty page is a complete empty result, not a
+                # missing page. Do not apply the dense-row count check here.
+                if not page:
+                    break
                 if offset + len(page) >= total_count:
                     break
                 if not page or len(page) < OBSERVATION_PAGE_SIZE:
@@ -452,6 +509,7 @@ def fetch_vintage_observations(
             if not page:
                 raise FredVintagePayloadError("FRED observation pagination made no progress.")
             offset += len(page)
+            page_number += 1
 
     return sorted(
         parsed_by_key.values(),
@@ -521,6 +579,8 @@ def fetch_vintage_observations_chunked(
             "successfully_processed_vintage_date_count": 0,
             "requested_observation_windows": 0,
             "successfully_processed_observation_windows": 0,
+            "total_chunks": 0,
+            "completed_chunks": 0,
             "failed_chunks": [],
             "canonical_observations": 0,
             "duplicate_logical_identities": 0,
@@ -546,6 +606,8 @@ def fetch_vintage_observations_chunked(
         "successfully_processed_vintage_date_count": 0,
         "requested_observation_windows": len(windows),
         "observation_window_days": observation_window_days,
+        "total_chunks": len(vintage_batches) * len(windows),
+        "completed_chunks": 0,
         "successfully_processed_observation_windows": 0,
         "failed_chunks": [],
         "canonical_observations": 0,
@@ -578,6 +640,19 @@ def fetch_vintage_observations_chunked(
 
     for batch_index, batch in enumerate(vintage_batches):
         for window_index, (window_start, window_end) in enumerate(windows):
+            chunk_started_at = time_module.monotonic()
+            retries_before_chunk = report["retries"]
+            report["_chunk_context"] = {
+                "vintage_batch_index": batch_index,
+                "vintage_batch_size": len(batch),
+                "first_vintage": batch[0].isoformat(),
+                "last_vintage": batch[-1].isoformat(),
+                "observation_window_index": window_index,
+                "observation_start": window_start.isoformat(),
+                "observation_end": window_end.isoformat(),
+                "completed_chunks_before_failure": len(completed_pairs),
+                "total_chunks": report["total_chunks"],
+            }
             try:
                 chunk = fetch_vintage_observations(
                     series_id,
@@ -591,15 +666,26 @@ def fetch_vintage_observations_chunked(
                 )
                 _merge_vintage_observations(merged, chunk, report)
                 completed_pairs.add((batch_index, window_index))
+                report["completed_chunks"] = len(completed_pairs)
+                report.pop("_request_context", None)
+                report.pop("_chunk_context", None)
             except Exception as exc:
-                report["failed_chunks"].append({
+                failure = {
+                    **report.get("_chunk_context", {}),
                     "vintage_date_range": [batch[0].isoformat(), batch[-1].isoformat()],
-                    "observation_start": window_start.isoformat(),
-                    "observation_end": window_end.isoformat(),
                     "error_type": type(exc).__name__,
                     "error": str(exc),
-                })
+                    "retry_count": report["retries"] - retries_before_chunk,
+                    "elapsed_seconds": round(time_module.monotonic() - chunk_started_at, 3),
+                    "completed_chunks": len(completed_pairs),
+                    "failed_page": report.get("_last_request_diagnostic"),
+                }
+                report["failed_chunks"].append(failure)
                 update_progress()
+                report["completed_chunks"] = len(completed_pairs)
+                report.pop("_request_context", None)
+                report.pop("_chunk_context", None)
+                report.pop("_last_request_diagnostic", None)
                 raise FredVintageAcquisitionError(
                     "FRED vintage acquisition is incomplete; at least one bounded chunk failed.",
                     report,
@@ -614,6 +700,9 @@ def fetch_vintage_observations_chunked(
         raise FredVintageAcquisitionError(
             "FRED vintage acquisition did not process every requested chunk.", report
         )
+    report.pop("_request_context", None)
+    report.pop("_chunk_context", None)
+    report.pop("_last_request_diagnostic", None)
     return sorted(merged.values(), key=lambda item: (item.period_date, item.provider_vintage_date)), report
 
 
