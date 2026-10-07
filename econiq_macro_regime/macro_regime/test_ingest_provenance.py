@@ -60,3 +60,30 @@ def test_insert_rows_persists_lineage_and_does_not_invent_publication_time():
     assert row["metadata"]["provider_response"] == {"status": "observed"}
     assert "published_at" not in row
     assert "vintage_id" not in row
+
+
+def test_industrial_production_growth_current_ingestion_uses_its_fred_series():
+    inserted = []
+
+    class Query:
+        def insert(self, rows):
+            inserted.extend(rows)
+            return self
+
+        def execute(self):
+            return None
+
+    class Client:
+        def table(self, name):
+            assert name == "macro_timeseries"
+            return Query()
+
+    indicator = "industrial_production_growth"
+    series_id = "INDPRMNTO01GYSAM"
+    assert ingest.FRED_SERIES[indicator] == series_id
+    ingest.insert_rows(
+        Client(), indicator, "FRED", [ingest.ProviderObservation(date(2026, 6, 1), 7.60216)]
+    )
+    assert inserted[0]["indicator"] == indicator
+    assert inserted[0]["provider_series"] == series_id
+    assert inserted[0]["source"] == "FRED"

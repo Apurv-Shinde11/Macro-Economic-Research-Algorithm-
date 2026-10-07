@@ -120,6 +120,9 @@ TRANSFORM_REGISTRY = {
     # year ago) so ordinary seasonal export patterns don't get mistaken for
     # a regime shift. Same treatment as cpi_inflation.
     "exports_value": yoy_from_index,
+    # INDPRMNTO01GYSAM is already seasonally adjusted YoY growth, not an
+    # index level. Preserve the provider value; do not compute YoY again.
+    "industrial_production_growth": already_stationary_passthrough,
 }
 
 

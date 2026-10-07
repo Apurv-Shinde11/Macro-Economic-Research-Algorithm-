@@ -121,6 +121,10 @@ FRED_SERIES = {
     # the same month last year), same as cpi_inflation, which cancels out
     # the seasonal pattern.
     "exports_value": "VALEXPINM052N",
+    # FRED/ALFRED series INDPRMNTO01GYSAM: seasonally adjusted monthly
+    # year-over-year manufacturing production growth for India. This is
+    # already a growth rate, so DFM use must pass through unchanged.
+    "industrial_production_growth": "INDPRMNTO01GYSAM",
 }
 
 WORLD_BANK_SERIES = {

@@ -122,6 +122,16 @@ def test_stock_market_growth_routes_through_passthrough():
     assert result.tolist() == values.tolist()
 
 
+def test_industrial_production_growth_is_not_transformed_to_yoy_of_yoy():
+    value = 4.39379748743394
+    values = pd.Series([value])
+
+    result = apply_transform("industrial_production_growth", values)
+
+    assert TRANSFORM_REGISTRY["industrial_production_growth"] is already_stationary_passthrough
+    assert result.iloc[0] == value
+
+
 def test_exports_value_routes_through_yoy_from_index():
     # VALEXPINM052N is a raw not-seasonally-adjusted USD level — needs YoY,
     # not a plain MoM change, so ordinary seasonal export swings don't get

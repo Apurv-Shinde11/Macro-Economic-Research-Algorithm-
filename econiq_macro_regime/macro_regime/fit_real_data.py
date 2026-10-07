@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import sys
 import tomllib
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -119,6 +120,19 @@ REAL_DFM_INDICATOR_METADATA = {
         "release_lag": None,
         "notes": "Exports are a raw value series, but without vintage metadata there is no defensible historical publication boundary.",
     },
+    "industrial_production_growth": {
+        "indicator": "industrial_production_growth",
+        "economic_meaning": "India manufacturing production growth, already reported as seasonally adjusted year-over-year growth.",
+        "provider": "FRED",
+        "provider_series": "INDPRMNTO01GYSAM",
+        "frequency": "monthly",
+        "observation_date_semantics": "monthly observation date for manufacturing production growth",
+        "transform": "already_stationary_passthrough",
+        "availability_method": "FRED/ALFRED vintage date at date-only precision (ESTIMATED); no source publication timestamp is inferred",
+        "availability_quality": "ESTIMATED",
+        "release_lag": None,
+        "notes": "Provider values are seasonally adjusted YoY growth rates; do not apply yoy_from_index.",
+    },
 }
 
 # The database schema supplies a database-assigned ingested_at timestamp for
@@ -191,12 +205,17 @@ def prepare_real_dfm_data(
     data: pd.DataFrame | list[dict],
     as_of: str | None = None,
     indicator_metadata: dict | None = None,
+    indicators: Sequence[str] | None = None,
 ):
     """Select a strict point-in-time vintage before transforming any real DFM data."""
     if as_of is None:
         as_of = datetime.now(timezone.utc).isoformat()
     records = _as_record_list(data, indicator_metadata or REAL_DFM_INDICATOR_METADATA)
-    indicator_names = list({record["indicator"] for record in records})
+    indicator_names = (
+        list(dict.fromkeys(indicators))
+        if indicators is not None
+        else list({record["indicator"] for record in records})
+    )
     if not records:
         empty_panel = pd.DataFrame()
         return {
@@ -415,6 +434,10 @@ def transform_wide_frame(wide: pd.DataFrame) -> pd.DataFrame:
         out["exports_value"] = apply_transform(
             "exports_value", wide["exports_value"], periods_per_year=12
         )
+    if "industrial_production_growth" in wide.columns:
+        out["industrial_production_growth"] = apply_transform(
+            "industrial_production_growth", wide["industrial_production_growth"]
+        )
     return out
 
 
@@ -427,6 +450,24 @@ def transform_wide_frame(wide: pd.DataFrame) -> pd.DataFrame:
 # (harmless, may be useful for a future/different model) — it's just
 # excluded from THIS fit, not from data collection.
 EXCLUDE_FROM_DFM_FIT = {"unemployment_rate"}
+
+# The established fit remains six signals. A separate explicit panel is
+# available for the future monthly real-activity experiment; adding that
+# series to ingestion must not silently alter current production fits.
+CURRENT_DFM_FIT_INDICATORS = (
+    "cpi_inflation",
+    "gdp_growth",
+    "policy_rate",
+    "currency_inr_usd",
+    "stock_market_growth",
+    "exports_value",
+)
+FOUR_SIGNAL_EXPERIMENT_INDICATORS = (
+    "cpi_inflation",
+    "policy_rate",
+    "currency_inr_usd",
+    "industrial_production_growth",
+)
 
 
 # Known India macro stress periods, for the eyeball check — NOT ground truth
@@ -471,6 +512,7 @@ def main():
         wide,
         as_of=args.as_of,
         indicator_metadata=REAL_DFM_INDICATOR_METADATA,
+        indicators=CURRENT_DFM_FIT_INDICATORS,
     )
     print(f"[FIT] Point-in-time preparation manifest: {prepared['manifest']}")
     if prepared["warnings"]:

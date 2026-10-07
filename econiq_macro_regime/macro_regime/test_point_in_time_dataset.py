@@ -4,8 +4,13 @@ import pandas as pd
 import pytest
 
 from econiq_macro_regime.macro_regime.fit_real_data import (
+    FOUR_SIGNAL_EXPERIMENT_INDICATORS,
     REAL_DFM_INDICATOR_METADATA,
     prepare_real_dfm_data,
+)
+from econiq_macro_regime.macro_regime.fred_vintages import (
+    FredVintageObservation,
+    build_vintage_rows,
 )
 from econiq_macro_regime.macro_regime.point_in_time_dataset import (
     build_point_in_time_dataset,
@@ -217,6 +222,68 @@ def test_real_dfm_default_as_of_uses_same_pit_selector(sample_observations):
     assert prepared["manifest"]["as_of"]
     assert prepared["manifest"]["availability_quality"]["cpi_inflation"] == "INGESTION_PROXY"
     assert prepared["panel"].loc["2024-01-01", "cpi_inflation"] == 2.3
+
+
+def test_activity_vintage_revision_is_pit_selected_before_identity_transform():
+    indicator = "industrial_production_growth"
+    vintages = build_vintage_rows(
+        indicator,
+        "INDPRMNTO01GYSAM",
+        [
+            FredVintageObservation(
+                pd.Timestamp("2016-01-01").date(), 4.58331953637605,
+                pd.Timestamp("2018-07-17").date(), pd.Timestamp("2018-07-17").date(), None,
+            ),
+            FredVintageObservation(
+                pd.Timestamp("2016-01-01").date(), 4.39379748743394,
+                pd.Timestamp("2023-11-10").date(), pd.Timestamp("2023-11-10").date(), None,
+            ),
+        ],
+    )
+
+    before = prepare_real_dfm_data(
+        vintages, as_of="2023-11-10T23:59:59+00:00", indicators=[indicator]
+    )
+    after = prepare_real_dfm_data(
+        vintages, as_of="2023-11-11T00:00:00+00:00", indicators=[indicator]
+    )
+
+    assert before["manifest"]["observation_count"] == 1
+    assert before["panel"][indicator].notna().sum() == 1
+    assert before["panel"].loc["2016-01-01", indicator] == 4.58331953637605
+    assert before["transformed_panel"].loc["2016-01-01", indicator] == 4.58331953637605
+    assert before["manifest"]["excluded_future_observations"] == 1
+    assert after["manifest"]["observation_count"] == 1
+    assert after["panel"][indicator].notna().sum() == 1
+    assert after["panel"].loc["2016-01-01", indicator] == 4.39379748743394
+    assert after["transformed_panel"].loc["2016-01-01", indicator] == 4.39379748743394
+
+
+def test_four_signal_experimental_panel_can_be_selected_without_replacing_gdp():
+    period = "2024-01-01"
+    records = [
+        {"indicator": "cpi_inflation", "period_date": period, "value": 100.0,
+         "source": "FRED", "published_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "policy_rate", "period_date": period, "value": 7.0,
+         "source": "FRED", "published_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "currency_inr_usd", "period_date": period, "value": 83.0,
+         "source": "FRED", "published_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "industrial_production_growth", "period_date": period, "value": 4.39379748743394,
+         "source": "FRED", "provider_series": "INDPRMNTO01GYSAM",
+         "published_at": "2024-02-01T00:00:00Z"},
+        {"indicator": "gdp_growth", "period_date": period, "value": 6.1,
+         "source": "WORLD_BANK", "published_at": "2024-02-01T00:00:00Z"},
+    ]
+
+    prepared = prepare_real_dfm_data(
+        records,
+        as_of="2024-03-01T00:00:00Z",
+        indicators=FOUR_SIGNAL_EXPERIMENT_INDICATORS,
+    )
+
+    assert set(prepared["panel"].columns) == set(FOUR_SIGNAL_EXPERIMENT_INDICATORS)
+    assert "gdp_growth" not in prepared["panel"].columns
+    assert prepared["panel"].loc[period, "industrial_production_growth"] == 4.39379748743394
 
 
 def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatch):

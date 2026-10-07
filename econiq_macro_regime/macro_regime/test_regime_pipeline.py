@@ -74,14 +74,21 @@ def test_prepare_transformed_frame_uses_pit_selected_observations(monkeypatch):
          "source": "FRED", "published_at": "2024-02-15T00:00:00Z"},
         {"indicator": "cpi_inflation", "period_date": "2024-01-01", "value": 110.0,
          "source": "FRED", "published_at": "2024-08-30T00:00:00Z"},
+        {"indicator": "industrial_production_growth", "period_date": "2024-01-01",
+         "value": 4.39, "source": "FRED", "provider_series": "INDPRMNTO01GYSAM",
+         "published_at": "2024-02-15T00:00:00Z"},
     ]
     monkeypatch.setattr(rp, "SINCE", "2024-01-01")
     monkeypatch.setattr(rp, "load_wide_frame", lambda economy: wide)
-    monkeypatch.setattr(
-        rp,
-        "prepare_real_dfm_data",
-        lambda data: fit_real_data.prepare_real_dfm_data(data, as_of="2024-06-30T00:00:00Z"),
-    )
+    selected_indicators = {}
+
+    def prepare_current_model(data, indicators=None):
+        selected_indicators["indicators"] = indicators
+        return fit_real_data.prepare_real_dfm_data(
+            data, as_of="2024-06-30T00:00:00Z", indicators=indicators
+        )
+
+    monkeypatch.setattr(rp, "prepare_real_dfm_data", prepare_current_model)
     transformed_inputs = []
 
     def capture_transform(panel):
@@ -93,6 +100,8 @@ def test_prepare_transformed_frame_uses_pit_selected_observations(monkeypatch):
 
     assert transformed_inputs[0].loc["2024-01-01", "cpi_inflation"] == 100.0
     assert transformed.loc["2024-01-01", "cpi_inflation"] == 100.0
+    assert tuple(selected_indicators["indicators"]) == rp.CURRENT_DFM_FIT_INDICATORS
+    assert "industrial_production_growth" not in transformed.columns
 
 
 # --- run_refit -----------------------------------------------------------

@@ -35,6 +35,45 @@ def test_vintage_dates_are_parsed_and_pagination_is_followed(monkeypatch):
     assert calls == [(0, fv.FRED_REQUEST_TIMEOUT), (2, fv.FRED_REQUEST_TIMEOUT)]
 
 
+def test_industrial_production_vintage_rows_keep_canonical_provenance():
+    series_id = "INDPRMNTO01GYSAM"
+    rows = fv.build_vintage_rows(
+        "industrial_production_growth",
+        series_id,
+        [fv.FredVintageObservation(
+            date(2016, 1, 1), 4.39379748743394,
+            date(2023, 11, 10), date(2023, 11, 10), date(9999, 12, 31),
+        )],
+    )
+
+    assert rows == [{
+        "economy": "IN",
+        "indicator": "industrial_production_growth",
+        "period_date": "2016-01-01",
+        "value": 4.39379748743394,
+        "source": "FRED",
+        "provider_series": series_id,
+        "published_at": None,
+        "provider_vintage_date": "2023-11-10",
+        "vintage_id": f"FRED:{series_id}:2016-01-01:2023-11-10",
+        "revision_number": None,
+        "availability_timestamp": "2023-11-10T23:59:59.999999+00:00",
+        "availability_quality": "ESTIMATED",
+        "availability_basis": "FRED_VINTAGE_DATE",
+        "metadata": {
+            "provider": "FRED/ALFRED",
+            "provider_vintage_date": "2023-11-10",
+            "provider_realtime_start": "2023-11-10",
+            "provider_realtime_end": "9999-12-31",
+            "provider_frequency": "monthly",
+            "availability_basis": "FRED_VINTAGE_DATE",
+            "availability_precision": "date",
+            "availability_timestamp_rule": "end_of_vintage_date_UTC_conservative_day_boundary",
+            "published_at_semantics": "source_agency_publication_time_not_provided_by_FRED_vintage_date",
+        },
+    }]
+
+
 def test_vintage_observations_parse_versions_and_skip_fred_missing_values(monkeypatch):
     monkeypatch.setattr(fv, "OBSERVATION_PAGE_SIZE", 2)
     calls = []

@@ -46,6 +46,7 @@ from fit_real_data import (
     prepare_real_dfm_data,
     restrict_wide_frame_since,
     EXCLUDE_FROM_DFM_FIT,
+    CURRENT_DFM_FIT_INDICATORS,
 )
 from dfm_model import fit_dfm, nowcast
 
@@ -62,7 +63,7 @@ def _prepare_transformed_frame():
     """Load, PIT-select, then transform the validated real-data fit window."""
     wide = load_wide_frame(ECONOMY)
     wide = restrict_wide_frame_since(wide, SINCE)
-    prepared = prepare_real_dfm_data(wide)
+    prepared = prepare_real_dfm_data(wide, indicators=CURRENT_DFM_FIT_INDICATORS)
     transformed = prepared["transformed_panel"]
     if transformed.empty or transformed.dropna(how="all").empty:
         raise RuntimeError(
