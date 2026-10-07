@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Iterable, Sequence
 
 import pandas as pd
@@ -34,14 +34,46 @@ def _coerce_datetime(value: Any) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
+def _normalize_period_date(value: Any) -> str:
+    """Normalize SQL DATE and equivalent inputs to a date-only ISO string."""
+    if value is None:
+        raise ValueError("Observation period_date must be a valid calendar date.")
+    if pd.isna(value):
+        raise ValueError("Observation period_date must be a valid calendar date.")
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            raise ValueError("Observation period_date must be a valid calendar date.")
+        try:
+            return date.fromisoformat(text).isoformat()
+        except ValueError:
+            pass
+    try:
+        parsed = pd.Timestamp(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid observation period_date: {value!r}") from exc
+    if pd.isna(parsed):
+        raise ValueError("Observation period_date must be a valid calendar date.")
+    # A SQL DATE has no time zone or time-of-day semantics. Preserve the
+    # calendar date represented by the input rather than converting zones.
+    return parsed.date().isoformat()
+
+
 def _normalize_record(record: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(record)
     normalized["indicator"] = str(record.get("indicator") or "").strip()
     if not normalized["indicator"]:
         raise ValueError("Observation records require a non-empty indicator name.")
-    normalized["period_date"] = str(record.get("period_date"))
-    if not normalized["period_date"]:
-        raise ValueError(f"Observation for '{normalized['indicator']}' is missing period_date.")
+    try:
+        normalized["period_date"] = _normalize_period_date(record.get("period_date"))
+    except ValueError as exc:
+        raise ValueError(
+            f"Observation for '{normalized['indicator']}' has an invalid period_date."
+        ) from exc
     normalized["value"] = record.get("value")
     normalized["source"] = str(record.get("source") or "UNKNOWN")
 

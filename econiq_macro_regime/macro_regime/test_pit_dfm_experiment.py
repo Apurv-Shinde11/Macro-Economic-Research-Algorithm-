@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import unittest
 from unittest.mock import Mock
 import warnings
@@ -110,6 +110,20 @@ class TestMonthEndSchedule(unittest.TestCase):
 
 
 class TestPITPanel(unittest.TestCase):
+    def test_snapshot_accepts_loader_timestamps_mixed_with_iso_dates(self):
+        records = _history_records(months=120)
+        # Supabase's SQL DATE path reaches the loader as naive midnight
+        # Timestamps, while provider records elsewhere use ISO date strings.
+        records[0]["period_date"] = pd.Timestamp(records[0]["period_date"])
+        records[1]["period_date"] = datetime.fromisoformat(records[1]["period_date"])
+        records[2]["period_date"] = date.fromisoformat(records[2]["period_date"])
+
+        snapshot = build_pit_snapshot(records, "2018-07-31")
+
+        self.assertEqual(snapshot.diagnostics["as_of"], "2018-07-31T00:00:00+00:00")
+        self.assertGreater(snapshot.diagnostics["complete_rows"], 0)
+        self.assertLessEqual(snapshot.raw_panel.index.max(), pd.Timestamp("2018-07-01"))
+
     def test_future_vintage_is_excluded_and_eligible_revision_is_selected(self):
         records = [
             _available_record(ACTIVITY_SIGNAL, "2020-01-01", 1.0, "2020-02-01", vintage_id="old"),

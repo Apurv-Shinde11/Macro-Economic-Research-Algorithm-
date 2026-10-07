@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pandas as pd
 import pytest
@@ -14,6 +14,7 @@ from econiq_macro_regime.macro_regime.fred_vintages import (
     build_vintage_rows,
 )
 from econiq_macro_regime.macro_regime.point_in_time_dataset import (
+    _normalize_period_date,
     build_point_in_time_dataset,
     build_point_in_time_panel,
 )
@@ -88,6 +89,60 @@ def test_panel_preserves_ragged_edges_and_missing_values(sample_observations):
     assert panel.loc["2024-01-01", "cpi_inflation"] == 2.3
     assert panel.loc["2024-02-01", "currency_inr_usd"] == 83.5
     assert pd.isna(panel.loc["2024-03-01", "gdp_growth"])
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2018-04-01", "2018-04-01"),
+        (date(2018, 4, 1), "2018-04-01"),
+        (pd.Timestamp("2018-04-01"), "2018-04-01"),
+        (pd.Timestamp("2018-04-01 23:45:00"), "2018-04-01"),
+    ],
+)
+def test_period_dates_normalize_to_same_date_identity(value, expected):
+    assert _normalize_period_date(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2018-01-01", "2018-01-01"),
+        ("2018-01-31", "2018-01-31"),
+        ("2018-02-01", "2018-02-01"),
+        ("2018-12-31", "2018-12-31"),
+    ],
+)
+def test_period_date_normalization_preserves_month_boundaries(value, expected):
+    assert _normalize_period_date(value) == expected
+
+
+def test_mixed_loader_timestamp_and_iso_period_dates_share_pit_identity():
+    records = [
+        {
+            "indicator": "monthly_data",
+            "period_date": pd.Timestamp("2018-01-01"),
+            "value": 1.0,
+            "source": "FRED",
+            "published_at": "2018-01-15T00:00:00Z",
+        },
+        {
+            "indicator": "monthly_data",
+            "period_date": "2018-02-01",
+            "value": 2.0,
+            "source": "FRED",
+            "published_at": "2018-02-15T00:00:00Z",
+        },
+    ]
+
+    dataset = build_point_in_time_dataset(records, as_of="2018-03-01T00:00:00Z")
+    panel = build_point_in_time_panel(records, as_of="2018-03-01T00:00:00Z")
+
+    assert [row["period_date"] for row in dataset["records"]] == [
+        "2018-01-01", "2018-02-01",
+    ]
+    assert panel.loc["2018-01-01", "monthly_data"] == 1.0
+    assert panel.loc["2018-02-01", "monthly_data"] == 2.0
 
 
 def test_dataset_manifest_is_reproducible_and_clear(sample_observations):
