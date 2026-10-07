@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -309,6 +310,10 @@ def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatc
         def eq(self, *_args):
             return self
 
+        def order(self, column):
+            assert column == "id"
+            return self
+
         def range(self, *_args):
             return self
 
@@ -330,6 +335,107 @@ def test_database_loader_preserves_ingestion_timestamps_and_revisions(monkeypatc
     assert [record["ingested_at"] for record in raw] == [
         "2024-02-01T00:00:00Z", "2024-08-01T00:00:00Z",
     ]
+
+
+def test_database_loader_uses_ordered_complete_multi_page_reads(monkeypatch):
+    import econiq_macro_regime.macro_regime.fit_real_data as fit_real_data
+
+    indicators = {
+        "cpi_inflation": "INDCPIALLMINMEI",
+        "policy_rate": "INDIRLTLT01STM",
+        "industrial_production_growth": "INDPRMNTO01GYSAM",
+    }
+    rows = []
+    for row_id in range(1, 2502):
+        indicator = tuple(indicators)[(row_id - 1) % len(indicators)]
+        is_provider_vintage = row_id % 3 != 0
+        rows.append({
+            "id": row_id,
+            "indicator": indicator,
+            "period_date": pd.Timestamp("2000-01-01") + pd.DateOffset(months=row_id - 1),
+            "value": float(row_id),
+            "source": "FRED",
+            "ingested_at": f"2026-01-{(row_id % 28) + 1:02d}T00:00:00Z",
+            "provider_series": indicators[indicator] if is_provider_vintage else None,
+            "provider_vintage_date": "2026-01-01" if is_provider_vintage else None,
+            "published_at": None,
+            "availability_timestamp": "2026-01-01T23:59:59Z" if is_provider_vintage else None,
+            "availability_basis": "FRED_VINTAGE_DATE" if is_provider_vintage else None,
+            "availability_quality": "ESTIMATED" if is_provider_vintage else "UNKNOWN",
+            "vintage_id": f"vintage-{row_id}" if is_provider_vintage else None,
+            "revision_number": 0 if is_provider_vintage else None,
+            "metadata": {},
+        })
+
+    class Response:
+        def __init__(self, data):
+            self.data = data
+
+    class Query:
+        def __init__(self):
+            self.ordering = None
+            self.offset = 0
+            self.end = 0
+            self.ranges = []
+            self.events = []
+            self.page_number = 0
+
+        def select(self, columns):
+            assert "id," in columns
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def order(self, column):
+            self.events.append(("order", column))
+            self.ordering = column
+            return self
+
+        def range(self, start, end):
+            self.events.append(("range", start, end))
+            self.offset, self.end = start, end
+            self.ranges.append((start, end))
+            return self
+
+        def execute(self):
+            self.page_number += 1
+            if self.ordering == "id":
+                source = sorted(rows, key=lambda record: record["id"])
+            else:
+                # Model an unordered backend whose row order changes between
+                # requests, reproducing offset-page overlap and omission.
+                source = rows if self.page_number % 2 else list(reversed(rows))
+            return Response(source[self.offset : self.end + 1])
+
+    query = Query()
+
+    class Client:
+        def table(self, name):
+            assert name == "macro_timeseries"
+            return query
+
+    monkeypatch.setenv("SUPABASE_URL", "https://example.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-only")
+    monkeypatch.setattr(fit_real_data, "create_client", lambda *_args: Client())
+
+    wide = fit_real_data.load_wide_frame()
+    loaded = wide.attrs["raw_records"]
+
+    assert query.ordering == "id"
+    assert query.ranges == [(0, 999), (1000, 1999), (2000, 2999)]
+    assert query.events == [
+        ("order", "id"), ("range", 0, 999),
+        ("order", "id"), ("range", 1000, 1999),
+        ("order", "id"), ("range", 2000, 2999),
+    ]
+    assert [record["id"] for record in loaded] == list(range(1, 2502))
+    assert len({record["id"] for record in loaded}) == 2501
+    assert Counter(record["indicator"] for record in loaded) == Counter(
+        {"cpi_inflation": 834, "policy_rate": 834, "industrial_production_growth": 833}
+    )
+    assert sum(record["vintage_id"] is not None for record in loaded) == 1668
+    assert sum(record["vintage_id"] is None for record in loaded) == 833
 
 
 def test_fred_daily_fx_vintages_are_aggregated_only_after_pit_to_monthly():

@@ -355,11 +355,13 @@ def load_wide_frame(economy: str = "IN") -> pd.DataFrame:
         resp = (
             supabase.table("macro_timeseries")
             .select(
-                "indicator, period_date, value, source, ingested_at, provider_series, "
+                "id, indicator, period_date, value, source, ingested_at, provider_series, "
                 "provider_vintage_date, published_at, availability_timestamp, "
                 "availability_basis, availability_quality, vintage_id, revision_number, metadata"
             )
             .eq("economy", economy)
+            # Offset pages must share one stable, unique row order.
+            .order("id")
             .range(offset, offset + page_size - 1)
             .execute()
         )
